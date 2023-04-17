@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
+#include "compiler.h"
 
 
 static char* readFile(const char* path) {
@@ -39,11 +40,9 @@ int main(int argc, const char* argv[]) {
 
   char* source = readFile(path);
   printf("%s\n", source);
-  // InterpretResult result = interpret(source);
-  free(source);
 
-  //if (result == INTERPRET_COMPILE_ERROR) exit(65);
-  //if (result == INTERPRET_RUNTIME_ERROR) exit(70);
+  compile(source);
+  free(source);
 
   return 0;
 }

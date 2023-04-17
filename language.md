@@ -13,10 +13,10 @@ Define extra types composed of other types
 ## Keywords
 import, const, var, foreign, asm, type, fn, void, 
 return, true, false, uint16, int16, int8, uint8, 
-byte, flag, while, for
+byte, flag, while, for, if, else, this
 
 ## Symbols
-; , [ ] { } ( ) " . :: + / * -
+: ; , [ ] { } ( ) " . :: + / * - & | ^ && || ! = < > <= >= != ==
 
 
 Fang does not support unicode, only ASCII.

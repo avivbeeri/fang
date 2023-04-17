@@ -1,0 +1,41 @@
+#ifndef scanner_h
+#define scanner_h
+
+typedef enum {
+  // Single-character tokens.
+  TOKEN_LEFT_PAREN, TOKEN_RIGHT_PAREN,
+  TOKEN_LEFT_BRACE, TOKEN_RIGHT_BRACE,
+  TOKEN_LEFT_BRACKET, TOKEN_RIGHT_BRACKET,
+  TOKEN_COMMA, TOKEN_DOT, TOKEN_MINUS, TOKEN_PLUS,
+  TOKEN_STAR, TOKEN_SLASH, TOKEN_PERCENT, TOKEN_SEMICOLON,
+  // One or two character token
+  TOKEN_BANG, TOKEN_BANG_EQUAL,
+  TOKEN_EQUAL, TOKEN_EQUAL_EQUAL,
+  TOKEN_GREATER, TOKEN_GREATER_EQUAL,
+  TOKEN_LESS, TOKEN_LESS_EQUAL,
+
+  TOKEN_COLON, TOKEN_COLON_COLON,
+  // Literals
+  TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_NUMBER, TOKEN_TYPE_NAME,
+  // Keywords
+  TOKEN_IMPORT, TOKEN_CONST, TOKEN_VAR, TOKEN_FOREIGN,
+  TOKEN_ASM, TOKEN_TYPE, TOKEN_FN, TOKEN_VOID, TOKEN_RETURN,
+  TOKEN_FALSE, TOKEN_TRUE, TOKEN_WHILE, TOKEN_FOR,
+  TOKEN_IF, TOKEN_ELSE, TOKEN_THIS,
+
+  // Control
+  TOKEN_ERROR, TOKEN_EOF
+} TokenType;
+
+typedef struct {
+  TokenType type;
+  const char* start;
+  int length;
+  int line;
+} Token;
+
+void initScanner(const char* source);
+Token scanToken();
+
+
+#endif
