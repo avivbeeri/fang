@@ -110,8 +110,6 @@ static TokenType checkKeyword(int start, int length,
 
 static TokenType identifierType() {
   switch (scanner.start[0]) {
-    // TODO import
-
     case 'c': return checkKeyword(1, 4, "onst", TOKEN_CONST);
     case 'v':
       if (scanner.current - scanner.start > 1) {
@@ -128,7 +126,6 @@ static TokenType identifierType() {
           case 'a': return checkKeyword(2, 3, "lse", TOKEN_FALSE);
           case 'n': return TOKEN_FN;
           case 'o': return checkKeyword(2, 1, "r", TOKEN_FOR);
-          // case 'f': return checkKeyword(2, 6, "oreign", TOKEN_FOREIGN);
         }
       }
       break;
@@ -142,8 +139,22 @@ static TokenType identifierType() {
         }
       }
       break;
-    case 'e': return checkKeyword(1, 3, "lse", TOKEN_ELSE);
-    case 'i': return checkKeyword(1, 1, "f", TOKEN_IF);
+    case 'e':
+      if (scanner.current - scanner.start > 1) {
+        switch (scanner.start[1]) {
+          case 'l': return checkKeyword(2, 2, "se", TOKEN_ELSE);
+          case 'x': return checkKeyword(2, 1, "t", TOKEN_EXT);
+        }
+      }
+      break;
+    case 'i':
+      if (scanner.current - scanner.start > 1) {
+        switch (scanner.start[1]) {
+          case 'm': return checkKeyword(2, 4, "port", TOKEN_IMPORT);
+          case 'f': return TOKEN_IF;
+        }
+      }
+      break;
     case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
   }
   return TOKEN_IDENTIFIER;
@@ -205,6 +216,8 @@ Token scanToken() {
     case '+': return makeToken(TOKEN_PLUS);
     case '/': return makeToken(TOKEN_SLASH);
     case '*': return makeToken(TOKEN_STAR);
+    case '^': return makeToken(TOKEN_CARET);
+    case '~': return makeToken(TOKEN_TILDE);
     case '%': return makeToken(TOKEN_PERCENT);
     case '!':
       return makeToken(match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
