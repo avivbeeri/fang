@@ -105,7 +105,12 @@ static bool match(TokenType type) {
 static AST* variable() {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start, parser.previous.length);
-  return AST_NEW(AST_IDENTIFIER, string);
+  AST* variable = AST_NEW(AST_IDENTIFIER, string);
+  if (match(TOKEN_EQUAL)) {
+    AST* expr = expression();
+    return AST_NEW(AST_ASSIGNMENT, variable, expr);
+  }
+  return variable;
 }
 static AST* string() {
   // copy the string to memory
@@ -278,6 +283,14 @@ static void traverse(AST* ptr) {
       printf("STMT: ");
       struct AST_STMT data = ast.data.AST_STMT;
       traverse(data.node);
+      printf(";");
+      break;
+    }
+    case AST_ASSIGNMENT: {
+      struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
+      traverse(data.identifier);
+      printf(" = ");
+      traverse(data.expr);
       break;
     }
     case AST_VAR_INIT: {
@@ -302,6 +315,7 @@ static void traverse(AST* ptr) {
       printf("DECL: ");
       struct AST_DECL data = ast.data.AST_DECL;
       traverse(data.node);
+      printf(";");
       break;
     }
     case AST_LIST: {
