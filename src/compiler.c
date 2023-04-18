@@ -103,6 +103,11 @@ static bool match(TokenType type) {
   return true;
 }
 
+static AST* variable() {
+  // copy the string to memory
+  STRING* string = copyString(parser.previous.start, parser.previous.length);
+  return AST_NEW(AST_IDENTIFIER, string);
+}
 static AST* string() {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
@@ -213,7 +218,7 @@ ParseRule rules[] = {
   [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
 
   [TOKEN_EQUAL]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_IDENTIFIER]      = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_IDENTIFIER]      = {variable, NULL,   PREC_NONE},
   [TOKEN_TYPE_NAME]       = {NULL,     NULL,   PREC_NONE},
   [TOKEN_STRING]          = {string,   NULL,   PREC_NONE},
   [TOKEN_NUMBER]          = {number,   NULL,   PREC_NONE},
