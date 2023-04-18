@@ -14,8 +14,21 @@ void ast_free(AST *ptr) {
     case AST_ERROR: {
       break;
     }
+    case AST_BOOL: {
+      break;
+    }
+    case AST_IDENTIFIER: {
+      break;
+    }
+    case AST_STRING: {
+      break;
+    }
     case AST_NUMBER: {
-      // struct AST_NUMBER data = ast.data.AST_NUMBER;
+      break;
+    }
+    case AST_LITERAL: {
+      struct AST_LITERAL data = ast.data.AST_LITERAL;
+      ast_free(data.value);
       break;
     }
     case AST_UNARY: {

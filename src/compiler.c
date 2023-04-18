@@ -91,7 +91,7 @@ static void consume(TokenType type, const char* message) {
 
 static AST* number() {
   double value = strtod(parser.previous.start, NULL);
-  return AST_NEW(AST_NUMBER, value);
+  return AST_NEW(AST_LITERAL, TYPE_NUMBER, AST_NEW(AST_NUMBER, value));
 }
 
 static AST* grouping() {
@@ -216,6 +216,11 @@ static void traverse(AST* ptr) {
   switch(ast.tag) {
     case AST_ERROR: {
       printf("An error occurred in the tree");
+      break;
+    }
+    case AST_LITERAL: {
+      struct AST_LITERAL data = ast.data.AST_LITERAL;
+      traverse(data.value);
       break;
     }
     case AST_NUMBER: {
