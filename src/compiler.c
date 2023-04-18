@@ -5,7 +5,6 @@
 #include "compiler.h"
 #include "scanner.h"
 #include "ast.h"
-#include "data.h"
 #include "memory.h"
 
 

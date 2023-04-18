@@ -1,7 +1,7 @@
 #ifndef ast_h
 #define ast_h
 #include "common.h"
-#include "data.h"
+#include "memory.h"
 
 typedef struct AST AST; // Forward reference
 
@@ -50,6 +50,7 @@ struct AST {
     AST_BINARY,
     AST_VAR_DECL,
     AST_VAR_INIT,
+    AST_ASSIGNMENT,
     AST_DECL,
     AST_STMT,
     AST_LIST,
@@ -68,6 +69,7 @@ struct AST {
     struct AST_DECL { AST* node; } AST_DECL;
     struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
     struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
+    struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
     struct AST_STMT { AST* node; } AST_STMT;
     struct AST_LIST { AST* node; AST *next; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;
