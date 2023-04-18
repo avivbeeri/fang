@@ -106,6 +106,9 @@ static AST* binary(AST* left) {
   AST* right = parsePrecedence((Precedence)(rule->precedence + 1));
   switch (operatorType) {
     case TOKEN_PLUS: return AST_NEW(AST_ADD, left, right);
+    case TOKEN_STAR: return AST_NEW(AST_MUL, left, right);
+    case TOKEN_SLASH: return AST_NEW(AST_DIV, left, right);
+    case TOKEN_PERCENT: return AST_NEW(AST_MOD, left, right);
     case TOKEN_MINUS: return AST_NEW(AST_SUB, left, right);
     default: return AST_NEW(AST_ERROR, 0);
   }
@@ -139,8 +142,9 @@ ParseRule rules[] = {
   [TOKEN_MINUS]           = {unary,    binary, PREC_TERM},
   [TOKEN_PLUS]            = {NULL,     binary, PREC_TERM},
   [TOKEN_SEMICOLON]       = {NULL,     NULL,   PREC_NONE},
-  //[TOKEN_SLASH]           = {NULL,     binary, PREC_FACTOR},
-  ///[TOKEN_STAR]            = {NULL,     binary, PREC_FACTOR},
+  [TOKEN_SLASH]           = {NULL,     binary, PREC_FACTOR},
+  [TOKEN_STAR]            = {NULL,     binary, PREC_FACTOR},
+  [TOKEN_PERCENT]         = {NULL,     binary, PREC_FACTOR},
   [TOKEN_BANG]            = {NULL,     NULL,   PREC_NONE},
   [TOKEN_BANG_EQUAL]      = {NULL,     NULL,   PREC_NONE},
   [TOKEN_EQUAL]           = {NULL,     NULL,   PREC_NONE},
@@ -202,30 +206,71 @@ static void traverse(AST* ptr) {
     }
     case AST_NUMBER: {
       struct AST_NUMBER data = ast.data.AST_NUMBER;
-      printf("NUMBER(%i)\n", data.number);
+      printf("NUM(%i)", data.number);
       break;
     }
     case AST_NEG: {
       struct AST_NEG data = ast.data.AST_NEG;
-      printf("NEG(\n");
+      printf("NEG(");
       traverse(data.expr);
-      printf(")\n");
+      printf(")");
       break;
     }
     case AST_ADD: {
       struct AST_ADD data = ast.data.AST_ADD;
-      printf("ADD(\n");
+      printf("ADD(");
       traverse(data.left);
-      printf(" + \n");
+      printf(",");
       traverse(data.right);
-      printf(")\n");
+      printf(")");
+      break;
+    }
+    case AST_SUB: {
+      struct AST_SUB data = ast.data.AST_SUB;
+      printf("SUB(");
+      traverse(data.left);
+      printf(",");
+      traverse(data.right);
+      printf(")");
+      break;
+    }
+    case AST_MUL: {
+      struct AST_MUL data = ast.data.AST_MUL;
+      printf("MUL(");
+      traverse(data.left);
+      printf(",");
+      traverse(data.right);
+      printf(")");
+      break;
+    }
+    case AST_DIV: {
+      struct AST_DIV data = ast.data.AST_DIV;
+      printf("DIV(");
+      traverse(data.left);
+      printf(",");
+      traverse(data.right);
+      printf(")");
+      break;
+    }
+    case AST_MOD: {
+      struct AST_MOD data = ast.data.AST_MOD;
+      printf("MOD(");
+      traverse(data.left);
+      printf(",");
+      traverse(data.right);
+      printf(")");
       break;
     }
     default: {
-      printf("ERROR");
+      printf("\nERROR\n");
       break;
     }
   }
+}
+
+static void traverseTree(AST* ptr) {
+  traverse(ptr);
+  printf("\n");
 }
 
 bool compile(const char* source) {
@@ -236,7 +281,7 @@ bool compile(const char* source) {
   advance();
   AST* ast = expression();
   consume(TOKEN_EOF, "Expect end of expression.");
-  traverse(ast);
+  traverseTree(ast);
   ast_free(ast);
   return !parser.hadError;
 }

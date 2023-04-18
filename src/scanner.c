@@ -89,6 +89,26 @@ static void skipWhitespace() {
         if (peekNext() == '/') {
           // A comment goes until the end of the line.
           while (peek() != '\n' && !isAtEnd()) advance();
+        } else if (peekNext() == '*') {
+          // A comment goes until the final */ is found
+          uint32_t scopes = 1;
+          for (;;) {
+            if (isAtEnd()) {
+              break;
+            }
+            if (peek() == '*' && peekNext() == '/') {
+              scopes--;
+              if (scopes == 0) {
+                break;
+              }
+            }
+            advance();
+            if (peek() == '/' && peekNext() == '*') {
+              scopes++;
+            }
+          }
+          advance();
+          advance();
         } else {
           return;
         }
