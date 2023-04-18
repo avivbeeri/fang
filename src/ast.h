@@ -47,6 +47,10 @@ struct AST {
     AST_STRING,
     AST_UNARY,
     AST_BINARY,
+    AST_DECL,
+    AST_STMT,
+    AST_LIST,
+    AST_MAIN,
   } tag;
   union {
     struct AST_ERROR { int number; } AST_ERROR;
@@ -57,6 +61,10 @@ struct AST {
     struct AST_LITERAL { AST_TYPE type; AST* value; } AST_LITERAL;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
+    struct AST_DECL { AST* node; } AST_DECL;
+    struct AST_STMT { AST* node; } AST_STMT;
+    struct AST_LIST { AST* node; AST *next; } AST_LIST;
+    struct AST_MAIN { AST* body; } AST_MAIN;
   } data;
 };
 

@@ -39,6 +39,8 @@ typedef struct {
 } ParseRule;
 
 static AST* expression();
+static AST* declaration();
+static AST* statement();
 static ParseRule* getRule(TokenType type);
 static AST* parsePrecedence(Precedence precedence);
 
@@ -89,6 +91,16 @@ static void consume(TokenType type, const char* message) {
   }
 
   errorAtCurrent(message);
+}
+
+static bool check(TokenType type) {
+  return parser.current.type == type;
+}
+
+static bool match(TokenType type) {
+  if (!check(type)) return false;
+  advance();
+  return true;
 }
 
 static AST* string() {
@@ -236,10 +248,43 @@ static AST* parsePrecedence(Precedence precedence) {
 }
 
 static void traverse(AST* ptr) {
+  if (ptr == NULL) {
+    printf("NULL node\n");
+    return;
+  }
   AST ast = *ptr;
   switch(ast.tag) {
     case AST_ERROR: {
       printf("An error occurred in the tree");
+      break;
+    }
+    case AST_STMT: {
+      printf("STMT: ");
+      struct AST_STMT data = ast.data.AST_STMT;
+      traverse(data.node);
+      break;
+    }
+    case AST_DECL: {
+      printf("DECL: ");
+      struct AST_DECL data = ast.data.AST_DECL;
+      traverse(data.node);
+      break;
+    }
+    case AST_LIST: {
+      printf("We aren't meant to be in here.\n");
+      break;
+    }
+    case AST_MAIN: {
+      struct AST_MAIN data = ast.data.AST_MAIN;
+      printf("------ main --------\n");
+      AST* next = data.body;
+      while (next != NULL) {
+        struct AST_LIST list = next->data.AST_LIST;
+        traverse(list.node);
+        next = list.next;
+        printf("\n");
+      }
+      printf("------ complete --------\n");
       break;
     }
     case AST_LITERAL: {
@@ -317,6 +362,14 @@ static void traverseTree(AST* ptr) {
   printf("\n");
 }
 
+static AST* statement() {
+  return expression();
+}
+
+static AST* declaration() {
+  return AST_NEW(AST_STMT, statement());
+}
+
 void testScanner(const char* source);
 bool compile(const char* source) {
   initScanner(source);
@@ -324,7 +377,21 @@ bool compile(const char* source) {
   parser.panicMode = false;
 
   advance();
-  AST* ast = expression();
+  AST* ast = AST_NEW(AST_MAIN, NULL);
+  AST* current = ast;
+
+  while (!match(TOKEN_EOF)) {
+    AST* node = AST_NEW(AST_LIST, declaration(), NULL);
+
+    if (current->tag == AST_MAIN) {
+      printf("Loop Main\n");
+      current->data.AST_MAIN.body = node;
+    } else if (current->tag == AST_LIST) {
+      printf("Loop List\n");
+      current->data.AST_LIST.next = node;
+    }
+    current = node;
+  }
   consume(TOKEN_EOF, "Expect end of expression.");
   traverseTree(ast);
   ast_free(ast);
