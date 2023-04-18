@@ -1,6 +1,7 @@
 #ifndef ast_h
 #define ast_h
 #include "common.h"
+#include "data.h"
 
 typedef struct AST AST; // Forward reference
 
@@ -50,7 +51,7 @@ struct AST {
   union {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_NUMBER { int number; } AST_NUMBER;
-    struct AST_STRING { char* text; } AST_STRING;
+    struct AST_STRING { STRING* text; } AST_STRING;
     struct AST_IDENTIFIER { char* identifier; } AST_IDENTIFIER;
     struct AST_BOOL { bool value; } AST_BOOL;
     struct AST_LITERAL { AST_TYPE type; AST* value; } AST_LITERAL;

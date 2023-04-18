@@ -5,6 +5,8 @@
 #include "compiler.h"
 #include "scanner.h"
 #include "ast.h"
+#include "data.h"
+#include "memory.h"
 
 
 typedef struct {
@@ -87,6 +89,12 @@ static void consume(TokenType type, const char* message) {
   }
 
   errorAtCurrent(message);
+}
+
+static AST* string() {
+  // copy the string to memory
+  STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
+  return AST_NEW(AST_LITERAL, TYPE_STRING, AST_NEW(AST_STRING, string));
 }
 
 static AST* literal() {
@@ -188,7 +196,7 @@ ParseRule rules[] = {
 
   [TOKEN_EQUAL]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_IDENTIFIER]      = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_STRING]          = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_STRING]          = {string,   NULL,   PREC_NONE},
   [TOKEN_NUMBER]          = {number,   NULL,   PREC_NONE},
   [TOKEN_TRUE]            = {literal,  NULL,   PREC_NONE},
   [TOKEN_FALSE]           = {literal,  NULL,   PREC_NONE},
@@ -237,6 +245,11 @@ static void traverse(AST* ptr) {
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       traverse(data.value);
+      break;
+    }
+    case AST_STRING: {
+      struct AST_STRING data = ast.data.AST_STRING;
+      printf("\"%s\"", data.text->chars);
       break;
     }
     case AST_BOOL: {
