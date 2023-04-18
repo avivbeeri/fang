@@ -21,7 +21,7 @@ typedef enum {
 
   TOKEN_COLON, TOKEN_COLON_COLON,
   // Literals
-  TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_NUMBER, TOKEN_TYPE_NAME,
+  TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_NUMBER, TOKEN_TYPE_NAME, TOKEN_BOOL,
 
   // Keywords
   TOKEN_IMPORT, TOKEN_CONST, TOKEN_VAR, TOKEN_EXT,
@@ -42,6 +42,7 @@ typedef struct {
 
 void initScanner(const char* source);
 Token scanToken();
+const char* getTokenTypeName(TokenType name);
 
 
 #endif

@@ -115,10 +115,15 @@ static AST* string() {
 }
 
 static AST* type() {
-  consume(TOKEN_TYPE_NAME, "Expect a type name");
-  STRING* string = copyString(parser.previous.start, parser.previous.length);
-  return AST_NEW(AST_TYPE_NAME, string);
+  if (match(TOKEN_TYPE_NAME)) {
+    STRING* string = copyString(parser.previous.start, parser.previous.length);
+    return AST_NEW(AST_TYPE_NAME, string);
+  } else {
+    consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
+    STRING* string = copyString(parser.previous.start, parser.previous.length);
+    return AST_NEW(AST_IDENTIFIER, string);
 
+  }
 }
 static AST* literal() {
   switch (parser.previous.type) {
@@ -472,6 +477,7 @@ static AST* declaration() {
 
 void testScanner(const char* source);
 bool compile(const char* source) {
+  //testScanner(source);
   initScanner(source);
   parser.hadError = false;
   parser.panicMode = false;
@@ -511,7 +517,8 @@ void testScanner(const char* source) {
     } else {
       printf("   | ");
     }
-    printf("%2d '%.*s'\n", token.type, token.length, token.start);
+    const char* tokenType = getTokenTypeName(token.type);
+    printf("%s '%.*s'\n", tokenType, token.length, token.start);
 
     if (token.type == TOKEN_EOF) break;
   }
