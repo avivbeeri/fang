@@ -89,6 +89,13 @@ static void consume(TokenType type, const char* message) {
   errorAtCurrent(message);
 }
 
+static AST* literal() {
+  switch (parser.previous.type) {
+    case TOKEN_FALSE: return AST_NEW(AST_LITERAL, TYPE_BOOLEAN, AST_NEW(AST_BOOL, false));
+    case TOKEN_TRUE: return AST_NEW(AST_LITERAL, TYPE_BOOLEAN, AST_NEW(AST_BOOL, true));
+    default: return AST_NEW(AST_ERROR, 0);
+  }
+}
 static AST* number() {
   double value = strtod(parser.previous.start, NULL);
   return AST_NEW(AST_LITERAL, TYPE_NUMBER, AST_NEW(AST_NUMBER, value));
@@ -176,13 +183,13 @@ ParseRule rules[] = {
   [TOKEN_OR_OR]           = {NULL,     binary, PREC_OR},
   [TOKEN_TYPE]            = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ELSE]            = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_FALSE]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_FOR]             = {NULL,     NULL,   PREC_NONE},
   [TOKEN_FN]              = {NULL,     NULL,   PREC_NONE},
   [TOKEN_IF]              = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RETURN]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_THIS]            = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_TRUE]            = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_TRUE]            = {literal,  NULL,   PREC_NONE},
+  [TOKEN_FALSE]           = {literal,  NULL,   PREC_NONE},
   [TOKEN_VAR]             = {NULL,     NULL,   PREC_NONE},
   [TOKEN_WHILE]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ERROR]           = {NULL,     NULL,   PREC_NONE},
@@ -221,6 +228,11 @@ static void traverse(AST* ptr) {
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       traverse(data.value);
+      break;
+    }
+    case AST_BOOL: {
+      struct AST_BOOL data = ast.data.AST_BOOL;
+      printf("%s", data.value ? "true" : "false");
       break;
     }
     case AST_NUMBER: {
