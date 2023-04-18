@@ -30,10 +30,11 @@ typedef enum {
   PREC_PRIMARY
 } Precedence;
 
-typedef AST* (*ParseFn)();
+typedef AST* (*ParsePrefixFn)(bool canAssign);
+typedef AST* (*ParseInfixFn)(AST* ast);
 typedef struct {
-  ParseFn prefix;
-  ParseFn infix;
+  ParsePrefixFn prefix;
+  ParseInfixFn infix;
   Precedence precedence;
 } ParseRule;
 
@@ -102,17 +103,17 @@ static bool match(TokenType type) {
   return true;
 }
 
-static AST* variable() {
+static AST* variable(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start, parser.previous.length);
   AST* variable = AST_NEW(AST_IDENTIFIER, string);
-  if (match(TOKEN_EQUAL)) {
+  if (canAssign && match(TOKEN_EQUAL)) {
     AST* expr = expression();
     return AST_NEW(AST_ASSIGNMENT, variable, expr);
   }
   return variable;
 }
-static AST* string() {
+static AST* string(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
   return AST_NEW(AST_LITERAL, TYPE_STRING, AST_NEW(AST_STRING, string));
@@ -129,19 +130,19 @@ static AST* type() {
 
   }
 }
-static AST* literal() {
+static AST* literal(bool canAssign) {
   switch (parser.previous.type) {
     case TOKEN_FALSE: return AST_NEW(AST_LITERAL, TYPE_BOOLEAN, AST_NEW(AST_BOOL, false));
     case TOKEN_TRUE: return AST_NEW(AST_LITERAL, TYPE_BOOLEAN, AST_NEW(AST_BOOL, true));
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
-static AST* number() {
+static AST* number(bool canAssign) {
   double value = strtod(parser.previous.start, NULL);
   return AST_NEW(AST_LITERAL, TYPE_NUMBER, AST_NEW(AST_NUMBER, value));
 }
 
-static AST* grouping() {
+static AST* grouping(bool canAssign) {
   AST* expr = expression();
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
   return expr;
@@ -178,7 +179,7 @@ static AST* binary(AST* left) {
   }
 }
 
-static AST* unary() {
+static AST* unary(bool canAssign) {
   TokenType operatorType = parser.previous.type;
   AST* operand = parsePrecedence(PREC_UNARY);
   switch (operatorType) {
@@ -252,17 +253,21 @@ static ParseRule* getRule(TokenType type) {
 
 static AST* parsePrecedence(Precedence precedence) {
   advance();
-  ParseFn prefixRule = getRule(parser.previous.type)->prefix;
+  ParsePrefixFn prefixRule = getRule(parser.previous.type)->prefix;
   if (prefixRule == NULL) {
     error("Expect expression.");
     return AST_NEW(AST_ERROR, 0);
   }
 
-  AST* expr = prefixRule();
+  bool canAssign = precedence <= PREC_ASSIGNMENT;
+  AST* expr = prefixRule(canAssign);
   while (precedence <= getRule(parser.current.type)->precedence) {
     advance();
-    ParseFn infixRule = getRule(parser.previous.type)->infix;
+    ParseInfixFn infixRule = getRule(parser.previous.type)->infix;
     expr = infixRule(expr);
+  }
+  if (canAssign && match(TOKEN_EQUAL)) {
+    error("Invalid assignment target.");
   }
 
   return expr;
