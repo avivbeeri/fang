@@ -241,6 +241,10 @@ Token scanToken() {
     case '^': return makeToken(TOKEN_CARET);
     case '~': return makeToken(TOKEN_TILDE);
     case '%': return makeToken(TOKEN_PERCENT);
+    case '&':
+      return makeToken(match('&') ? TOKEN_AND_AND : TOKEN_AND);
+    case '|':
+      return makeToken(match('|') ? TOKEN_OR_OR : TOKEN_OR);
     case '!':
       return makeToken(match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
     case '=':

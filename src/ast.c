@@ -15,40 +15,16 @@ void ast_free(AST *ptr) {
       break;
     }
     case AST_NUMBER: {
-      struct AST_NUMBER data = ast.data.AST_NUMBER;
+      // struct AST_NUMBER data = ast.data.AST_NUMBER;
       break;
     }
-    case AST_NEG: {
-      struct AST_NEG data = ast.data.AST_NEG;
+    case AST_UNARY: {
+      struct AST_UNARY data = ast.data.AST_UNARY;
       ast_free(data.expr);
       break;
     }
-    case AST_ADD: {
-      struct AST_ADD data = ast.data.AST_ADD;
-      ast_free(data.left);
-      ast_free(data.right);
-      break;
-    }
-    case AST_MUL: {
-      struct AST_MUL data = ast.data.AST_MUL;
-      ast_free(data.left);
-      ast_free(data.right);
-      break;
-    }
-    case AST_MOD: {
-      struct AST_MOD data = ast.data.AST_MOD;
-      ast_free(data.left);
-      ast_free(data.right);
-      break;
-    }
-    case AST_SUB: {
-      struct AST_SUB data = ast.data.AST_SUB;
-      ast_free(data.left);
-      ast_free(data.right);
-      break;
-    }
-    case AST_DIV: {
-      struct AST_DIV data = ast.data.AST_DIV;
+    case AST_BINARY: {
+      struct AST_BINARY data = ast.data.AST_BINARY;
       ast_free(data.left);
       ast_free(data.right);
       break;

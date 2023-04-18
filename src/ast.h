@@ -3,26 +3,38 @@
 
 typedef struct AST AST; // Forward reference
 
+typedef enum AST_OP {
+  OP_ADD,
+  OP_NEG,
+  OP_SUB,
+  OP_MOD,
+  OP_DIV,
+  OP_MUL,
+  OP_AND,
+  OP_OR,
+  OP_NOT,
+  OP_GREATER,
+  OP_LESS,
+  OP_SHIFT_LEFT,
+  OP_SHIFT_RIGHT,
+  OP_BITWISE_AND,
+  OP_BITWISE_OR,
+  OP_BITWISE_XOR,
+  OP_BITWISE_NOT // do I need two nots?
+} AST_OP;
+
 struct AST {
   enum {
     AST_ERROR,
     AST_NUMBER,
-    AST_NEG,
-    AST_ADD,
-    AST_MUL,
-    AST_DIV,
-    AST_SUB,
-    AST_MOD
+    AST_UNARY,
+    AST_BINARY,
   } tag;
   union {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_NUMBER { int number; } AST_NUMBER;
-    struct AST_NEG { AST *expr; } AST_NEG;
-    struct AST_ADD { AST *left; AST *right; } AST_ADD;
-    struct AST_MUL { AST *left; AST *right; } AST_MUL;
-    struct AST_SUB { AST *left; AST *right; } AST_SUB;
-    struct AST_DIV { AST *left; AST *right; } AST_DIV;
-    struct AST_MOD { AST *left; AST *right; } AST_MOD;
+    struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
+    struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
   } data;
 };
 

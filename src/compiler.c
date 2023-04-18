@@ -21,9 +21,9 @@ typedef enum {
   PREC_AND,         // &&
   PREC_EQUALITY,    // == !=
   PREC_COMPARISON,  // < > <= >=
+  PREC_BITWISE,     // << >> ~ ^
   PREC_TERM,        // + -
   PREC_FACTOR,      // * / %
-  PREC_BITWISE,     // << >> ~ ^
   PREC_UNARY,       // ! -
   PREC_CALL,        // . ()
   PREC_PRIMARY
@@ -105,11 +105,22 @@ static AST* binary(AST* left) {
   ParseRule* rule = getRule(operatorType);
   AST* right = parsePrecedence((Precedence)(rule->precedence + 1));
   switch (operatorType) {
-    case TOKEN_PLUS: return AST_NEW(AST_ADD, left, right);
-    case TOKEN_STAR: return AST_NEW(AST_MUL, left, right);
-    case TOKEN_SLASH: return AST_NEW(AST_DIV, left, right);
-    case TOKEN_PERCENT: return AST_NEW(AST_MOD, left, right);
-    case TOKEN_MINUS: return AST_NEW(AST_SUB, left, right);
+    case TOKEN_PLUS: return AST_NEW(AST_BINARY, OP_ADD, left, right);
+    case TOKEN_MINUS: return AST_NEW(AST_BINARY, OP_SUB, left, right);
+    case TOKEN_STAR: return AST_NEW(AST_BINARY, OP_MUL, left, right);
+    case TOKEN_SLASH: return AST_NEW(AST_BINARY, OP_DIV, left, right);
+    case TOKEN_PERCENT: return AST_NEW(AST_BINARY, OP_MOD, left, right);
+
+    case TOKEN_AND: return AST_NEW(AST_BINARY, OP_BITWISE_AND, left, right);
+    case TOKEN_AND_AND: return AST_NEW(AST_BINARY, OP_AND, left, right);
+    case TOKEN_OR: return AST_NEW(AST_BINARY, OP_BITWISE_OR, left, right);
+    case TOKEN_OR_OR: return AST_NEW(AST_BINARY, OP_OR, left, right);
+
+
+    case TOKEN_GREATER: return AST_NEW(AST_BINARY, OP_GREATER, left, right);
+    case TOKEN_GREATER_GREATER: return AST_NEW(AST_BINARY, OP_SHIFT_RIGHT, left, right);
+    case TOKEN_LESS: return AST_NEW(AST_BINARY, OP_LESS, left, right);
+    case TOKEN_LESS_LESS: return AST_NEW(AST_BINARY, OP_SHIFT_LEFT, left, right);
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
@@ -118,7 +129,8 @@ static AST* unary() {
   TokenType operatorType = parser.previous.type;
   AST* operand = parsePrecedence(PREC_UNARY);
   switch (operatorType) {
-    case TOKEN_MINUS: return AST_NEW(AST_NEG, operand);
+    case TOKEN_MINUS: return AST_NEW(AST_UNARY, OP_NEG, operand);
+    case TOKEN_BANG: return AST_NEW(AST_UNARY, OP_NOT, operand);
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
@@ -133,7 +145,7 @@ ParseRule rules[] = {
   [TOKEN_RIGHT_PAREN]     = {NULL,     NULL,   PREC_NONE},
   [TOKEN_LEFT_BRACE]      = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACE]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LEFT_BRACKET]    = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_LEFT_BRACKET]    = {grouping, NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACKET]   = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COMMA]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_DOT]             = {NULL,     NULL,   PREC_NONE},
@@ -145,27 +157,29 @@ ParseRule rules[] = {
   [TOKEN_SLASH]           = {NULL,     binary, PREC_FACTOR},
   [TOKEN_STAR]            = {NULL,     binary, PREC_FACTOR},
   [TOKEN_PERCENT]         = {NULL,     binary, PREC_FACTOR},
-  [TOKEN_BANG]            = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_BANG]            = {unary,    NULL,   PREC_TERM},
   [TOKEN_BANG_EQUAL]      = {NULL,     NULL,   PREC_NONE},
   [TOKEN_EQUAL]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_EQUAL_EQUAL]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_GREATER]         = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_GREATER_EQUAL]   = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_GREATER_GREATER] = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LESS]            = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LESS_EQUAL]      = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LESS_LESS]       = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_GREATER]         = {NULL,     binary, PREC_NONE},
+  [TOKEN_GREATER_EQUAL]   = {NULL,     NULL, PREC_NONE},
+  [TOKEN_GREATER_GREATER] = {NULL,     binary, PREC_BITWISE},
+  [TOKEN_LESS]            = {NULL,     binary, PREC_NONE},
+  [TOKEN_LESS_EQUAL]      = {NULL,     NULL, PREC_NONE},
+  [TOKEN_LESS_LESS]       = {NULL,     binary, PREC_BITWISE},
   [TOKEN_IDENTIFIER]      = {NULL,     NULL,   PREC_NONE},
   [TOKEN_STRING]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_NUMBER]          = {number,   NULL,   PREC_NONE},
-  //[TOKEN_AND]             = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_AND]             = {NULL,     binary, PREC_BITWISE},
+  [TOKEN_AND_AND]         = {NULL,     binary, PREC_AND},
+  [TOKEN_OR]              = {NULL,     binary, PREC_BITWISE},
+  [TOKEN_OR_OR]           = {NULL,     binary, PREC_OR},
   [TOKEN_TYPE]            = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ELSE]            = {NULL,     NULL,   PREC_NONE},
   [TOKEN_FALSE]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_FOR]             = {NULL,     NULL,   PREC_NONE},
   [TOKEN_FN]              = {NULL,     NULL,   PREC_NONE},
   [TOKEN_IF]              = {NULL,     NULL,   PREC_NONE},
-  //[TOKEN_OR]              = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RETURN]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_THIS]            = {NULL,     NULL,   PREC_NONE},
   [TOKEN_TRUE]            = {NULL,     NULL,   PREC_NONE},
@@ -206,59 +220,44 @@ static void traverse(AST* ptr) {
     }
     case AST_NUMBER: {
       struct AST_NUMBER data = ast.data.AST_NUMBER;
-      printf("NUM(%i)", data.number);
+      printf("%i", data.number);
       break;
     }
-    case AST_NEG: {
-      struct AST_NEG data = ast.data.AST_NEG;
-      printf("NEG(");
+    case AST_UNARY: {
+      struct AST_UNARY data = ast.data.AST_UNARY;
+      char* str;
+      switch(data.op) {
+        case OP_NEG: str = "-"; break;
+        case OP_NOT: str = "!"; break;
+        default: str = "ERROR";
+      }
+      printf("( %s ", str);
       traverse(data.expr);
-      printf(")");
+      printf(" )");
       break;
     }
-    case AST_ADD: {
-      struct AST_ADD data = ast.data.AST_ADD;
-      printf("ADD(");
+    case AST_BINARY: {
+      struct AST_BINARY data = ast.data.AST_BINARY;
+      char* str;
+      switch(data.op) {
+        case OP_ADD: str = "+"; break;
+        case OP_SUB: str = "-"; break;
+        case OP_MUL: str = "*"; break;
+        case OP_DIV: str = "/"; break;
+        case OP_MOD: str = "%"; break;
+        case OP_OR: str = "||"; break;
+        case OP_AND: str = "&&"; break;
+        case OP_BITWISE_OR: str = "|"; break;
+        case OP_BITWISE_AND: str = "&"; break;
+        case OP_SHIFT_LEFT: str = "<<"; break;
+        case OP_SHIFT_RIGHT: str = ">>"; break;
+        default: str = "ERROR"; break;
+      }
+      printf("( %s ", str);
       traverse(data.left);
-      printf(",");
+      printf(", ");
       traverse(data.right);
-      printf(")");
-      break;
-    }
-    case AST_SUB: {
-      struct AST_SUB data = ast.data.AST_SUB;
-      printf("SUB(");
-      traverse(data.left);
-      printf(",");
-      traverse(data.right);
-      printf(")");
-      break;
-    }
-    case AST_MUL: {
-      struct AST_MUL data = ast.data.AST_MUL;
-      printf("MUL(");
-      traverse(data.left);
-      printf(",");
-      traverse(data.right);
-      printf(")");
-      break;
-    }
-    case AST_DIV: {
-      struct AST_DIV data = ast.data.AST_DIV;
-      printf("DIV(");
-      traverse(data.left);
-      printf(",");
-      traverse(data.right);
-      printf(")");
-      break;
-    }
-    case AST_MOD: {
-      struct AST_MOD data = ast.data.AST_MOD;
-      printf("MOD(");
-      traverse(data.left);
-      printf(",");
-      traverse(data.right);
-      printf(")");
+      printf(" )");
       break;
     }
     default: {
@@ -273,6 +272,7 @@ static void traverseTree(AST* ptr) {
   printf("\n");
 }
 
+void testScanner(const char* source);
 bool compile(const char* source) {
   initScanner(source);
   parser.hadError = false;
@@ -289,6 +289,7 @@ bool compile(const char* source) {
 void testScanner(const char* source) {
   initScanner(source);
   advance();
+
   int line = -1;
   for (;;) {
     Token token = scanToken();
