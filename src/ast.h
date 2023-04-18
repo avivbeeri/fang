@@ -28,7 +28,12 @@ typedef enum AST_OP {
   OP_BITWISE_AND,
   OP_BITWISE_OR,
   OP_BITWISE_XOR,
-  OP_BITWISE_NOT // do I need two nots?
+  OP_BITWISE_NOT, // do I need two nots?
+
+  OP_COMPARE_EQUAL,
+  OP_NOT_EQUAL,
+  OP_GREATER_EQUAL,
+  OP_LESS_EQUAL,
 } AST_OP;
 
 struct AST {

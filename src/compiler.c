@@ -128,6 +128,12 @@ static AST* binary(AST* left) {
     case TOKEN_GREATER_GREATER: return AST_NEW(AST_BINARY, OP_SHIFT_RIGHT, left, right);
     case TOKEN_LESS: return AST_NEW(AST_BINARY, OP_LESS, left, right);
     case TOKEN_LESS_LESS: return AST_NEW(AST_BINARY, OP_SHIFT_LEFT, left, right);
+
+    case TOKEN_EQUAL_EQUAL: return AST_NEW(AST_BINARY, OP_COMPARE_EQUAL, left, right);
+    case TOKEN_BANG_EQUAL: return AST_NEW(AST_BINARY, OP_NOT_EQUAL, left, right);
+    case TOKEN_GREATER_EQUAL: return AST_NEW(AST_BINARY, OP_GREATER_EQUAL, left, right);
+    case TOKEN_LESS_EQUAL: return AST_NEW(AST_BINARY, OP_LESS_EQUAL, left, right);
+
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
@@ -154,10 +160,7 @@ ParseRule rules[] = {
   [TOKEN_RIGHT_BRACE]     = {NULL,     NULL,   PREC_NONE},
   [TOKEN_LEFT_BRACKET]    = {grouping, NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACKET]   = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_COMMA]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_DOT]             = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
+
   [TOKEN_MINUS]           = {unary,    binary, PREC_TERM},
   [TOKEN_PLUS]            = {NULL,     binary, PREC_TERM},
   [TOKEN_SEMICOLON]       = {NULL,     NULL,   PREC_NONE},
@@ -165,22 +168,30 @@ ParseRule rules[] = {
   [TOKEN_STAR]            = {NULL,     binary, PREC_FACTOR},
   [TOKEN_PERCENT]         = {NULL,     binary, PREC_FACTOR},
   [TOKEN_BANG]            = {unary,    NULL,   PREC_TERM},
-  [TOKEN_BANG_EQUAL]      = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_EQUAL]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_EQUAL_EQUAL]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_GREATER]         = {NULL,     binary, PREC_NONE},
-  [TOKEN_GREATER_EQUAL]   = {NULL,     NULL, PREC_NONE},
+  [TOKEN_BANG_EQUAL]      = {NULL,     binary, PREC_EQUALITY},
+  [TOKEN_EQUAL_EQUAL]     = {NULL,     binary, PREC_COMPARISON},
+  [TOKEN_GREATER_EQUAL]   = {NULL,     binary, PREC_COMPARISON},
+  [TOKEN_LESS]            = {NULL,     binary, PREC_COMPARISON},
+  [TOKEN_LESS_EQUAL]      = {NULL,     binary, PREC_COMPARISON},
+  [TOKEN_GREATER]         = {NULL,     binary, PREC_COMPARISON},
   [TOKEN_GREATER_GREATER] = {NULL,     binary, PREC_BITWISE},
-  [TOKEN_LESS]            = {NULL,     binary, PREC_NONE},
-  [TOKEN_LESS_EQUAL]      = {NULL,     NULL, PREC_NONE},
   [TOKEN_LESS_LESS]       = {NULL,     binary, PREC_BITWISE},
-  [TOKEN_IDENTIFIER]      = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_STRING]          = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_NUMBER]          = {number,   NULL,   PREC_NONE},
   [TOKEN_AND]             = {NULL,     binary, PREC_BITWISE},
   [TOKEN_AND_AND]         = {NULL,     binary, PREC_AND},
   [TOKEN_OR]              = {NULL,     binary, PREC_BITWISE},
   [TOKEN_OR_OR]           = {NULL,     binary, PREC_OR},
+
+  [TOKEN_COMMA]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_DOT]             = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
+
+  [TOKEN_EQUAL]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_IDENTIFIER]      = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_STRING]          = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_NUMBER]          = {number,   NULL,   PREC_NONE},
+  [TOKEN_TRUE]            = {literal,  NULL,   PREC_NONE},
+  [TOKEN_FALSE]           = {literal,  NULL,   PREC_NONE},
   [TOKEN_TYPE]            = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ELSE]            = {NULL,     NULL,   PREC_NONE},
   [TOKEN_FOR]             = {NULL,     NULL,   PREC_NONE},
@@ -188,8 +199,6 @@ ParseRule rules[] = {
   [TOKEN_IF]              = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RETURN]          = {NULL,     NULL,   PREC_NONE},
   [TOKEN_THIS]            = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_TRUE]            = {literal,  NULL,   PREC_NONE},
-  [TOKEN_FALSE]           = {literal,  NULL,   PREC_NONE},
   [TOKEN_VAR]             = {NULL,     NULL,   PREC_NONE},
   [TOKEN_WHILE]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ERROR]           = {NULL,     NULL,   PREC_NONE},
@@ -246,7 +255,7 @@ static void traverse(AST* ptr) {
       switch(data.op) {
         case OP_NEG: str = "-"; break;
         case OP_NOT: str = "!"; break;
-        default: str = "ERROR";
+        default: str = "MISSING";
       }
       printf("( %s ", str);
       traverse(data.expr);
@@ -268,7 +277,13 @@ static void traverse(AST* ptr) {
         case OP_BITWISE_AND: str = "&"; break;
         case OP_SHIFT_LEFT: str = "<<"; break;
         case OP_SHIFT_RIGHT: str = ">>"; break;
-        default: str = "ERROR"; break;
+        case OP_COMPARE_EQUAL: str = "=="; break;
+        case OP_NOT_EQUAL: str = "!="; break;
+        case OP_GREATER_EQUAL: str = ">="; break;
+        case OP_LESS_EQUAL: str = "<="; break;
+        case OP_GREATER: str = ">"; break;
+        case OP_LESS: str = "<"; break;
+        default: str = "MISSING"; break;
       }
       printf("( %s ", str);
       traverse(data.left);
