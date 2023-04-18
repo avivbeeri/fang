@@ -1,2 +1,2 @@
-"hello" != "world"
-1 + 4
+var test: string = "Hello world";
+var newtest: uint8;

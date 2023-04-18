@@ -109,6 +109,12 @@ static AST* string() {
   return AST_NEW(AST_LITERAL, TYPE_STRING, AST_NEW(AST_STRING, string));
 }
 
+static AST* type() {
+  consume(TOKEN_TYPE_NAME, "Expect a type name");
+  STRING* string = copyString(parser.previous.start, parser.previous.length);
+  return AST_NEW(AST_TYPE_NAME, string);
+
+}
 static AST* literal() {
   switch (parser.previous.type) {
     case TOKEN_FALSE: return AST_NEW(AST_LITERAL, TYPE_BOOLEAN, AST_NEW(AST_BOOL, false));
@@ -208,6 +214,7 @@ ParseRule rules[] = {
 
   [TOKEN_EQUAL]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_IDENTIFIER]      = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_TYPE_NAME]       = {NULL,     NULL,   PREC_NONE},
   [TOKEN_STRING]          = {string,   NULL,   PREC_NONE},
   [TOKEN_NUMBER]          = {number,   NULL,   PREC_NONE},
   [TOKEN_TRUE]            = {literal,  NULL,   PREC_NONE},
@@ -264,6 +271,24 @@ static void traverse(AST* ptr) {
       traverse(data.node);
       break;
     }
+    case AST_VAR_INIT: {
+      struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
+      printf("var ");
+      traverse(data.identifier);
+      printf(": ");
+      traverse(data.type);
+      printf(" = ");
+      traverse(data.expr);
+      break;
+    }
+    case AST_VAR_DECL: {
+      struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
+      printf("var ");
+      traverse(data.identifier);
+      printf(": ");
+      traverse(data.type);
+      break;
+    }
     case AST_DECL: {
       printf("DECL: ");
       struct AST_DECL data = ast.data.AST_DECL;
@@ -290,6 +315,16 @@ static void traverse(AST* ptr) {
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       traverse(data.value);
+      break;
+    }
+    case AST_TYPE_NAME: {
+      struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
+      printf("%s", data.typeName->chars);
+      break;
+    }
+    case AST_IDENTIFIER: {
+      struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+      printf("%s", data.identifier->chars);
       break;
     }
     case AST_STRING: {
@@ -362,12 +397,72 @@ static void traverseTree(AST* ptr) {
   printf("\n");
 }
 
+static void synchronize() {
+  parser.panicMode = false;
+
+  while (parser.current.type != TOKEN_EOF) {
+    if (parser.previous.type == TOKEN_SEMICOLON) return;
+    switch (parser.current.type) {
+      case TOKEN_TYPE:
+      case TOKEN_FN:
+      case TOKEN_VAR:
+      case TOKEN_FOR:
+      case TOKEN_IF:
+      case TOKEN_WHILE:
+      case TOKEN_RETURN:
+        return;
+
+      default:
+        ; // Do nothing.
+    }
+
+    advance();
+  }
+}
+
 static AST* statement() {
-  return expression();
+  AST* expr = expression();
+  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  return expr;
+}
+
+static AST* parseVariable(const char* errorMessage) {
+  consume(TOKEN_IDENTIFIER, errorMessage);
+  return AST_NEW(AST_IDENTIFIER, copyString(parser.previous.start, parser.previous.length));
+}
+
+static void defineVariable(STRING* id) {
+  // ??
+
+}
+
+static AST* varDecl() {
+  AST* global = parseVariable("Expect variable name");
+  consume(TOKEN_COLON, "Expect ':' after identifier.");
+  AST* varType = type();
+
+  AST* decl = NULL;
+  if (match(TOKEN_EQUAL)) {
+    AST* value = expression();
+    decl = AST_NEW(AST_VAR_INIT, global, varType, value);
+  } else {
+    decl = AST_NEW(AST_VAR_DECL, global, varType);
+  }
+  defineVariable(global->data.AST_IDENTIFIER.identifier);
+
+  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  return decl;
 }
 
 static AST* declaration() {
-  return AST_NEW(AST_STMT, statement());
+  AST* decl = NULL;
+  if (match(TOKEN_VAR)) {
+    decl = AST_NEW(AST_DECL, varDecl());
+  } else {
+    decl = AST_NEW(AST_STMT, statement());
+  }
+  if (parser.panicMode) synchronize();
+  return decl;
 }
 
 void testScanner(const char* source);
@@ -384,16 +479,16 @@ bool compile(const char* source) {
     AST* node = AST_NEW(AST_LIST, declaration(), NULL);
 
     if (current->tag == AST_MAIN) {
-      printf("Loop Main\n");
       current->data.AST_MAIN.body = node;
     } else if (current->tag == AST_LIST) {
-      printf("Loop List\n");
       current->data.AST_LIST.next = node;
     }
     current = node;
   }
   consume(TOKEN_EOF, "Expect end of expression.");
-  traverseTree(ast);
+  if (!parser.hadError) {
+    traverseTree(ast);
+  }
   ast_free(ast);
   return !parser.hadError;
 }

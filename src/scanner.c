@@ -96,6 +96,9 @@ static void skipWhitespace() {
             if (isAtEnd()) {
               break;
             }
+            if (peek() == '\n') {
+              scanner.line++;
+            }
             if (peek() == '*' && peekNext() == '/') {
               scopes--;
               if (scopes == 0) {
@@ -126,6 +129,42 @@ static TokenType checkKeyword(int start, int length,
     return type;
   }
 
+  return TOKEN_IDENTIFIER;
+}
+
+static TokenType checkTypeKeyword() {
+  switch (scanner.start[0]) {
+    case 'b':
+      if (checkKeyword(1, 3, "ool", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+        return TOKEN_TYPE_NAME;
+      }
+      break;
+    case 's':
+      if (checkKeyword(1, 5, "tring", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+        return TOKEN_TYPE_NAME;
+      }
+      break;
+    case 'u':
+      if (scanner.current - scanner.start > 1) {
+        if (checkKeyword(1, 4, "int8", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+          return TOKEN_TYPE_NAME;
+        }
+        if (checkKeyword(1, 5, "int16", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+          return TOKEN_TYPE_NAME;
+        }
+      }
+      break;
+    case 'i':
+      if (scanner.current - scanner.start > 1) {
+        if (checkKeyword(1, 3, "nt8", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+          return TOKEN_TYPE_NAME;
+        }
+        if (checkKeyword(1, 4, "nt16", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+          return TOKEN_TYPE_NAME;
+        }
+      }
+      break;
+  }
   return TOKEN_IDENTIFIER;
 }
 
@@ -179,8 +218,13 @@ static TokenType identifierType() {
       }
       break;
   }
-  return TOKEN_IDENTIFIER;
+
+  TokenType token = checkTypeKeyword();
+
+  return token;
+  //return TOKEN_IDENTIFIER;
 }
+
 
 static Token identifier() {
   while (isAlpha(peek()) || isDigit(peek())) advance();

@@ -44,9 +44,12 @@ struct AST {
     AST_NUMBER,
     AST_BOOL,
     AST_IDENTIFIER,
+    AST_TYPE_NAME,
     AST_STRING,
     AST_UNARY,
     AST_BINARY,
+    AST_VAR_DECL,
+    AST_VAR_INIT,
     AST_DECL,
     AST_STMT,
     AST_LIST,
@@ -56,12 +59,15 @@ struct AST {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_NUMBER { int number; } AST_NUMBER;
     struct AST_STRING { STRING* text; } AST_STRING;
-    struct AST_IDENTIFIER { char* identifier; } AST_IDENTIFIER;
+    struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
+    struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
     struct AST_BOOL { bool value; } AST_BOOL;
     struct AST_LITERAL { AST_TYPE type; AST* value; } AST_LITERAL;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
     struct AST_DECL { AST* node; } AST_DECL;
+    struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
+    struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
     struct AST_STMT { AST* node; } AST_STMT;
     struct AST_LIST { AST* node; AST *next; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;
