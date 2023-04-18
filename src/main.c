@@ -39,7 +39,6 @@ int main(int argc, const char* argv[]) {
   }
 
   char* source = readFile(path);
-  printf("%s\n", source);
 
   compile(source);
   free(source);
