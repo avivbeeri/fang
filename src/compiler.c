@@ -190,13 +190,37 @@ static AST* unary(bool canAssign) {
   }
 }
 
+static AST* argumentList() {
+  if (!check(TOKEN_RIGHT_PAREN)) {
+    AST* list = NULL;
+    AST* node = NULL;
+    do {
+      AST* newNode = AST_NEW(AST_PARAM_LIST, expression(), NULL);
+      if (node != NULL) {
+        node->data.AST_PARAM_LIST.next = newNode;
+      } else {
+        list = newNode;
+      }
+      node = newNode;
+    } while (match(TOKEN_COMMA));
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
+    return list;
+  }
+  return NULL;
+}
+
+static AST* call(AST* left) {
+  AST* params = argumentList();
+  return AST_NEW(AST_CALL, left, params);
+}
+
 static AST* expression() {
   return parsePrecedence(PREC_ASSIGNMENT);
 }
 
 
 ParseRule rules[] = {
-  [TOKEN_LEFT_PAREN]      = {grouping, NULL,   PREC_NONE},
+  [TOKEN_LEFT_PAREN]      = {grouping, call,   PREC_CALL},
   [TOKEN_RIGHT_PAREN]     = {NULL,     NULL,   PREC_NONE},
   [TOKEN_LEFT_BRACE]      = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACE]     = {NULL,     NULL,   PREC_NONE},
@@ -279,6 +303,7 @@ static void traverse(AST* ptr, int level) {
     return;
   }
   AST ast = *ptr;
+  //printf("%s\n", getNodeTypeName(ast.tag));
   switch(ast.tag) {
     case AST_ERROR: {
       printf("An error occurred in the tree");
@@ -365,6 +390,7 @@ static void traverse(AST* ptr, int level) {
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;
       traverse(data.node, level);
+      printf("\n");
       break;
     }
     case AST_FN: {
@@ -381,13 +407,49 @@ static void traverse(AST* ptr, int level) {
       printf("}");
       break;
     }
+    case AST_CALL: {
+      struct AST_CALL data = ast.data.AST_CALL;
+      traverse(data.identifier, 0);
+      printf("(");
+      traverse(data.arguments, 0);
+      printf(")");
+      break;
+    }
+    case AST_RETURN: {
+      struct AST_RETURN data = ast.data.AST_RETURN;
+      printf("return ");
+      if (data.value != NULL) {
+        traverse(data.value, 0);
+      }
+      printf(";");
+      break;
+    }
+    case AST_PARAM: {
+      struct AST_PARAM data = ast.data.AST_PARAM;
+      traverse(data.identifier, 0);
+      printf(": ");
+      traverse(data.type, 0);
+      break;
+    }
+    case AST_PARAM_LIST: {
+      AST* next = ptr;
+      while (next != NULL) {
+        struct AST_PARAM_LIST data = next->data.AST_PARAM_LIST;
+        traverse(data.node, 0);
+        next = data.next;
+        if (next != NULL) {
+          printf(", ");
+        }
+      }
+      break;
+    }
     case AST_LIST: {
       AST* next = ptr;
       while (next != NULL) {
         struct AST_LIST data = next->data.AST_LIST;
         traverse(data.node, level);
         next = data.next;
-        printf("\n");
+        // printf("\n");
       }
       break;
     }
@@ -552,7 +614,28 @@ static AST* fnDecl() {
   AST* identifier = parseVariable("Expect function identifier");
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
   // Parameters
+  size_t arity = 0;
   AST* params = NULL;
+  if (!check(TOKEN_RIGHT_PAREN)) {
+    // params = AST_NEW(AST_LIST, NULL);
+    AST* node = NULL;
+    do {
+      arity++;
+      // TODO: Fix a maximum number of parameters here
+      AST* identifier = parseVariable("Expect parameter name.");
+      consume(TOKEN_COLON, "Expect ':' after parameter name.");
+      AST* typeName = type();
+      AST* param = AST_NEW(AST_PARAM, identifier, typeName);
+
+      AST* newNode = AST_NEW(AST_PARAM_LIST, param, NULL);
+      if (node != NULL) {
+        node->data.AST_PARAM_LIST.next = newNode;
+      } else {
+        params = newNode;
+      }
+      node = newNode;
+    } while (match(TOKEN_COMMA));
+  }
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
   return AST_NEW(AST_FN, identifier, params, block());
@@ -621,6 +704,17 @@ static AST* forStatement() {
   return AST_NEW(AST_FOR, initializer, condition, increment, body);
 }
 
+static AST* returnStatement() {
+  AST* expr = NULL;
+  if (match(TOKEN_SEMICOLON)) {
+    // No return value
+  } else {
+    expr = expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+  }
+  return AST_NEW(AST_RETURN, expr);
+}
+
 static AST* statement() {
   AST* expr = NULL;
   if (match(TOKEN_LEFT_BRACE)) {
@@ -631,6 +725,8 @@ static AST* statement() {
     expr = ifStatement();
   } else if (match(TOKEN_FOR)) {
     expr = forStatement();
+  } else if (match(TOKEN_RETURN)) {
+    expr = returnStatement();
   } else if (match(TOKEN_WHILE)) {
     expr = whileStatement();
   } else {

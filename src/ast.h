@@ -55,7 +55,11 @@ typedef enum {
     AST_FOR,
     AST_DECL,
     AST_STMT,
+    AST_CALL,
+    AST_RETURN,
     AST_FN,
+    AST_PARAM,
+    AST_PARAM_LIST,
     AST_LIST,
     AST_MAIN,
   } AST_TAG;
@@ -78,8 +82,12 @@ struct AST {
     struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
     struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
     struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
+    struct AST_CALL { AST* identifier; AST* arguments; } AST_CALL;
+    struct AST_RETURN { AST* value; } AST_RETURN;
     struct AST_FN { AST* identifier; AST* paramList; AST* body; } AST_FN;
     struct AST_STMT { AST* node; } AST_STMT;
+    struct AST_PARAM { AST* identifier; AST* type; } AST_PARAM;
+    struct AST_PARAM_LIST { AST* node; AST* next; } AST_PARAM_LIST;
     struct AST_LIST { AST* node; AST* next; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;
   } data;

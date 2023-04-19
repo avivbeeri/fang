@@ -105,11 +105,34 @@ void ast_free(AST *ptr) {
       ast_free(data.node);
       break;
     }
+    case AST_RETURN: {
+      struct AST_RETURN data = ast.data.AST_RETURN;
+      ast_free(data.value);
+      break;
+    }
+    case AST_CALL: {
+      struct AST_CALL data = ast.data.AST_CALL;
+      ast_free(data.identifier);
+      ast_free(data.arguments);
+      break;
+    }
     case AST_FN: {
       struct AST_FN data = ast.data.AST_FN;
       ast_free(data.identifier);
       ast_free(data.paramList);
       ast_free(data.body);
+      break;
+    }
+    case AST_PARAM: {
+      struct AST_PARAM data = ast.data.AST_PARAM;
+      ast_free(data.identifier);
+      ast_free(data.type);
+      break;
+    }
+    case AST_PARAM_LIST: {
+      struct AST_PARAM_LIST data = ast.data.AST_PARAM_LIST;
+      ast_free(data.node);
+      ast_free(data.next);
       break;
     }
     case AST_LIST: {
@@ -132,7 +155,11 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_ERROR: return "ERROR";
     case AST_MAIN: return "MAIN";
     case AST_LIST: return "LIST";
+    case AST_PARAM_LIST: return "PARAM_LIST";
+    case AST_PARAM: return "PARAM";
     case AST_FN: return "FN";
+    case AST_CALL: return "CALL";
+    case AST_RETURN: return "RETURN";
     case AST_STMT: return "STMT";
     case AST_DECL: return "DECL";
     case AST_FOR: return "FOR";
@@ -149,6 +176,7 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_BOOL: return "BOOL";
     case AST_NUMBER: return "NUMBER";
     case AST_LITERAL: return "LITERAL";
+
 
   }
   return "UNKNOWN";
