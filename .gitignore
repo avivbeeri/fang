@@ -1,2 +1,7 @@
 fcc
 obj
+*.S
+**/*.o
+HelloWorld
+
+
