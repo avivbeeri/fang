@@ -1,4 +1,5 @@
 fn aMethod() {
-  var test: string = 45;
-
+  if (a == b) {
+    var test: string = 45;
+  }
 }

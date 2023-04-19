@@ -55,6 +55,12 @@ void ast_free(AST *ptr) {
       ast_free(data.right);
       break;
     }
+    case AST_IF: {
+      struct AST_IF data = ast.data.AST_IF;
+      ast_free(data.condition);
+      ast_free(data.body);
+      break;
+    }
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;
       ast_free(data.node);
