@@ -1,11 +1,10 @@
 fn aMethod() {
-  if (a == b) {
-    var test: string = 45;
-  } else if (b != a) {
-    var new: string = "stuff";
+  for (;;) {
+    blue = true;
   }
-  while (true) {
-    // DO something
-    old = false;
+
+  while(false) {
+    stuff;
+
   }
 }

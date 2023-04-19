@@ -300,6 +300,22 @@ static void traverse(AST* ptr, int level) {
       printf("}");
       break;
     }
+    case AST_FOR: {
+      printf("%*s", level * 2, "");
+      struct AST_FOR data = ast.data.AST_FOR;
+      printf("for (");
+      traverse(data.initializer, 0);
+      printf("; ");
+      traverse(data.condition, 0);
+      printf("; ");
+      traverse(data.increment, 0);
+      printf(") ");
+      printf("{\n");
+      traverse(data.body, level + 1);
+      printf("%*s", level * 2, "");
+      printf("}");
+      break;
+    }
     case AST_IF: {
       printf("%*s", level * 2, "");
       struct AST_IF data = ast.data.AST_IF;
@@ -533,16 +549,17 @@ static AST* whileStatement() {
 
   return AST_NEW(AST_WHILE, condition, body);
 }
-/*
 static AST* forStatement() {
-  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
-  AST* condition = expression();
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+  consume(TOKEN_SEMICOLON, "Expect ';'.");
+  //AST* condition = expression();
+  AST* condition = NULL;
+  consume(TOKEN_SEMICOLON, "Expect ';'.");
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
   AST* body = statement();
 
-  return AST_NEW(AST_FOR, condition, body);
+  return AST_NEW(AST_FOR, NULL, condition, NULL, body);
 }
-*/
 
 static AST* statement() {
   AST* expr = NULL;
@@ -550,6 +567,8 @@ static AST* statement() {
     beginScope();
     expr = block();
     endScope();
+  } else if (match(TOKEN_FOR)) {
+    expr = forStatement();
   } else if (match(TOKEN_IF)) {
     expr = ifStatement();
   } else if (match(TOKEN_WHILE)) {
