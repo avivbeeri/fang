@@ -126,3 +126,30 @@ void ast_free(AST *ptr) {
   }
   free(ptr);
 }
+
+const char* getNodeTypeName(AST_TAG tag) {
+  switch(tag) {
+    case AST_ERROR: return "ERROR";
+    case AST_MAIN: return "MAIN";
+    case AST_LIST: return "LIST";
+    case AST_FN: return "FN";
+    case AST_STMT: return "STMT";
+    case AST_DECL: return "DECL";
+    case AST_FOR: return "FOR";
+    case AST_WHILE: return "WHILE";
+    case AST_IF: return "IF";
+    case AST_ASSIGNMENT: return "ASSIGNMENT";
+    case AST_VAR_INIT: return "VAR_INIT";
+    case AST_VAR_DECL: return "VAR_DECL";
+    case AST_BINARY: return "BINARY_OP";
+    case AST_UNARY: return "UNARY_OP";
+    case AST_STRING: return "STRING";
+    case AST_TYPE_NAME: return "TYPE_NAME";
+    case AST_IDENTIFIER: return "IDENTIFIER";
+    case AST_BOOL: return "BOOL";
+    case AST_NUMBER: return "NUMBER";
+    case AST_LITERAL: return "LITERAL";
+
+  }
+  return "UNKNOWN";
+}

@@ -50,6 +50,7 @@ Parser parser;
 
 static void errorAt(Token* token, const char* message) {
   if (parser.panicMode) return;
+
   parser.panicMode = true;
   fprintf(stderr, "[line %d] Error", token->line);
 
@@ -383,12 +384,11 @@ static void traverse(AST* ptr, int level) {
       break;
     }
     case AST_LIST: {
-      struct AST_LIST list = ast.data.AST_LIST;
       AST* next = ptr;
       while (next != NULL) {
-        list = next->data.AST_LIST;
-        traverse(list.node, level);
-        next = list.next;
+        struct AST_LIST data = next->data.AST_LIST;
+        traverse(data.node, level);
+        next = data.next;
         printf("\n");
       }
       break;
@@ -515,7 +515,7 @@ static AST* block() {
     } else {
       current->data.AST_LIST.next = node;
     }
-    current = list;
+    current = node;
   }
 
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
@@ -639,20 +639,21 @@ bool compile(const char* source) {
   parser.panicMode = false;
 
   advance();
-  AST* ast = AST_NEW(AST_MAIN, NULL);
-  AST* current = ast;
+  AST* list = NULL;
+  AST* current = NULL;
 
-  while (!match(TOKEN_EOF)) {
+  while (!check(TOKEN_EOF)) {
     AST* node = AST_NEW(AST_LIST, declaration(), NULL);
 
-    if (current->tag == AST_MAIN) {
-      current->data.AST_MAIN.body = node;
-    } else if (current->tag == AST_LIST) {
+    if (list == NULL) {
+      list = node;
+    } else {
       current->data.AST_LIST.next = node;
     }
     current = node;
   }
   consume(TOKEN_EOF, "Expect end of expression.");
+  AST* ast = AST_NEW(AST_MAIN, list);
   if (!parser.hadError) {
     traverseTree(ast);
   }

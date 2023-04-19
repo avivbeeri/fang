@@ -37,8 +37,7 @@ typedef enum AST_OP {
   OP_LESS_EQUAL,
 } AST_OP;
 
-struct AST {
-  enum {
+typedef enum {
     AST_ERROR,
     AST_LITERAL,
     AST_NUMBER,
@@ -59,7 +58,9 @@ struct AST {
     AST_FN,
     AST_LIST,
     AST_MAIN,
-  } tag;
+  } AST_TAG;
+struct AST {
+  AST_TAG tag;
   union {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_NUMBER { int number; } AST_NUMBER;
@@ -79,13 +80,14 @@ struct AST {
     struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
     struct AST_FN { AST* identifier; AST* paramList; AST* body; } AST_FN;
     struct AST_STMT { AST* node; } AST_STMT;
-    struct AST_LIST { AST* node; AST *next; } AST_LIST;
+    struct AST_LIST { AST* node; AST* next; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;
   } data;
 };
 
 AST* ast_new(AST ast);
 void ast_free(AST* ptr);
+const char* getNodeTypeName(AST_TAG tag);
 #define AST_NEW(tag, ...) \
   ast_new((AST){tag, {.tag=(struct tag){__VA_ARGS__}}})
 
