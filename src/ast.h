@@ -68,6 +68,7 @@ typedef enum AST_OP {
 
 typedef enum {
     AST_ERROR,
+    AST_ASM,
     AST_LITERAL,
     AST_NUMBER,
     AST_BOOL,
@@ -100,6 +101,7 @@ struct AST {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_NUMBER { int number; } AST_NUMBER;
     struct AST_STRING { STRING* text; } AST_STRING;
+    struct AST_ASM { STRING* code; } AST_ASM;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
     struct AST_BOOL { bool value; } AST_BOOL;
@@ -116,7 +118,7 @@ struct AST {
     struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
     struct AST_CALL { AST* identifier; AST* arguments; } AST_CALL;
     struct AST_RETURN { AST* value; } AST_RETURN;
-    struct AST_FN { AST* identifier; AST* paramList; AST* body; } AST_FN;
+    struct AST_FN { AST* identifier; AST* paramList; AST* returnType; AST* body; } AST_FN;
     struct AST_TYPE_DECL { AST* identifier; AST* fields; } AST_TYPE_DECL;
     struct AST_STMT { AST* node; } AST_STMT;
     struct AST_PARAM { AST* identifier; AST* type; } AST_PARAM;

@@ -234,6 +234,12 @@ static AST* unary(bool canAssign) {
   return expr;
 }
 
+static AST* emitAsm() {
+  STRING* string = copyString(parser.previous.start + 2, parser.previous.length - 3);
+  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  return AST_NEW(AST_ASM, string);
+}
+
 static AST* argumentList(){
   AST* list = NULL;
   if (!check(TOKEN_RIGHT_PAREN)) {
@@ -365,8 +371,11 @@ static AST* fnDecl() {
     } while (match(TOKEN_COMMA));
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   }
+
+  consume(TOKEN_COLON,"Expect ':' after function parameter list.");
+  AST* returnType = type();
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
-  return AST_NEW(AST_FN, identifier, params, block());
+  return AST_NEW(AST_FN, identifier, params, returnType, block());
 }
 
 
@@ -384,6 +393,8 @@ ParseRule rules[] = {
   [TOKEN_RIGHT_BRACE]     = {NULL,     NULL,   PREC_NONE},
   [TOKEN_LEFT_BRACKET]    = {grouping, NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACKET]   = {NULL,     NULL,   PREC_NONE},
+
+  [TOKEN_ASM_CONTENT]     = {NULL,     NULL,   PREC_NONE},
 
   [TOKEN_MINUS]           = {unary,    binary, PREC_TERM},
   [TOKEN_PLUS]            = {NULL,     binary, PREC_TERM},
@@ -571,7 +582,9 @@ static void traverse(AST* ptr, int level) {
       traverse(data.identifier, 0);
       printf("(");
       traverse(data.paramList, 0);
-      printf(") ");
+      printf("):");
+      traverse(data.returnType, 0);
+      printf(" ");
       printf("{\n");
       traverse(data.body, level + 1);
       printf("%*s", level * 2, "");
@@ -639,6 +652,11 @@ static void traverse(AST* ptr, int level) {
     case AST_TYPE_NAME: {
       struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
       printf("%s", data.typeName->chars);
+      break;
+    }
+    case AST_ASM: {
+      struct AST_ASM data = ast.data.AST_ASM;
+      printf("ASM{\n%s}\n", data.code->chars);
       break;
     }
     case AST_IDENTIFIER: {
@@ -820,6 +838,8 @@ static AST* statement() {
     beginScope();
     expr = block();
     endScope();
+  } else if (match(TOKEN_ASM_CONTENT)) {
+    expr = emitAsm();
   } else if (match(TOKEN_IF)) {
     expr = ifStatement();
   } else if (match(TOKEN_FOR)) {

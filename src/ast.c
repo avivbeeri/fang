@@ -45,6 +45,11 @@ void ast_free(AST *ptr) {
     }
     case AST_BOOL: {
       break;
+    case AST_ASM: {
+      struct AST_ASM data = ast.data.AST_ASM;
+      STRING_free(data.code);
+      break;
+    }
     }
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
@@ -157,6 +162,7 @@ void ast_free(AST *ptr) {
       struct AST_FN data = ast.data.AST_FN;
       ast_free(data.identifier);
       ast_free(data.paramList);
+      ast_free(data.returnType);
       ast_free(data.body);
       break;
     }
@@ -215,8 +221,7 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_BOOL: return "BOOL";
     case AST_NUMBER: return "NUMBER";
     case AST_LITERAL: return "LITERAL";
-
-
+    case AST_ASM: return "ASM";
   }
   return "UNKNOWN";
 }

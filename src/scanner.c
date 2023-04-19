@@ -159,6 +159,11 @@ static TokenType checkKeyword(int start, int length,
 
 static TokenType checkTypeKeyword() {
   switch (scanner.start[0]) {
+    case 'v':
+      if (checkKeyword(1, 3, "void", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+        return TOKEN_TYPE_NAME;
+      }
+      break;
     case 'p':
       if (checkKeyword(1, 2, "tr", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
         return TOKEN_TYPE_NAME;
@@ -208,7 +213,6 @@ static TokenType identifierType() {
       if (scanner.current - scanner.start > 1) {
         switch (scanner.start[1]) {
           case 'a': return checkKeyword(2, 1, "r", TOKEN_VAR);
-          case 'o': return checkKeyword(2, 2, "id", TOKEN_VOID);
         }
       }
       break;
@@ -276,6 +280,18 @@ static Token number() {
   return makeToken(TOKEN_NUMBER);
 }
 
+static Token asmBlock() {
+  while (peek() != '}' && !isAtEnd()) {
+    if (peek() == '\n') scanner.line++;
+    advance();
+  }
+
+  if (isAtEnd()) return errorToken("Unterminated ASM block.");
+
+  // The closing quote.
+  advance();
+  return makeToken(TOKEN_ASM_CONTENT);
+}
 static Token string() {
   while (peek() != '"' && !isAtEnd()) {
     if (peek() == '\n') scanner.line++;
@@ -338,6 +354,11 @@ Token scanToken() {
     case ':':
       return makeToken(match(':') ? TOKEN_COLON_COLON : TOKEN_COLON);
     case '"': return string();
+    case '#': {
+      if (match('{')) {
+        return asmBlock();
+      }
+    }
   }
 
   return errorToken("Unexpected character.");
@@ -400,6 +421,7 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_THIS: return "THIS";
     case TOKEN_ERROR: return "ERROR";
     case TOKEN_EOF: return "EOF";
+    case TOKEN_ASM_CONTENT: return "ASM";
 
     default: return "error";
   }
