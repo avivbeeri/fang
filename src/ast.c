@@ -47,7 +47,7 @@ void ast_free(AST *ptr) {
       break;
     case AST_ASM: {
       struct AST_ASM data = ast.data.AST_ASM;
-      STRING_free(data.code);
+      ast_free(data.strings);
       break;
     }
     }

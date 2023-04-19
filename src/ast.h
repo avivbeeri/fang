@@ -101,7 +101,7 @@ struct AST {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_NUMBER { int number; } AST_NUMBER;
     struct AST_STRING { STRING* text; } AST_STRING;
-    struct AST_ASM { STRING* code; } AST_ASM;
+    struct AST_ASM { AST* strings; } AST_ASM;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
     struct AST_BOOL { bool value; } AST_BOOL;

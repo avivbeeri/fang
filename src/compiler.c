@@ -235,9 +235,27 @@ static AST* unary(bool canAssign) {
 }
 
 static AST* emitAsm() {
-  STRING* string = copyString(parser.previous.start + 2, parser.previous.length - 3);
+  consume(TOKEN_LEFT_BRACE, "Expect '{' after keyword 'asm'.");
+  AST* strings = NULL;
+  if (!check(TOKEN_RIGHT_BRACE)) {
+    AST* node = NULL;
+    consume(TOKEN_STRING, "ASM blocks can only contain strings.");
+    do {
+      STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
+      AST* text = AST_NEW(AST_STRING, string);
+      AST* newNode = AST_NEW(AST_LIST, text, NULL);
+      if (node != NULL) {
+        node->data.AST_LIST.next = newNode;
+      } else {
+        strings = newNode;
+      }
+      node = newNode;
+    } while (match(TOKEN_STRING));
+  }
+
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after keyword 'asm'.");
   consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-  return AST_NEW(AST_ASM, string);
+  return AST_NEW(AST_ASM, strings);
 }
 
 static AST* argumentList(){
@@ -351,7 +369,6 @@ static AST* fnDecl() {
   size_t arity = 0;
   AST* params = NULL;
   if (!check(TOKEN_RIGHT_PAREN)) {
-    // params = AST_NEW(AST_LIST, NULL);
     AST* node = NULL;
     do {
       arity++;
@@ -393,8 +410,6 @@ ParseRule rules[] = {
   [TOKEN_RIGHT_BRACE]     = {NULL,     NULL,   PREC_NONE},
   [TOKEN_LEFT_BRACKET]    = {grouping, NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACKET]   = {NULL,     NULL,   PREC_NONE},
-
-  [TOKEN_ASM_CONTENT]     = {NULL,     NULL,   PREC_NONE},
 
   [TOKEN_MINUS]           = {unary,    binary, PREC_TERM},
   [TOKEN_PLUS]            = {NULL,     binary, PREC_TERM},
@@ -440,6 +455,8 @@ ParseRule rules[] = {
   [TOKEN_VAR]             = {NULL,     NULL,   PREC_NONE},
   [TOKEN_WHILE]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_ERROR]           = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_EXT]             = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_ASM]             = {NULL,     NULL,   PREC_NONE},
   [TOKEN_EOF]             = {NULL,     NULL,   PREC_NONE},
 };
 
@@ -561,7 +578,7 @@ static void traverse(AST* ptr, int level) {
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;
       traverse(data.node, level);
-      printf("\n");
+      //printf("\n");
       break;
     }
     case AST_TYPE_DECL: {
@@ -600,6 +617,7 @@ static void traverse(AST* ptr, int level) {
       break;
     }
     case AST_RETURN: {
+      printf("%*s", level * 2, "");
       struct AST_RETURN data = ast.data.AST_RETURN;
       printf("return ");
       if (data.value != NULL) {
@@ -633,7 +651,7 @@ static void traverse(AST* ptr, int level) {
         struct AST_LIST data = next->data.AST_LIST;
         traverse(data.node, level);
         next = data.next;
-        // printf("\n");
+        printf("\n");
       }
       break;
     }
@@ -655,8 +673,11 @@ static void traverse(AST* ptr, int level) {
       break;
     }
     case AST_ASM: {
+      printf("%*s", level * 2, "");
       struct AST_ASM data = ast.data.AST_ASM;
-      printf("ASM{\n%s}\n", data.code->chars);
+      printf("ASM {\n");
+      traverse(data.strings, level + 1);
+      printf("}\n");
       break;
     }
     case AST_IDENTIFIER: {
@@ -838,12 +859,12 @@ static AST* statement() {
     beginScope();
     expr = block();
     endScope();
-  } else if (match(TOKEN_ASM_CONTENT)) {
-    expr = emitAsm();
   } else if (match(TOKEN_IF)) {
     expr = ifStatement();
   } else if (match(TOKEN_FOR)) {
     expr = forStatement();
+  } else if (match(TOKEN_ASM)) {
+    expr = emitAsm();
   } else if (match(TOKEN_RETURN)) {
     expr = returnStatement();
   } else if (match(TOKEN_WHILE)) {

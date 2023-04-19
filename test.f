@@ -8,7 +8,9 @@ fn aMethod(i: string, g: uint8): void {
   somethingElse(a, b, c);
 
   asm {
-    ld a, b
+    "ld a, b"
+    "words: dsdf"
+    "words: dsdf"
   };
 //  var a: Sprite = [ 0, 0, true ];
   var a: ptr = "words
