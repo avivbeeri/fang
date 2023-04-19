@@ -31,7 +31,7 @@ typedef enum {
 } Precedence;
 
 typedef AST* (*ParsePrefixFn)(bool canAssign);
-typedef AST* (*ParseInfixFn)(AST* ast);
+typedef AST* (*ParseInfixFn)(bool canAssign, AST* ast);
 typedef struct {
   ParsePrefixFn prefix;
   ParseInfixFn infix;
@@ -149,7 +149,7 @@ static AST* grouping(bool canAssign) {
   return expr;
 }
 
-static AST* binary(AST* left) {
+static AST* binary(bool canAssign, AST* left) {
   TokenType operatorType = parser.previous.type;
   ParseRule* rule = getRule(operatorType);
   AST* right = parsePrecedence((Precedence)(rule->precedence + 1));
@@ -208,15 +208,130 @@ static AST* argumentList(){
   return list;
 }
 
-static AST* call(AST* left) {
+static AST* call(bool canAssign, AST* left) {
   AST* params = argumentList();
   return AST_NEW(AST_CALL, left, params);
 }
+
 
 static AST* expression() {
   return parsePrecedence(PREC_ASSIGNMENT);
 }
 
+static AST* block() {
+  AST* list = NULL;
+  AST* current = NULL;
+  while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+    AST* node = AST_NEW(AST_LIST, declaration(), NULL);
+    if (list == NULL) {
+      list = node;
+    } else {
+      current->data.AST_LIST.next = node;
+    }
+    current = node;
+  }
+
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+  return list;
+}
+
+static AST* parseVariable(const char* errorMessage) {
+  consume(TOKEN_IDENTIFIER, errorMessage);
+  return AST_NEW(AST_IDENTIFIER, copyString(parser.previous.start, parser.previous.length));
+}
+
+static AST* dot(bool canAssign, AST* left) {
+  AST* field = parseVariable("Expect property name after '.'.");
+  AST* expr = AST_NEW(AST_DOT, left, field);
+
+  if (canAssign && match(TOKEN_EQUAL)) {
+    AST* right = expression();
+    expr = AST_NEW(AST_ASSIGNMENT, expr, right);
+  }
+  return expr;
+}
+
+static AST* fieldList() {
+  size_t arity = 0;
+  AST* params = NULL;
+  if (!check(TOKEN_RIGHT_BRACE)) {
+    AST* node = NULL;
+    do {
+      arity++;
+      AST* identifier = parseVariable("Expect parameter name.");
+      consume(TOKEN_COLON, "Expect ':' after parameter name.");
+      AST* typeName = type();
+
+      AST* param = AST_NEW(AST_PARAM, identifier, typeName);
+      AST* newNode = AST_NEW(AST_PARAM_LIST, param, NULL);
+      if (node != NULL) {
+        node->data.AST_PARAM_LIST.next = newNode;
+      } else {
+        params = newNode;
+      }
+      node = newNode;
+      consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
+    } while (!check(TOKEN_RIGHT_BRACE));
+  }
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
+  return params;
+}
+
+static AST* varDecl() {
+  AST* global = parseVariable("Expect variable name");
+  consume(TOKEN_COLON, "Expect ':' after identifier.");
+  AST* varType = type();
+
+  AST* decl = NULL;
+  if (match(TOKEN_EQUAL)) {
+    AST* value = expression();
+    decl = AST_NEW(AST_VAR_INIT, global, varType, value);
+  } else {
+    decl = AST_NEW(AST_VAR_DECL, global, varType);
+  }
+
+  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  return decl;
+}
+
+static AST* fnDecl() {
+  AST* identifier = parseVariable("Expect function identifier");
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
+  // Parameters
+  size_t arity = 0;
+  AST* params = NULL;
+  if (!check(TOKEN_RIGHT_PAREN)) {
+    // params = AST_NEW(AST_LIST, NULL);
+    AST* node = NULL;
+    do {
+      arity++;
+      // TODO: Fix a maximum number of parameters here
+      AST* identifier = parseVariable("Expect parameter name.");
+      consume(TOKEN_COLON, "Expect ':' after parameter name.");
+      AST* typeName = type();
+      AST* param = AST_NEW(AST_PARAM, identifier, typeName);
+
+      AST* newNode = AST_NEW(AST_PARAM_LIST, param, NULL);
+      if (node != NULL) {
+        node->data.AST_PARAM_LIST.next = newNode;
+      } else {
+        params = newNode;
+      }
+      node = newNode;
+    } while (match(TOKEN_COMMA));
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
+  }
+  consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
+  return AST_NEW(AST_FN, identifier, params, block());
+}
+
+
+static void beginScope() {
+
+}
+static void endScope() {
+
+}
 
 ParseRule rules[] = {
   [TOKEN_LEFT_PAREN]      = {grouping, call,   PREC_CALL},
@@ -247,7 +362,7 @@ ParseRule rules[] = {
   [TOKEN_OR_OR]           = {NULL,     binary, PREC_OR},
 
   [TOKEN_COMMA]           = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_DOT]             = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_DOT]             = {NULL,     dot,    PREC_CALL},
   [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
 
@@ -288,7 +403,7 @@ static AST* parsePrecedence(Precedence precedence) {
   while (precedence <= getRule(parser.current.type)->precedence) {
     advance();
     ParseInfixFn infixRule = getRule(parser.previous.type)->infix;
-    expr = infixRule(expr);
+    expr = infixRule(canAssign, expr);
   }
   if (canAssign && match(TOKEN_EQUAL)) {
     error("Invalid assignment target.");
@@ -512,6 +627,14 @@ static void traverse(AST* ptr, int level) {
       traverse(data.expr, 0);
       break;
     }
+    case AST_DOT: {
+      struct AST_DOT data = ast.data.AST_DOT;
+      char* str = ".";
+      traverse(data.left, 0);
+      printf("%s", str);
+      traverse(data.right, 0);
+      break;
+    }
     case AST_BINARY: {
       struct AST_BINARY data = ast.data.AST_BINARY;
       char* str;
@@ -575,116 +698,6 @@ static void synchronize() {
   }
 }
 
-static AST* block() {
-  AST* list = NULL;
-  AST* current = NULL;
-  while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
-    AST* node = AST_NEW(AST_LIST, declaration(), NULL);
-    if (list == NULL) {
-      list = node;
-    } else {
-      current->data.AST_LIST.next = node;
-    }
-    current = node;
-  }
-
-  consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
-  return list;
-}
-
-static AST* parseVariable(const char* errorMessage) {
-  consume(TOKEN_IDENTIFIER, errorMessage);
-  return AST_NEW(AST_IDENTIFIER, copyString(parser.previous.start, parser.previous.length));
-}
-
-static void defineVariable(STRING* id) {
-  // ??
-
-}
-
-static AST* fieldList() {
-  size_t arity = 0;
-  AST* params = NULL;
-  if (!check(TOKEN_RIGHT_BRACE)) {
-    AST* node = NULL;
-    do {
-      arity++;
-      AST* identifier = parseVariable("Expect parameter name.");
-      printf("identifier fail\n");
-      consume(TOKEN_COLON, "Expect ':' after parameter name.");
-      AST* typeName = type();
-
-      AST* param = AST_NEW(AST_PARAM, identifier, typeName);
-      AST* newNode = AST_NEW(AST_PARAM_LIST, param, NULL);
-      if (node != NULL) {
-        node->data.AST_PARAM_LIST.next = newNode;
-      } else {
-        params = newNode;
-      }
-      node = newNode;
-      consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
-    } while (!check(TOKEN_RIGHT_BRACE));
-  }
-  consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
-  return params;
-}
-
-static AST* varDecl() {
-  AST* global = parseVariable("Expect variable name");
-  consume(TOKEN_COLON, "Expect ':' after identifier.");
-  AST* varType = type();
-
-  AST* decl = NULL;
-  if (match(TOKEN_EQUAL)) {
-    AST* value = expression();
-    decl = AST_NEW(AST_VAR_INIT, global, varType, value);
-  } else {
-    decl = AST_NEW(AST_VAR_DECL, global, varType);
-  }
-  defineVariable(global->data.AST_IDENTIFIER.identifier);
-
-  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-  return decl;
-}
-
-static AST* fnDecl() {
-  AST* identifier = parseVariable("Expect function identifier");
-  consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
-  // Parameters
-  size_t arity = 0;
-  AST* params = NULL;
-  if (!check(TOKEN_RIGHT_PAREN)) {
-    // params = AST_NEW(AST_LIST, NULL);
-    AST* node = NULL;
-    do {
-      arity++;
-      // TODO: Fix a maximum number of parameters here
-      AST* identifier = parseVariable("Expect parameter name.");
-      consume(TOKEN_COLON, "Expect ':' after parameter name.");
-      AST* typeName = type();
-      AST* param = AST_NEW(AST_PARAM, identifier, typeName);
-
-      AST* newNode = AST_NEW(AST_PARAM_LIST, param, NULL);
-      if (node != NULL) {
-        node->data.AST_PARAM_LIST.next = newNode;
-      } else {
-        params = newNode;
-      }
-      node = newNode;
-    } while (match(TOKEN_COMMA));
-    consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
-  }
-  consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
-  return AST_NEW(AST_FN, identifier, params, block());
-}
-
-
-static void beginScope() {
-
-}
-static void endScope() {
-
-}
 
 static AST* expressionStatement() {
   AST* expr = expression();
