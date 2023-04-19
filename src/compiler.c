@@ -625,7 +625,7 @@ static AST* declaration() {
 
 void testScanner(const char* source);
 bool compile(const char* source) {
-  testScanner(source);
+  // testScanner(source);
   initScanner(source);
   parser.hadError = false;
   parser.panicMode = false;

@@ -227,7 +227,7 @@ static void traverse(FILE* f, AST* ptr) {
   }
 }
 void emitTree(AST* ptr) {
-  FILE *f = fopen("file.txt", "w");
+  FILE *f = fopen("file.S", "w");
   if (f == NULL)
   {
       printf("Error opening file!\n");
