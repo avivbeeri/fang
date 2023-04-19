@@ -1,3 +1,21 @@
+asm {
+  ".global _start"
+  ".align 2"
+  "_start: mov X0, #1"
+  "adr X1, helloworld"
+  "mov X2, #13"
+  "mov X16, #4"
+  "svc 0"
+};
+asm {
+  "mov X0, #0"
+  "mov X16, #1"
+  "svc 0"
+};
+asm {
+  "helloworld: .ascii \"Hello World!\n\""
+};
+/*
 type Sprite {
   x: int8;
   y: int8;
@@ -21,3 +39,4 @@ fn aMethod(i: string, g: uint8): void {
   var y: uint8 = a.y;
   return;
 }
+*/

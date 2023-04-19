@@ -24,6 +24,7 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "common.h"
@@ -283,6 +284,9 @@ static Token number() {
 static Token string() {
   while (peek() != '"' && !isAtEnd()) {
     if (peek() == '\n') scanner.line++;
+    if (peek() == '\\' && peekNext() == '"') {
+      advance();
+    }
     advance();
   }
 
