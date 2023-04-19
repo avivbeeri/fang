@@ -567,10 +567,10 @@ static AST* statement() {
     beginScope();
     expr = block();
     endScope();
-  } else if (match(TOKEN_FOR)) {
-    expr = forStatement();
   } else if (match(TOKEN_IF)) {
     expr = ifStatement();
+  } else if (match(TOKEN_FOR)) {
+    expr = forStatement();
   } else if (match(TOKEN_WHILE)) {
     expr = whileStatement();
   } else {

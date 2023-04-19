@@ -1,4 +1,8 @@
 fn aMethod() {
+  if (a) {
+    b;
+
+  }
   for (;;) {
     blue = true;
   }
