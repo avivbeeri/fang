@@ -203,11 +203,23 @@ static TokenType checkTypeKeyword() {
   return TOKEN_IDENTIFIER;
 }
 
+static Token asmBlock() {
+  while (peek() != '}' && !isAtEnd()) {
+    if (peek() == '\n') scanner.line++;
+    advance();
+  }
+
+  if (isAtEnd()) return errorToken("Unterminated ASM block.");
+
+  // The closing brace
+  advance();
+  return makeToken(TOKEN_ASM_CONTENT);
+}
+
 static TokenType identifierType() {
   switch (scanner.start[0]) {
     case 'c': return checkKeyword(1, 4, "onst", TOKEN_CONST);
     case 'r': return checkKeyword(1, 5, "eturn", TOKEN_RETURN);
-    case 'a': return checkKeyword(1, 2, "sm", TOKEN_ASM);
     case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
     case 'v':
       if (scanner.current - scanner.start > 1) {
@@ -262,6 +274,13 @@ static TokenType identifierType() {
 
 static Token identifier() {
   while (isAlpha(peek()) || isDigit(peek())) advance();
+  if (checkKeyword(0, 3, "asm", TOKEN_ASM) == TOKEN_ASM) {
+    skipWhitespace();
+    if (match('{')) {
+      return asmBlock();
+    }
+  }
+
   return makeToken(identifierType());
 }
 
@@ -280,18 +299,6 @@ static Token number() {
   return makeToken(TOKEN_NUMBER);
 }
 
-static Token asmBlock() {
-  while (peek() != '}' && !isAtEnd()) {
-    if (peek() == '\n') scanner.line++;
-    advance();
-  }
-
-  if (isAtEnd()) return errorToken("Unterminated ASM block.");
-
-  // The closing quote.
-  advance();
-  return makeToken(TOKEN_ASM_CONTENT);
-}
 static Token string() {
   while (peek() != '"' && !isAtEnd()) {
     if (peek() == '\n') scanner.line++;
@@ -354,11 +361,6 @@ Token scanToken() {
     case ':':
       return makeToken(match(':') ? TOKEN_COLON_COLON : TOKEN_COLON);
     case '"': return string();
-    case '#': {
-      if (match('{')) {
-        return asmBlock();
-      }
-    }
   }
 
   return errorToken("Unexpected character.");
