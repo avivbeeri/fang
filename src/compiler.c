@@ -288,9 +288,10 @@ static void traverse(AST* ptr, int level) {
       traverse(data.node, level);
       break;
     }
-    case AST_IF: {
-      struct AST_IF data = ast.data.AST_IF;
-      printf("if (");
+    case AST_WHILE: {
+      printf("%*s", level * 2, "");
+      struct AST_WHILE data = ast.data.AST_WHILE;
+      printf("while (");
       traverse(data.condition, 0);
       printf(") ");
       printf("{\n");
@@ -299,7 +300,25 @@ static void traverse(AST* ptr, int level) {
       printf("}");
       break;
     }
+    case AST_IF: {
+      printf("%*s", level * 2, "");
+      struct AST_IF data = ast.data.AST_IF;
+      printf("if (");
+      traverse(data.condition, 0);
+      printf(") ");
+      printf("{\n");
+      traverse(data.body, level + 1);
+      if (data.elseClause != NULL) {
+        printf("%*s", level * 2, "");
+        printf("} else {\n");
+        traverse(data.elseClause, level + 1);
+      }
+      printf("%*s", level * 2, "");
+      printf("}\n");
+      break;
+    }
     case AST_ASSIGNMENT: {
+      printf("%*s", level * 2, "");
       struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
       traverse(data.identifier, 0);
       printf(" = ");
@@ -307,6 +326,7 @@ static void traverse(AST* ptr, int level) {
       break;
     }
     case AST_VAR_INIT: {
+      printf("%*s", level * 2, "");
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
       printf("var ");
       traverse(data.identifier, 0);
@@ -318,6 +338,7 @@ static void traverse(AST* ptr, int level) {
       break;
     }
     case AST_VAR_DECL: {
+      printf("%*s", level * 2, "");
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
       printf("var ");
       traverse(data.identifier, 0);
@@ -327,12 +348,12 @@ static void traverse(AST* ptr, int level) {
       break;
     }
     case AST_DECL: {
-      printf("%*s", level * 2, "");
       struct AST_DECL data = ast.data.AST_DECL;
       traverse(data.node, level);
       break;
     }
     case AST_FN: {
+      printf("%*s", level * 2, "");
       struct AST_FN data = ast.data.AST_FN;
       printf("fn ");
       traverse(data.identifier, 0);
@@ -497,9 +518,31 @@ static AST* ifStatement() {
   AST* condition = expression();
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
   AST* body = statement();
+  AST* elseClause = NULL;
+  if (match(TOKEN_ELSE)) {
+    elseClause = statement();
+  }
 
-  return AST_NEW(AST_IF, condition, body);
+  return AST_NEW(AST_IF, condition, body, elseClause);
 }
+static AST* whileStatement() {
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+  AST* condition = expression();
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+  AST* body = statement();
+
+  return AST_NEW(AST_WHILE, condition, body);
+}
+/*
+static AST* forStatement() {
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+  AST* condition = expression();
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+  AST* body = statement();
+
+  return AST_NEW(AST_FOR, condition, body);
+}
+*/
 
 static AST* statement() {
   AST* expr = NULL;
@@ -509,11 +552,13 @@ static AST* statement() {
     endScope();
   } else if (match(TOKEN_IF)) {
     expr = ifStatement();
+  } else if (match(TOKEN_WHILE)) {
+    expr = whileStatement();
   } else {
     expr = expression();
     consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
   }
-  return expr;
+  return AST_NEW(AST_STMT, expr);
 }
 
 static AST* parseVariable(const char* errorMessage) {
@@ -561,7 +606,7 @@ static AST* declaration() {
   } else if (match(TOKEN_VAR)) {
     decl = varDecl();
   } else {
-    decl = AST_NEW(AST_STMT, statement());
+    decl = statement();
   }
   if (parser.panicMode) synchronize();
   return AST_NEW(AST_DECL, decl);

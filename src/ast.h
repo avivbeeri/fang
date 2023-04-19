@@ -52,6 +52,8 @@ struct AST {
     AST_VAR_INIT,
     AST_ASSIGNMENT,
     AST_IF,
+    AST_WHILE,
+    AST_FOR,
     AST_DECL,
     AST_STMT,
     AST_FN,
@@ -68,7 +70,9 @@ struct AST {
     struct AST_LITERAL { AST_TYPE type; AST* value; } AST_LITERAL;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
-    struct AST_IF { AST* condition; AST* body; } AST_IF;
+    struct AST_IF { AST* condition; AST* body; AST* elseClause; } AST_IF;
+    struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
+    struct AST_FOR { AST* initializer; AST* condition; AST* increment; AST* body; } AST_FOR;
     struct AST_DECL { AST* node; } AST_DECL;
     struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
     struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;

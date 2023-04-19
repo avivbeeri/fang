@@ -55,10 +55,25 @@ void ast_free(AST *ptr) {
       ast_free(data.right);
       break;
     }
+    case AST_WHILE: {
+      struct AST_WHILE data = ast.data.AST_WHILE;
+      ast_free(data.condition);
+      ast_free(data.body);
+      break;
+    }
+    case AST_FOR: {
+      struct AST_FOR data = ast.data.AST_FOR;
+      ast_free(data.initializer);
+      ast_free(data.condition);
+      ast_free(data.increment);
+      ast_free(data.body);
+      break;
+    }
     case AST_IF: {
       struct AST_IF data = ast.data.AST_IF;
       ast_free(data.condition);
       ast_free(data.body);
+      ast_free(data.elseClause);
       break;
     }
     case AST_DECL: {
