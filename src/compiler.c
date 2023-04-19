@@ -190,9 +190,9 @@ static AST* unary(bool canAssign) {
   }
 }
 
-static AST* argumentList() {
+static AST* argumentList(){
+  AST* list = NULL;
   if (!check(TOKEN_RIGHT_PAREN)) {
-    AST* list = NULL;
     AST* node = NULL;
     do {
       AST* newNode = AST_NEW(AST_PARAM_LIST, expression(), NULL);
@@ -203,10 +203,9 @@ static AST* argumentList() {
       }
       node = newNode;
     } while (match(TOKEN_COMMA));
-    consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
-    return list;
   }
-  return NULL;
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
+  return list;
 }
 
 static AST* call(AST* left) {
@@ -391,6 +390,17 @@ static void traverse(AST* ptr, int level) {
       struct AST_DECL data = ast.data.AST_DECL;
       traverse(data.node, level);
       printf("\n");
+      break;
+    }
+    case AST_TYPE_DECL: {
+      printf("%*s", level * 2, "");
+      struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
+      printf("type ");
+      traverse(data.identifier, 0);
+      printf("{\n");
+      traverse(data.fields, level + 1);
+      printf("\n%*s", level * 2, "");
+      printf("}");
       break;
     }
     case AST_FN: {
@@ -592,6 +602,33 @@ static void defineVariable(STRING* id) {
 
 }
 
+static AST* fieldList() {
+  size_t arity = 0;
+  AST* params = NULL;
+  if (!check(TOKEN_RIGHT_BRACE)) {
+    AST* node = NULL;
+    do {
+      arity++;
+      AST* identifier = parseVariable("Expect parameter name.");
+      printf("identifier fail\n");
+      consume(TOKEN_COLON, "Expect ':' after parameter name.");
+      AST* typeName = type();
+
+      AST* param = AST_NEW(AST_PARAM, identifier, typeName);
+      AST* newNode = AST_NEW(AST_PARAM_LIST, param, NULL);
+      if (node != NULL) {
+        node->data.AST_PARAM_LIST.next = newNode;
+      } else {
+        params = newNode;
+      }
+      node = newNode;
+      consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
+    } while (!check(TOKEN_RIGHT_BRACE));
+  }
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
+  return params;
+}
+
 static AST* varDecl() {
   AST* global = parseVariable("Expect variable name");
   consume(TOKEN_COLON, "Expect ':' after identifier.");
@@ -635,8 +672,8 @@ static AST* fnDecl() {
       }
       node = newNode;
     } while (match(TOKEN_COMMA));
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   }
-  consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
   return AST_NEW(AST_FN, identifier, params, block());
 }
@@ -730,14 +767,24 @@ static AST* statement() {
   } else if (match(TOKEN_WHILE)) {
     expr = whileStatement();
   } else {
-    expr = expressionStatement();
+    expr = expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after expression statement.");
   }
   return AST_NEW(AST_STMT, expr);
 }
 
+static AST* typeDecl() {
+  AST* identifier = parseVariable("Expect a data type name");
+  consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
+  AST* fields = fieldList();
+  return AST_NEW(AST_TYPE_DECL, identifier, fields);
+}
+
 static AST* declaration() {
   AST* decl = NULL;
-  if (match(TOKEN_FN)) {
+  if (match(TOKEN_TYPE)) {
+    decl = typeDecl();
+  } else if (match(TOKEN_FN)) {
     decl = fnDecl();
   } else if (match(TOKEN_VAR)) {
     decl = varDecl();

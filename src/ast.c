@@ -116,6 +116,12 @@ void ast_free(AST *ptr) {
       ast_free(data.arguments);
       break;
     }
+    case AST_TYPE_DECL: {
+      struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
+      ast_free(data.identifier);
+      ast_free(data.fields);
+      break;
+    }
     case AST_FN: {
       struct AST_FN data = ast.data.AST_FN;
       ast_free(data.identifier);
@@ -158,6 +164,7 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_PARAM_LIST: return "PARAM_LIST";
     case AST_PARAM: return "PARAM";
     case AST_FN: return "FN";
+    case AST_TYPE_DECL: return "TYPE_DECL";
     case AST_CALL: return "CALL";
     case AST_RETURN: return "RETURN";
     case AST_STMT: return "STMT";

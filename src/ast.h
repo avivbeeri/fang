@@ -58,6 +58,7 @@ typedef enum {
     AST_CALL,
     AST_RETURN,
     AST_FN,
+    AST_TYPE_DECL,
     AST_PARAM,
     AST_PARAM_LIST,
     AST_LIST,
@@ -85,6 +86,7 @@ struct AST {
     struct AST_CALL { AST* identifier; AST* arguments; } AST_CALL;
     struct AST_RETURN { AST* value; } AST_RETURN;
     struct AST_FN { AST* identifier; AST* paramList; AST* body; } AST_FN;
+    struct AST_TYPE_DECL { AST* identifier; AST* fields; } AST_TYPE_DECL;
     struct AST_STMT { AST* node; } AST_STMT;
     struct AST_PARAM { AST* identifier; AST* type; } AST_PARAM;
     struct AST_PARAM_LIST { AST* node; AST* next; } AST_PARAM_LIST;
