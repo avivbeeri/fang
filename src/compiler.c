@@ -1,3 +1,28 @@
+/*
+  MIT License
+
+  Copyright (c) 2023 Aviv Beeri
+  Copyright (c) 2015 Robert "Bob" Nystrom
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -26,6 +51,7 @@ typedef enum {
   PREC_TERM,        // + -
   PREC_FACTOR,      // * / %
   PREC_UNARY,       // ! -
+  PREC_REF,         // @ $
   PREC_CALL,        // . ()
   PREC_PRIMARY
 } Precedence;
@@ -180,14 +206,32 @@ static AST* binary(bool canAssign, AST* left) {
   }
 }
 
+static AST* ref(bool canAssign) {
+  TokenType operatorType = parser.previous.type;
+  AST* operand = parsePrecedence(PREC_REF);
+  AST* expr = NULL;
+  switch (operatorType) {
+    case TOKEN_AT: expr = AST_NEW(AST_UNARY, OP_DEREF, operand); break;
+    case TOKEN_DOLLAR: expr = AST_NEW(AST_UNARY, OP_REF, operand); break;
+    default: expr = AST_NEW(AST_ERROR, 0); break;
+  }
+  printf("REF Token: %s\n", getTokenTypeName(operatorType));
+  if (canAssign && match(TOKEN_EQUAL)) {
+    AST* right = expression();
+    expr = AST_NEW(AST_ASSIGNMENT, expr, right);
+  }
+  return expr;
+}
 static AST* unary(bool canAssign) {
   TokenType operatorType = parser.previous.type;
   AST* operand = parsePrecedence(PREC_UNARY);
+  AST* expr = NULL;
   switch (operatorType) {
-    case TOKEN_MINUS: return AST_NEW(AST_UNARY, OP_NEG, operand);
-    case TOKEN_BANG: return AST_NEW(AST_UNARY, OP_NOT, operand);
-    default: return AST_NEW(AST_ERROR, 0);
+    case TOKEN_MINUS: expr = AST_NEW(AST_UNARY, OP_NEG, operand);
+    case TOKEN_BANG: expr = AST_NEW(AST_UNARY, OP_NOT, operand);
+    default: expr = AST_NEW(AST_ERROR, 0);
   }
+  return expr;
 }
 
 static AST* argumentList(){
@@ -363,6 +407,8 @@ ParseRule rules[] = {
 
   [TOKEN_COMMA]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_DOT]             = {NULL,     dot,    PREC_CALL},
+  [TOKEN_AT]              = {ref,    NULL,   PREC_REF},
+  [TOKEN_DOLLAR]          = {ref,    NULL,   PREC_REF},
   [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
 
@@ -621,9 +667,11 @@ static void traverse(AST* ptr, int level) {
       switch(data.op) {
         case OP_NEG: str = "-"; break;
         case OP_NOT: str = "!"; break;
+        case OP_REF: str = "$"; break;
+        case OP_DEREF: str = "@"; break;
         default: str = "MISSING";
       }
-      printf("%s ", str);
+      printf("%s", str);
       traverse(data.expr, 0);
       break;
     }
@@ -683,6 +731,7 @@ static void synchronize() {
     switch (parser.current.type) {
       case TOKEN_TYPE:
       case TOKEN_FN:
+      case TOKEN_EXT:
       case TOKEN_VAR:
       case TOKEN_FOR:
       case TOKEN_IF:
