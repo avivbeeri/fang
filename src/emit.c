@@ -30,6 +30,8 @@
 #include "common.h"
 #include "ast.h"
 
+#define emitf(fmt, ...) do { fprintf(f, fmt, ##__VA_ARGS__); } while(0)
+
 static void traverse(FILE* f, AST* ptr) {
   if (ptr == NULL) {
     return;
@@ -41,7 +43,18 @@ static void traverse(FILE* f, AST* ptr) {
     }
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;
+      emitf(".global _start\n");
+      emitf(".align 2\n");
+      emitf("_start:\n");
       traverse(f, data.body);
+      break;
+    }
+    case AST_EXIT: {
+      struct AST_EXIT data = ast.data.AST_EXIT;
+      traverse(f, data.value);
+      emitf("\n");
+      emitf("mov X16, #1\n");
+      emitf("svc 0\n");
       break;
     }
     case AST_LIST: {
@@ -50,7 +63,7 @@ static void traverse(FILE* f, AST* ptr) {
         struct AST_LIST data = next->data.AST_LIST;
         traverse(f, data.node);
         next = data.next;
-        fprintf(f, "\n");
+        emitf("\n");
       }
       break;
     }
@@ -69,9 +82,19 @@ static void traverse(FILE* f, AST* ptr) {
       traverse(f, data.strings);
       break;
     }
+    case AST_LITERAL: {
+      struct AST_LITERAL data = ast.data.AST_LITERAL;
+      traverse(f, data.value);
+      break;
+    }
     case AST_STRING: {
       struct AST_STRING data = ast.data.AST_STRING;
-      fprintf(f, "%s", data.text->chars);
+      emitf("%s", data.text->chars);
+      break;
+    }
+    case AST_NUMBER: {
+      struct AST_NUMBER data = ast.data.AST_NUMBER;
+      emitf("mov X0, #%i", data.number);
       break;
     }
                   /*

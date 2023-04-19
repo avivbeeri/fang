@@ -159,6 +159,16 @@ static void traverse(AST* ptr, int level) {
       printf(")");
       break;
     }
+    case AST_EXIT: {
+      printf("%*s", level * 2, "");
+      struct AST_RETURN data = ast.data.AST_RETURN;
+      printf("return ");
+      if (data.value != NULL) {
+        traverse(data.value, 0);
+      }
+      printf(";");
+      break;
+    }
     case AST_RETURN: {
       printf("%*s", level * 2, "");
       struct AST_RETURN data = ast.data.AST_RETURN;

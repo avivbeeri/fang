@@ -40,6 +40,7 @@ typedef struct {
   Token previous;
   bool hadError;
   bool panicMode;
+  bool exitEmit;
 } Parser;
 
 typedef enum {
@@ -577,6 +578,17 @@ static AST* returnStatement() {
   }
   return AST_NEW(AST_RETURN, expr);
 }
+static AST* exitStatement() {
+  AST* expr = NULL;
+  if (match(TOKEN_SEMICOLON) || check(TOKEN_EOF)) {
+    expr = AST_NEW(AST_LITERAL, TYPE_NUMBER, AST_NEW(AST_NUMBER, 0));
+  } else {
+    expr = expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+  }
+  parser.exitEmit = true;
+  return AST_NEW(AST_EXIT, expr);
+}
 
 static AST* statement() {
   AST* expr = NULL;
@@ -616,6 +628,8 @@ static AST* declaration() {
     decl = fnDecl();
   } else if (match(TOKEN_VAR)) {
     decl = varDecl();
+  } else if (match(TOKEN_RETURN)) {
+    decl = exitStatement();
   } else {
     decl = statement();
   }
@@ -629,6 +643,7 @@ bool compile(const char* source) {
   initScanner(source);
   parser.hadError = false;
   parser.panicMode = false;
+  parser.exitEmit = false;
 
   advance();
   AST* list = NULL;
@@ -644,6 +659,16 @@ bool compile(const char* source) {
     }
     current = node;
   }
+
+  if (!parser.exitEmit) {
+    // Append a "return 0" for exiting safely
+    if (list == NULL) {
+      list = exitStatement();
+    } else {
+      current->data.AST_LIST.next = exitStatement();
+    }
+  }
+
   consume(TOKEN_EOF, "Expect end of expression.");
   AST* ast = AST_NEW(AST_MAIN, list);
   if (!parser.hadError) {
