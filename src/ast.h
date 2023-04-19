@@ -53,6 +53,7 @@ struct AST {
     AST_ASSIGNMENT,
     AST_DECL,
     AST_STMT,
+    AST_FN,
     AST_LIST,
     AST_MAIN,
   } tag;
@@ -70,6 +71,7 @@ struct AST {
     struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
     struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
     struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
+    struct AST_FN { AST* identifier; AST* paramList; AST* body; } AST_FN;
     struct AST_STMT { AST* node; } AST_STMT;
     struct AST_LIST { AST* node; AST *next; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;

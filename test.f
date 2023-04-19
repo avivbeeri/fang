@@ -1,7 +1,4 @@
-var test: string = "Hello world";
-var newtest: uint8;
-newtest;
-result = true;
-a*b = c + d;
+fn aMethod() {
+  var test: string = 45;
 
-var result: Newtabletype = true && false || newtest;
+}

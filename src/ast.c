@@ -84,6 +84,13 @@ void ast_free(AST *ptr) {
       ast_free(data.node);
       break;
     }
+    case AST_FN: {
+      struct AST_FN data = ast.data.AST_FN;
+      ast_free(data.identifier);
+      ast_free(data.paramList);
+      ast_free(data.body);
+      break;
+    }
     case AST_LIST: {
       struct AST_LIST data = ast.data.AST_LIST;
       ast_free(data.node);

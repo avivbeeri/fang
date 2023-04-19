@@ -275,7 +275,6 @@ static AST* parsePrecedence(Precedence precedence) {
 
 static void traverse(AST* ptr) {
   if (ptr == NULL) {
-    printf("NULL node\n");
     return;
   }
   AST ast = *ptr;
@@ -323,8 +322,27 @@ static void traverse(AST* ptr) {
       printf(";");
       break;
     }
+    case AST_FN: {
+      struct AST_FN data = ast.data.AST_FN;
+      printf("fn ");
+      traverse(data.identifier);
+      printf("(");
+      traverse(data.paramList);
+      printf(") ");
+      traverse(data.body);
+      break;
+    }
     case AST_LIST: {
-      printf("We aren't meant to be in here.\n");
+      printf("{");
+      struct AST_LIST list = ast.data.AST_LIST;
+      AST* next = list.next;
+      while (next != NULL) {
+        printf("\n");
+        list = next->data.AST_LIST;
+        traverse(list.node);
+        next = list.next;
+      }
+      printf("}\n");
       break;
     }
     case AST_MAIN: {
@@ -448,9 +466,40 @@ static void synchronize() {
   }
 }
 
+static AST* block() {
+  AST* list = NULL;
+  AST* current = NULL;
+  while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+    AST* node = AST_NEW(AST_LIST, declaration(), NULL);
+    if (list == NULL) {
+      list = node;
+    } else {
+      current->data.AST_LIST.next = node;
+    }
+    current = list;
+  }
+
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
+  return list;
+}
+
+static void beginScope() {
+
+}
+static void endScope() {
+
+}
+
 static AST* statement() {
-  AST* expr = expression();
-  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  AST* expr = NULL;
+  if (match(TOKEN_LEFT_BRACE)) {
+    beginScope();
+    expr = block();
+    endScope();
+  } else {
+    expr = expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  }
   return expr;
 }
 
@@ -482,9 +531,21 @@ static AST* varDecl() {
   return decl;
 }
 
+static AST* fnDecl() {
+  AST* identifier = parseVariable("Expect function identifier");
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
+  // Parameters
+  AST* params = NULL;
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
+  consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
+  return AST_NEW(AST_FN, identifier, params, block());
+}
+
 static AST* declaration() {
   AST* decl = NULL;
-  if (match(TOKEN_VAR)) {
+  if (match(TOKEN_FN)) {
+    decl = AST_NEW(AST_DECL, fnDecl());
+  } else if (match(TOKEN_VAR)) {
     decl = AST_NEW(AST_DECL, varDecl());
   } else {
     decl = AST_NEW(AST_STMT, statement());
@@ -495,7 +556,7 @@ static AST* declaration() {
 
 void testScanner(const char* source);
 bool compile(const char* source) {
-  //testScanner(source);
+  testScanner(source);
   initScanner(source);
   parser.hadError = false;
   parser.panicMode = false;

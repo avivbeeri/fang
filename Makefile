@@ -12,7 +12,7 @@ OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
 fcc: $(OBJECTS)
 	$(CC) $^ $(CFLAGS) -o $@ -fsanitize=address
 
-$(OBJ)/%.o: $(SRC)/%.c $(SRC)/%.h
+$(OBJ)/%.o: $(SRC)/%.c
 	$(CC) -I$(SRC) -c $< $(CFLAGS) -o $@
 
 clean:
