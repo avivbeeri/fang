@@ -351,7 +351,6 @@ static void traverse(AST* ptr, int level) {
       traverse(data.type, 0);
       printf(" = ");
       traverse(data.expr, 0);
-      printf(";");
       break;
     }
     case AST_VAR_DECL: {
@@ -361,7 +360,6 @@ static void traverse(AST* ptr, int level) {
       traverse(data.identifier, 0);
       printf(": ");
       traverse(data.type, 0);
-      printf(";");
       break;
     }
     case AST_DECL: {
@@ -522,64 +520,6 @@ static AST* block() {
   return list;
 }
 
-static void beginScope() {
-
-}
-static void endScope() {
-
-}
-
-static AST* ifStatement() {
-  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
-  AST* condition = expression();
-  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-  AST* body = statement();
-  AST* elseClause = NULL;
-  if (match(TOKEN_ELSE)) {
-    elseClause = statement();
-  }
-
-  return AST_NEW(AST_IF, condition, body, elseClause);
-}
-static AST* whileStatement() {
-  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
-  AST* condition = expression();
-  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-  AST* body = statement();
-
-  return AST_NEW(AST_WHILE, condition, body);
-}
-static AST* forStatement() {
-  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
-  consume(TOKEN_SEMICOLON, "Expect ';'.");
-  //AST* condition = expression();
-  AST* condition = NULL;
-  consume(TOKEN_SEMICOLON, "Expect ';'.");
-  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-  AST* body = statement();
-
-  return AST_NEW(AST_FOR, NULL, condition, NULL, body);
-}
-
-static AST* statement() {
-  AST* expr = NULL;
-  if (match(TOKEN_LEFT_BRACE)) {
-    beginScope();
-    expr = block();
-    endScope();
-  } else if (match(TOKEN_IF)) {
-    expr = ifStatement();
-  } else if (match(TOKEN_FOR)) {
-    expr = forStatement();
-  } else if (match(TOKEN_WHILE)) {
-    expr = whileStatement();
-  } else {
-    expr = expression();
-    consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-  }
-  return AST_NEW(AST_STMT, expr);
-}
-
 static AST* parseVariable(const char* errorMessage) {
   consume(TOKEN_IDENTIFIER, errorMessage);
   return AST_NEW(AST_IDENTIFIER, copyString(parser.previous.start, parser.previous.length));
@@ -616,6 +556,87 @@ static AST* fnDecl() {
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
   return AST_NEW(AST_FN, identifier, params, block());
+}
+
+
+static void beginScope() {
+
+}
+static void endScope() {
+
+}
+
+static AST* expressionStatement() {
+  AST* expr = expression();
+  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  return expr;
+}
+
+static AST* ifStatement() {
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+  AST* condition = expression();
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+  AST* body = statement();
+  AST* elseClause = NULL;
+  if (match(TOKEN_ELSE)) {
+    elseClause = statement();
+  }
+
+  return AST_NEW(AST_IF, condition, body, elseClause);
+}
+static AST* whileStatement() {
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+  AST* condition = expression();
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+  AST* body = statement();
+
+  return AST_NEW(AST_WHILE, condition, body);
+}
+static AST* forStatement() {
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+  AST* initializer = NULL;
+  AST* condition = NULL;
+  AST* increment = NULL;
+
+  if (match(TOKEN_SEMICOLON)) {
+    // No initializer.
+  } else if (match(TOKEN_VAR)) {
+    initializer = varDecl();
+  } else {
+    initializer = expressionStatement();
+  }
+
+  if (!match(TOKEN_SEMICOLON)) {
+    condition = expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
+  }
+
+  if (!match(TOKEN_RIGHT_PAREN)) {
+    increment = expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+  }
+
+  AST* body = statement();
+
+  return AST_NEW(AST_FOR, initializer, condition, increment, body);
+}
+
+static AST* statement() {
+  AST* expr = NULL;
+  if (match(TOKEN_LEFT_BRACE)) {
+    beginScope();
+    expr = block();
+    endScope();
+  } else if (match(TOKEN_IF)) {
+    expr = ifStatement();
+  } else if (match(TOKEN_FOR)) {
+    expr = forStatement();
+  } else if (match(TOKEN_WHILE)) {
+    expr = whileStatement();
+  } else {
+    expr = expressionStatement();
+  }
+  return AST_NEW(AST_STMT, expr);
 }
 
 static AST* declaration() {
