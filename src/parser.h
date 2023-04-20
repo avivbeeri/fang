@@ -23,20 +23,12 @@
   SOFTWARE.
 */
 
+#ifndef parser_h
+#define parser_h
 
 #include "ast.h"
-#include "parser.h"
-#include "traverse.h"
-#include "emit.h"
 
-bool compile(const char* source) {
-  // testScanner(source);
-  AST* ast = parse(source);
-  if (ast != NULL) {
-    traverseTree(ast);
-    emitTree(ast);
-    ast_free(ast);
-    return true;
-  }
-  return false;
-}
+AST* parse(const char* source);
+void testScanner(const char* source);
+
+#endif
