@@ -1,6 +1,9 @@
-# Fang
-Fang is a language designed for embedded binary environments.
-It's weakly, statically typed, imperative and procedural.
+# Fang - Programming Language
+
+"First, and not good" - Aviv.
+
+Fang is a programming language designed for embedded binary environments.
+It's weakly and statically typed, imperative and procedural.
 
 ## Data types:
 Fang supports the following atomic types: void (functions only), ptr, bool, uint8, uint16, int8, int16, string.
@@ -32,15 +35,19 @@ return, false, true, while, for, if, else, this
 program -> declaration* EOF
 declaration -> 
   | typeDecl 
+  | enumDecl 
   | fnDecl 
   | varDecl 
+  | constDecl 
   | returnStmt (for exit codes) 
   | asmDecl;
   | statement;
 
 typeDecl -> "type" IDENTIFIER "{" fields? "}";
+enumDecl -> "enum" IDENTIFIER "{" IDENTIFER ("=" expression) ("," IDENTIFIER ("=" expression)?)* "}";
 fnDecl -> "fn" function;
-varDecl -> "var" IDENTIFIER ("=" expression)? ";" ;
+constDecl -> "const" IDENTIFIER ":" type ("=" expression)? ";" ;
+varDecl -> "var" IDENTIFIER ":" type ("=" expression)? ";" ;
 asmDecl -> "asm" "{" (STRING ";")* "}" ";";
 
 statement  -> block
