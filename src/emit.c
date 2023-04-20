@@ -52,7 +52,7 @@ static void genExit(int r) {
 
 static void genPostamble() {
   for (int i = 0; i < arrlen(constTable); i++) {
-    emitf("const_%i: .ascii \"%s\"", i, AS_STRING(constTable[i].value));
+    emitf("const_%i: .ascii \"%s\"\n", i, AS_STRING(constTable[i].value));
   }
 
 }

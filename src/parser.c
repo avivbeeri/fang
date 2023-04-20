@@ -321,6 +321,20 @@ static AST* dot(bool canAssign, AST* left) {
   return expr;
 }
 
+static AST* enumValueList() {
+  size_t arity = 0;
+  if (!check(TOKEN_RIGHT_BRACE)) {
+    do {
+      arity++;
+      AST* identifier = parseVariable("Expect value name");
+      if (match(TOKEN_EQUAL)) {
+        expression();
+      }
+    } while (match(TOKEN_COMMA));
+  }
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
+  return NULL;
+}
 static AST* fieldList() {
   size_t arity = 0;
   AST* params = NULL;
@@ -631,6 +645,12 @@ static AST* statement() {
   return AST_NEW(AST_STMT, expr);
 }
 
+static AST* enumDecl() {
+  AST* identifier = parseVariable("Expect an enum name");
+  consume(TOKEN_LEFT_BRACE, "Expect '{' before enum definition.");
+  AST* fields = enumValueList();
+  return NULL;
+}
 static AST* typeDecl() {
   AST* identifier = parseVariable("Expect a data type name");
   consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
@@ -642,6 +662,8 @@ static AST* topLevel() {
   AST* decl = NULL;
   if (match(TOKEN_TYPE)) {
     decl = typeDecl();
+  } else if (match(TOKEN_ENUM)) {
+    decl = enumDecl();
   } else if (match(TOKEN_FN)) {
     decl = fnDecl();
   } else if (match(TOKEN_CONST)) {
@@ -652,7 +674,6 @@ static AST* topLevel() {
   }
   if (parser.panicMode) synchronize();
   return AST_NEW(AST_DECL, decl);
-
 }
 
 static AST* declaration() {
@@ -713,7 +734,6 @@ AST* parse(const char* source) {
 
 void testScanner(const char* source) {
   initScanner(source);
-  advance();
 
   int line = -1;
   for (;;) {

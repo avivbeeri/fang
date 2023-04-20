@@ -32,14 +32,16 @@ return, false, true, while, for, if, else, this
 
 ## Grammar
 
-program -> declaration* EOF
-declaration -> 
+program -> topDecl* EOF
+topDecl -> 
   | typeDecl 
   | enumDecl 
   | fnDecl 
-  | varDecl 
   | constDecl 
-  | returnStmt (for exit codes) 
+  | declaration
+
+declaration -> 
+  | varDecl 
   | asmDecl;
   | statement;
 

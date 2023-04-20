@@ -217,7 +217,6 @@ static TokenType identifierType() {
         }
       }
       break;
-    // TODO
     case 'f':
       if (scanner.current - scanner.start > 1) {
         switch (scanner.start[1]) {
@@ -239,6 +238,7 @@ static TokenType identifierType() {
     case 'e':
       if (scanner.current - scanner.start > 1) {
         switch (scanner.start[1]) {
+          case 'n': return checkKeyword(2, 2, "um", TOKEN_ENUM);
           case 'l': return checkKeyword(2, 2, "se", TOKEN_ELSE);
           case 'x': return checkKeyword(2, 1, "t", TOKEN_EXT);
         }
@@ -407,8 +407,7 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_ELSE: return "ELSE";
     case TOKEN_THIS: return "THIS";
     case TOKEN_ERROR: return "ERROR";
+    case TOKEN_ENUM: return "ENUM";
     case TOKEN_EOF: return "EOF";
-
-    default: return "error";
   }
 }

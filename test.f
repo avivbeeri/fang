@@ -1,3 +1,4 @@
+enum Type { NONE, SOME = 5, OTHER = "g" }
 const text: string = "Hello world!";
 var new: string = "another value";
 
