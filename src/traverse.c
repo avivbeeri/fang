@@ -118,6 +118,17 @@ static void traverse(AST* ptr, int level) {
       traverse(data.type, 0);
       break;
     }
+    case AST_CONST_DECL: {
+      printf("%*s", level * 2, "");
+      struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+      printf("const ");
+      traverse(data.identifier, 0);
+      printf(": ");
+      traverse(data.type, 0);
+      printf(" = ");
+      traverse(data.expr, 0);
+      break;
+    }
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;
       traverse(data.node, level);

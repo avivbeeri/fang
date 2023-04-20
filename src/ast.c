@@ -117,6 +117,13 @@ void ast_free(AST *ptr) {
       ast_free(data.node);
       break;
     }
+    case AST_CONST_DECL: {
+      struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+      ast_free(data.identifier);
+      ast_free(data.type);
+      ast_free(data.expr);
+      break;
+    }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
       ast_free(data.identifier);
@@ -224,6 +231,7 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_ASSIGNMENT: return "ASSIGNMENT";
     case AST_VAR_INIT: return "VAR_INIT";
     case AST_VAR_DECL: return "VAR_DECL";
+    case AST_CONST_DECL: return "CONST_DECL";
     case AST_DOT: return "DOT";
     case AST_BINARY: return "BINARY_OP";
     case AST_UNARY: return "UNARY_OP";

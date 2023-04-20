@@ -51,8 +51,13 @@ static void genExit(int r) {
 }
 
 static void genPostamble() {
+  size_t bytes = 0;
   for (int i = 0; i < arrlen(constTable); i++) {
+    if (bytes % 4 != 0) {
+      emitf(".align %i\n", 4 - bytes % 4);
+    }
     emitf("const_%i: .ascii \"%s\"\n", i, AS_STRING(constTable[i].value));
+    bytes += strlen(AS_STRING(constTable[i].value));
   }
 
 }
@@ -126,7 +131,6 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_LIST data = next->data.AST_LIST;
         r = traverse(f, data.node);
         next = data.next;
-        emitf("\n");
       }
       return r;
       break;
@@ -134,6 +138,7 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;
       int r = traverse(f, data.node);
+      emitf("\n");
       return r;
       break;
     }

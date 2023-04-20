@@ -37,11 +37,11 @@ topDecl ->
   | typeDecl 
   | enumDecl 
   | fnDecl 
-  | constDecl 
   | declaration
 
 declaration -> 
   | varDecl 
+  | constDecl 
   | asmDecl;
   | statement;
 

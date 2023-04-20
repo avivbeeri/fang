@@ -80,6 +80,7 @@ typedef enum {
     AST_UNARY,
     AST_BINARY,
     AST_DOT,
+    AST_CONST_DECL,
     AST_VAR_DECL,
     AST_VAR_INIT,
     AST_ASSIGNMENT,
@@ -117,6 +118,7 @@ struct AST {
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
     struct AST_FOR { AST* initializer; AST* condition; AST* increment; AST* body; } AST_FOR;
     struct AST_DECL { AST* node; } AST_DECL;
+    struct AST_CONST_DECL { AST* identifier; AST* type; AST* expr; } AST_CONST_DECL;
     struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
     struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
     struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;

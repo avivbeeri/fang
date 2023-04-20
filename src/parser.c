@@ -236,7 +236,7 @@ static AST* unary(bool canAssign) {
   return expr;
 }
 
-static AST* emitAsm() {
+static AST* asmDecl() {
   consume(TOKEN_LEFT_BRACE, "Expect '{' after keyword 'asm'.");
   AST* strings = NULL;
   if (!check(TOKEN_RIGHT_BRACE)) {
@@ -371,23 +371,15 @@ static AST* fieldList() {
 }
 
 static AST* constDecl() {
-  AST* global = parseVariable("Expect variable name");
+  AST* global = parseVariable("Expect constant name.");
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type();
 
   consume(TOKEN_EQUAL, "Expect '=' after constant declaration.");
-  AST* result = expression();
-  // evaluate
-  /*
-  Value value;
-  switch (varType) {
-    case TYPE_U8: value = U8(result);
-  }
-  CONST_TABLE_store(value);
-  */
+  AST* value = expression();
 
   consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-  return NULL;
+  return AST_NEW(AST_CONST_DECL, global, varType, value);
 }
 
 static AST* varDecl() {
@@ -604,7 +596,7 @@ static AST* forStatement() {
   return AST_NEW(AST_FOR, initializer, condition, increment, body);
 }
 
-static AST* returnStatement() {
+static AST* returnStatement(bool topLevel) {
   AST* expr = NULL;
   if (match(TOKEN_SEMICOLON)) {
     // No return value
@@ -612,18 +604,12 @@ static AST* returnStatement() {
     expr = expression();
     consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
   }
-  return AST_NEW(AST_RETURN, expr);
-}
-static AST* exitStatement() {
-  AST* expr = NULL;
-  if (match(TOKEN_SEMICOLON) || check(TOKEN_EOF)) {
-    expr = AST_NEW(AST_LITERAL, TYPE_NUMBER, AST_NEW(AST_NUMBER, 0));
+  parser.exitEmit = parser.exitEmit || topLevel;
+  if (topLevel) {
+    return AST_NEW(AST_EXIT, expr);
   } else {
-    expr = expression();
-    consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
+    return AST_NEW(AST_RETURN, expr);
   }
-  parser.exitEmit = true;
-  return AST_NEW(AST_EXIT, expr);
 }
 
 static AST* statement() {
@@ -635,7 +621,7 @@ static AST* statement() {
   } else if (match(TOKEN_FOR)) {
     expr = forStatement();
   } else if (match(TOKEN_RETURN)) {
-    expr = returnStatement();
+    expr = returnStatement(false);
   } else if (match(TOKEN_WHILE)) {
     expr = whileStatement();
   } else {
@@ -665,8 +651,8 @@ static AST* topLevel() {
     decl = enumDecl();
   } else if (match(TOKEN_FN)) {
     decl = fnDecl();
-  } else if (match(TOKEN_CONST)) {
-    decl = constDecl();
+  } else if (match(TOKEN_RETURN)) {
+    decl = returnStatement(true);
   } else {
     // Go to the other declarations, which are allowed in deeper
     decl = declaration();
@@ -679,10 +665,10 @@ static AST* declaration() {
   AST* decl = NULL;
   if (match(TOKEN_VAR)) {
     decl = varDecl();
+  } else if (match(TOKEN_CONST)) {
+    decl = constDecl();
   } else if (match(TOKEN_ASM)) {
-    decl = emitAsm();
-  } else if (match(TOKEN_RETURN)) {
-    decl = exitStatement();
+    decl = asmDecl();
   } else {
     decl = statement();
   }
@@ -716,10 +702,11 @@ AST* parse(const char* source) {
 
   if (!parser.exitEmit) {
     // Append a "return 0" for exiting safely
+    AST* node = AST_NEW(AST_EXIT, AST_NEW(AST_LITERAL, TYPE_NUMBER, AST_NEW(AST_NUMBER, 0)));
     if (list == NULL) {
-      list = exitStatement();
+      list = node;
     } else {
-      current->data.AST_LIST.next = exitStatement();
+      current->data.AST_LIST.next = node;
     }
   }
 
