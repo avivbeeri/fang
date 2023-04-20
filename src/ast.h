@@ -31,6 +31,8 @@
 typedef struct AST AST; // Forward reference
 
 typedef enum AST_TYPE {
+  TYPE_NONE,
+  TYPE_VOID,
   TYPE_NUMBER,
   TYPE_STRING,
   TYPE_BOOLEAN,
@@ -128,6 +130,7 @@ struct AST {
     struct AST_LIST { AST* node; AST* next; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;
   } data;
+  AST_TYPE type;
 };
 
 AST* ast_new(AST ast);

@@ -23,25 +23,28 @@
   SOFTWARE.
 */
 
-
-#include "ast.h"
-#include "scanner.h"
-#include "parser.h"
-#include "traverse.h"
+#include "common.h"
+#include "memory.h"
 #include "type_table.h"
-#include "emit.h"
 
-bool compile(const char* source) {
-  // testScanner(source);
-  initScanner(source);
-  initTypeTable();
-  AST* ast = parse(source);
-  if (ast != NULL) {
-    traverseTree(ast);
-    emitTree(ast);
-    ast_free(ast);
-    return true;
+TYPE_TABLE_ENTRY* typeTable = NULL;
+
+TYPE_TABLE_ENTRY* initTypeTable() {
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = NULL, .parent = 0 })); // NONE
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("void"), .parent = 0 })); // void
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("int8"), .parent = 0 })); // void
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("int16"), .parent = 0 })); // void
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("uint8"), .parent = 0 })); // void
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("uint8"), .parent = 0 })); // void
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("bool"), .parent = 0 })); // void
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("string"), .parent = 0 })); // void
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("ptr"), .parent = 0 })); // void
+
+  return typeTable;
+}
+
+void freeTypeTable() {
+  for (int i = 0; i < arrlen(typeTable); i++) {
+    STRING_free(typeTable[i].name);
   }
-  freeTypeTable();
-  return false;
 }

@@ -31,6 +31,7 @@
 #include "scanner.h"
 #include "ast.h"
 #include "memory.h"
+#include "type_table.h"
 
 typedef struct {
   Token current;
@@ -635,7 +636,6 @@ static AST* declaration() {
 }
 
 AST* parse(const char* source) {
-  initScanner(source);
   parser.hadError = false;
   parser.panicMode = false;
   parser.exitEmit = false;
@@ -673,7 +673,6 @@ AST* parse(const char* source) {
 }
 
 void testScanner(const char* source) {
-void testScanner(const char* source);
   initScanner(source);
   advance();
 

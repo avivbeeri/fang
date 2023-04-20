@@ -23,25 +23,17 @@
   SOFTWARE.
 */
 
+#ifndef type_table_h
+#define type_table_h
 
-#include "ast.h"
-#include "scanner.h"
-#include "parser.h"
-#include "traverse.h"
-#include "type_table.h"
-#include "emit.h"
+#include "memory.h"
+typedef struct TYPE_TABLE_ENTRY {
+  STRING* name;
+  size_t parent;
+} TYPE_TABLE_ENTRY;
 
-bool compile(const char* source) {
-  // testScanner(source);
-  initScanner(source);
-  initTypeTable();
-  AST* ast = parse(source);
-  if (ast != NULL) {
-    traverseTree(ast);
-    emitTree(ast);
-    ast_free(ast);
-    return true;
-  }
-  freeTypeTable();
-  return false;
-}
+extern TYPE_TABLE_ENTRY* typeTable;
+TYPE_TABLE_ENTRY* initTypeTable(void);
+void freeTypeTable(void);
+
+#endif

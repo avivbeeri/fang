@@ -49,6 +49,7 @@ static void strunesc(const char *dest, const char *str, size_t length) {
   *s = '\0';
 }
 
+
 STRING* copyString(const char* chars, size_t length) {
   STRING* string = reallocate(NULL, 0, sizeof(STRING));
   string->length = length + 1;
@@ -56,6 +57,11 @@ STRING* copyString(const char* chars, size_t length) {
   strunesc(string->chars, chars, length);
   return string;
 }
+
+STRING* createString(const char* chars) {
+  return copyString(chars, strlen(chars));
+}
+
 void STRING_free(STRING* str) {
   FREE(char, str->chars);
   FREE(STRING, str);
