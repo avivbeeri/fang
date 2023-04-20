@@ -29,6 +29,7 @@
 
 #include "common.h"
 #include "ast.h"
+#include "value.h"
 #include "const_table.h"
 
 #define emitf(fmt, ...) do { fprintf(f, fmt, ##__VA_ARGS__); } while(0)
@@ -157,19 +158,20 @@ static int traverse(FILE* f, AST* ptr) {
     }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
-      int r = traverse(f, data.value);
-      return r;
-      break;
-    }
-    case AST_STRING: {
-      struct AST_STRING data = ast.data.AST_STRING;
-      emitf("%s", data.text->chars);
-      break;
-    }
-
-    case AST_NUMBER: {
-      struct AST_NUMBER data = ast.data.AST_NUMBER;
-      return genLoad(data.number);
+      switch (data.value.type) {
+        case VAL_INT: {
+          return genLoad(AS_NUMBER(data.value));
+        }
+        case VAL_STRING: {
+          // emit a constant value
+          break;
+        }
+        case VAL_BOOL: {
+          return genLoad(AS_BOOL(data.value) ? 1 : 0);
+          break;
+        }
+      }
+      return 0;
       break;
     }
     case AST_BINARY: {

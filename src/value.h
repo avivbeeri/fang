@@ -28,6 +28,7 @@
 
 typedef enum {
   VAL_BOOL,
+  VAL_INT,
   VAL_U8,
   VAL_U16,
   VAL_I8,
@@ -41,6 +42,7 @@ typedef struct Value {
   ValueType type;
   union {
     bool boolean;
+    int64_t number;
     uint8_t u8;
     uint16_t u16;
     int8_t i8;
@@ -52,6 +54,7 @@ typedef struct Value {
 } Value;
 
 #define BOOL_VAL(value)   ((Value){VAL_BOOL, {.boolean = value}})
+#define NUMBER(value) ((Value){VAL_INT, {.number = value }})
 #define U8(value) ((Value){VAL_U8, {.u8 = value}})
 #define I8(value) ((Value){VAL_I8, {.i8 = value}})
 #define U16(value) ((Value){VAL_U16, {.u16 = value}})
@@ -61,6 +64,7 @@ typedef struct Value {
 #define PTR(value) ((Value){VAL_PTR, {.ptr = value}})
 
 #define AS_BOOL(value)    ((value).as.boolean)
+#define AS_NUMBER(value)    ((value).as.number)
 #define AS_U8(value)  ((value).as.u8)
 #define AS_I8(value)  ((value).as.i8)
 #define AS_U16(value)  ((value).as.u16)
@@ -71,6 +75,7 @@ typedef struct Value {
 
 
 #define IS_BOOL(value)    ((value).type == VAL_BOOL)
+#define IS_NUMBER(value)    ((value).type == VAL_INT)
 #define IS_U8(value)    ((value).type == VAL_U8)
 #define IS_I8(value)    ((value).type == VAL_I8)
 #define IS_U16(value)    ((value).type == VAL_U16)

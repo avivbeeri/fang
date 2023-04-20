@@ -234,7 +234,12 @@ static void traverse(AST* ptr, int level) {
     }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
-      traverse(data.value, 0);
+      switch (data.value.type) {
+        case VAL_INT: printf("%lli", AS_NUMBER(data.value)); break;
+        case VAL_STRING: printf("%s", AS_STRING(data.value)); break;
+        case VAL_BOOL: printf("%s", AS_BOOL(data.value) ? "true" : "false"); break;
+        case VAL_CHAR: printf("%c", AS_CHAR(data.value)); break;
+      }
       break;
     }
     case AST_TYPE_NAME: {
@@ -257,21 +262,6 @@ static void traverse(AST* ptr, int level) {
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
       printf("%s", data.identifier->chars);
-      break;
-    }
-    case AST_STRING: {
-      struct AST_STRING data = ast.data.AST_STRING;
-      printf("\"%s\"", data.text->chars);
-      break;
-    }
-    case AST_BOOL: {
-      struct AST_BOOL data = ast.data.AST_BOOL;
-      printf("%s", data.value ? "true" : "false");
-      break;
-    }
-    case AST_NUMBER: {
-      struct AST_NUMBER data = ast.data.AST_NUMBER;
-      printf("%i", data.number);
       break;
     }
     case AST_UNARY: {

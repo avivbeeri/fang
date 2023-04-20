@@ -145,14 +145,14 @@ static AST* character(bool canAssign) {
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
   int index = CONST_TABLE_store(STRING(string->chars));
   printf("Storing %s at index %i\n", string->chars, index);
-  return AST_NEW(AST_LITERAL, TYPE_STRING, AST_NEW(AST_STRING, string));
+  return AST_NEW(AST_LITERAL, STRING(string));
 }
 static AST* string(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
   int index = CONST_TABLE_store(STRING(string->chars));
   printf("Storing %s at index %i\n", string->chars, index);
-  return AST_NEW(AST_LITERAL, TYPE_STRING, AST_NEW(AST_STRING, string));
+  return AST_NEW(AST_LITERAL, STRING(string));
 }
 
 static AST* type() {
@@ -167,14 +167,14 @@ static AST* type() {
 }
 static AST* literal(bool canAssign) {
   switch (parser.previous.type) {
-    case TOKEN_FALSE: return AST_NEW(AST_LITERAL, TYPE_BOOLEAN, AST_NEW(AST_BOOL, false));
-    case TOKEN_TRUE: return AST_NEW(AST_LITERAL, TYPE_BOOLEAN, AST_NEW(AST_BOOL, true));
+    case TOKEN_FALSE: return AST_NEW(AST_LITERAL, BOOL_VAL(false));
+    case TOKEN_TRUE: return AST_NEW(AST_LITERAL, BOOL_VAL(true));
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
 static AST* number(bool canAssign) {
   double value = strtod(parser.previous.start, NULL);
-  return AST_NEW(AST_LITERAL, TYPE_NUMBER, AST_NEW(AST_NUMBER, value));
+  return AST_NEW(AST_LITERAL, NUMBER(value));
 }
 
 static AST* grouping(bool canAssign) {
@@ -701,7 +701,7 @@ AST* parse(const char* source) {
 
   if (!parser.exitEmit) {
     // Append a "return 0" for exiting safely
-    AST* node = AST_NEW(AST_EXIT, AST_NEW(AST_LITERAL, TYPE_NUMBER, AST_NEW(AST_NUMBER, 0)));
+    AST* node = AST_NEW(AST_EXIT, AST_NEW(AST_LITERAL, NUMBER(0)));
     if (list == NULL) {
       list = node;
     } else {

@@ -43,8 +43,6 @@ void ast_free(AST *ptr) {
     case AST_ERROR: {
       break;
     }
-    case AST_BOOL: {
-      break;
     case AST_ASM: {
       struct AST_ASM data = ast.data.AST_ASM;
       for (int i = 0; i < arrlen(data.strings); i++) {
@@ -53,18 +51,9 @@ void ast_free(AST *ptr) {
       arrfree(data.strings);
       break;
     }
-    }
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
       STRING_free(data.identifier);
-      break;
-    }
-    case AST_STRING: {
-      struct AST_STRING data = ast.data.AST_STRING;
-      STRING_free(data.text);
-      break;
-    }
-    case AST_NUMBER: {
       break;
     }
     case AST_TYPE_NAME: {
@@ -74,7 +63,9 @@ void ast_free(AST *ptr) {
     }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
-      ast_free(data.value);
+      if (IS_STRING(data.value)) {
+        STRING_free(AS_STRING(data.value));
+      }
       break;
     }
     case AST_UNARY: {
@@ -238,11 +229,8 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_DOT: return "DOT";
     case AST_BINARY: return "BINARY_OP";
     case AST_UNARY: return "UNARY_OP";
-    case AST_STRING: return "STRING";
     case AST_TYPE_NAME: return "TYPE_NAME";
     case AST_IDENTIFIER: return "IDENTIFIER";
-    case AST_BOOL: return "BOOL";
-    case AST_NUMBER: return "NUMBER";
     case AST_LITERAL: return "LITERAL";
     case AST_ASM: return "ASM";
     case AST_CAST: return "CAST";

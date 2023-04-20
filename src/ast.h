@@ -27,17 +27,10 @@
 #define ast_h
 #include "common.h"
 #include "memory.h"
+#include "value.h"
 
 typedef struct AST AST; // Forward reference
-
-typedef enum AST_TYPE {
-  TYPE_NONE,
-  TYPE_VOID,
-  TYPE_NUMBER,
-  TYPE_STRING,
-  TYPE_BOOLEAN,
-  TYPE_RECORD
-} AST_TYPE;
+typedef int TYPE_INDEX;
 
 typedef enum AST_OP {
   OP_ADD,
@@ -69,72 +62,67 @@ typedef enum AST_OP {
 } AST_OP;
 
 typedef enum {
-    AST_ERROR,
-    AST_ASM,
-    AST_LITERAL,
-    AST_NUMBER,
-    AST_BOOL,
-    AST_IDENTIFIER,
-    AST_TYPE_NAME,
-    AST_STRING,
-    AST_UNARY,
-    AST_BINARY,
-    AST_DOT,
-    AST_CONST_DECL,
-    AST_VAR_DECL,
-    AST_VAR_INIT,
-    AST_ASSIGNMENT,
-    AST_IF,
-    AST_WHILE,
-    AST_FOR,
-    AST_DECL,
-    AST_STMT,
-    AST_CALL,
-    AST_CAST,
-    AST_RETURN,
-    AST_EXIT,
-    AST_FN,
-    AST_TYPE_DECL,
-    AST_PARAM,
-    AST_PARAM_LIST,
-    AST_LIST,
-    AST_MAIN,
-  } AST_TAG;
+  AST_ERROR,
+  AST_ASM,
+  AST_LITERAL,
+  AST_IDENTIFIER,
+  AST_TYPE_NAME,
+  AST_UNARY,
+  AST_BINARY,
+  AST_DOT,
+  AST_CONST_DECL,
+  AST_VAR_DECL,
+  AST_VAR_INIT,
+  AST_ASSIGNMENT,
+  AST_IF,
+  AST_WHILE,
+  AST_FOR,
+  AST_DECL,
+  AST_STMT,
+  AST_CALL,
+  AST_CAST,
+  AST_RETURN,
+  AST_EXIT,
+  AST_FN,
+  AST_TYPE_DECL,
+  AST_PARAM,
+  AST_PARAM_LIST,
+  AST_LIST,
+  AST_MAIN,
+} AST_TAG;
+
 struct AST {
   AST_TAG tag;
   union {
     struct AST_ERROR { int number; } AST_ERROR;
-    struct AST_NUMBER { int number; } AST_NUMBER;
-    struct AST_STRING { STRING* text; } AST_STRING;
-    struct AST_ASM { STRING** strings; } AST_ASM;
+    struct AST_LITERAL { Value value; } AST_LITERAL;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
-    struct AST_BOOL { bool value; } AST_BOOL;
-    struct AST_LITERAL { AST_TYPE type; AST* value; } AST_LITERAL;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
     struct AST_DOT { AST *left; AST *right; } AST_DOT;
     struct AST_IF { AST* condition; AST* body; AST* elseClause; } AST_IF;
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
     struct AST_FOR { AST* initializer; AST* condition; AST* increment; AST* body; } AST_FOR;
-    struct AST_DECL { AST* node; } AST_DECL;
-    struct AST_CONST_DECL { AST* identifier; AST* type; AST* expr; } AST_CONST_DECL;
-    struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
-    struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
-    struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
     struct AST_CALL { AST* identifier; AST* arguments; } AST_CALL;
     struct AST_CAST { AST* identifier; AST* type; } AST_CAST;
     struct AST_RETURN { AST* value; } AST_RETURN;
     struct AST_EXIT { AST* value; } AST_EXIT;
-    struct AST_FN { AST* identifier; AST* paramList; AST* returnType; AST* body; } AST_FN;
-    struct AST_TYPE_DECL { AST* identifier; AST* fields; } AST_TYPE_DECL;
-    struct AST_STMT { AST* node; } AST_STMT;
     struct AST_PARAM { AST* identifier; AST* type; } AST_PARAM;
     struct AST_PARAM_LIST { AST* node; AST* next; } AST_PARAM_LIST;
+    struct AST_CONST_DECL { AST* identifier; AST* type; AST* expr; } AST_CONST_DECL;
+    struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
+    struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
+    struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
+    struct AST_FN { AST* identifier; AST* paramList; AST* returnType; AST* body; } AST_FN;
+    struct AST_TYPE_DECL { AST* identifier; AST* fields; } AST_TYPE_DECL;
+    struct AST_ASM { STRING** strings; } AST_ASM;
+    struct AST_STMT { AST* node; } AST_STMT;
+    struct AST_DECL { AST* node; } AST_DECL;
     struct AST_LIST { AST* node; AST* next; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;
   } data;
-  AST_TYPE type;
+  TYPE_INDEX type;
 };
 
 AST* ast_new(AST ast);
