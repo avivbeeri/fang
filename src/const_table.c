@@ -23,60 +23,23 @@
   SOFTWARE.
 */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include "memory.h"
 #include "common.h"
+#include "memory.h"
+#include "const_table.h"
 
-static void strunesc(const char *dest, const char *str, size_t length) {
-  char* s = (char*)dest;
-  char* t = (char*)str;
-  char* next = (char*)str + 1;
-  while (length--) {
-    if (*t == '\\' && *next == '"') {
-      *s = '"';
-      length--;
-      t += 2;
-      next += 2;
-    } else {
-      *s = *t;
-      t++;
-      next++;
-    }
-    s++;
+CONST_TABLE_ENTRY* constTable = NULL;
+
+CONST_TABLE_ENTRY* CONST_TABLE_init() {
+  return constTable;
+}
+
+int CONST_TABLE_store(Value value) {
+  arrput(constTable, (CONST_TABLE_ENTRY){ .value = value });
+  return arrlen(constTable) - 1;
+}
+
+void CONST_TABLE_free() {
+  for (int i = 0; i < arrlen(constTable); i++) {
+    // TODO
   }
-  *s = '\0';
-}
-
-
-STRING* copyString(const char* chars, size_t length) {
-  STRING* string = reallocate(NULL, 0, sizeof(STRING));
-  string->length = length + 1;
-  string->chars = strndup(chars, length);
-  strunesc(string->chars, chars, length);
-  return string;
-}
-
-STRING* createString(const char* chars) {
-  return copyString(chars, strlen(chars));
-}
-
-void STRING_free(STRING* str) {
-  if (str == NULL) {
-    return;
-  }
-  FREE(char, str->chars);
-  FREE(STRING, str);
-}
-
-void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
-  if (newSize == 0) {
-    free(pointer);
-    return NULL;
-  }
-
-  void* result = realloc(pointer, newSize);
-  if (result == NULL) exit(1);
-  return result;
 }

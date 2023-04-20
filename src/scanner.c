@@ -161,7 +161,7 @@ static TokenType checkKeyword(int start, int length,
 static TokenType checkTypeKeyword() {
   switch (scanner.start[0]) {
     case 'v':
-      if (checkKeyword(1, 3, "void", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+      if (checkKeyword(1, 3, "oid", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
         return TOKEN_TYPE_NAME;
       }
       break;

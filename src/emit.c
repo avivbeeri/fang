@@ -29,6 +29,7 @@
 
 #include "common.h"
 #include "ast.h"
+#include "const_table.h"
 
 #define emitf(fmt, ...) do { fprintf(f, fmt, ##__VA_ARGS__); } while(0)
 static FILE* f;
@@ -47,6 +48,13 @@ static void genExit(int r) {
   emitf("mov X0, %s\n", regList[r]);
   emitf("mov X16, #1\n");
   emitf("svc 0\n");
+}
+
+static void genPostamble() {
+  for (int i = 0; i < arrlen(constTable); i++) {
+    emitf("const_%i: .ascii \"%s\"", i, AS_STRING(constTable[i].value));
+  }
+
 }
 
 static void freeAllRegisters() {
@@ -348,6 +356,7 @@ void emitTree(AST* ptr) {
 
   freeAllRegisters();
   traverse(f, ptr);
+  genPostamble();
   fprintf(f, "\n");
 
   fclose(f);

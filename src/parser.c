@@ -32,6 +32,7 @@
 #include "ast.h"
 #include "memory.h"
 #include "type_table.h"
+#include "const_table.h"
 
 typedef struct {
   Token current;
@@ -142,6 +143,8 @@ static AST* variable(bool canAssign) {
 static AST* string(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
+  int index = CONST_TABLE_store(STRING(string->chars));
+  printf("Storing %s at index %i\n", string->chars, index);
   return AST_NEW(AST_LITERAL, TYPE_STRING, AST_NEW(AST_STRING, string));
 }
 
@@ -339,9 +342,29 @@ static AST* fieldList() {
       node = newNode;
       consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
     } while (!check(TOKEN_RIGHT_BRACE));
+    consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
   }
-  consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
   return params;
+}
+
+static AST* constDecl() {
+  AST* global = parseVariable("Expect variable name");
+  consume(TOKEN_COLON, "Expect ':' after identifier.");
+  AST* varType = type();
+
+  consume(TOKEN_EQUAL, "Expect '=' after const type declaration.");
+  AST* result = expression();
+  // evaluate
+  /*
+  Value value;
+  switch (varType) {
+    case TYPE_U8: value = U8(result);
+  }
+  CONST_TABLE_store(value);
+  */
+
+  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  return NULL;
 }
 
 static AST* varDecl() {
@@ -385,9 +408,8 @@ static AST* fnDecl() {
       }
       node = newNode;
     } while (match(TOKEN_COMMA));
-    consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   }
-
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   consume(TOKEN_COLON,"Expect ':' after function parameter list.");
   AST* returnType = type();
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
@@ -598,8 +620,6 @@ static AST* statement() {
     expr = ifStatement();
   } else if (match(TOKEN_FOR)) {
     expr = forStatement();
-  } else if (match(TOKEN_ASM)) {
-    expr = emitAsm();
   } else if (match(TOKEN_RETURN)) {
     expr = returnStatement();
   } else if (match(TOKEN_WHILE)) {
@@ -618,14 +638,29 @@ static AST* typeDecl() {
   return AST_NEW(AST_TYPE_DECL, identifier, fields);
 }
 
-static AST* declaration() {
+static AST* topLevel() {
   AST* decl = NULL;
   if (match(TOKEN_TYPE)) {
     decl = typeDecl();
   } else if (match(TOKEN_FN)) {
     decl = fnDecl();
-  } else if (match(TOKEN_VAR)) {
+  } else if (match(TOKEN_CONST)) {
+    decl = constDecl();
+  } else {
+    // Go to the other declarations, which are allowed in deeper
+    decl = declaration();
+  }
+  if (parser.panicMode) synchronize();
+  return AST_NEW(AST_DECL, decl);
+
+}
+
+static AST* declaration() {
+  AST* decl = NULL;
+  if (match(TOKEN_VAR)) {
     decl = varDecl();
+  } else if (match(TOKEN_ASM)) {
+    decl = emitAsm();
   } else if (match(TOKEN_RETURN)) {
     decl = exitStatement();
   } else {
@@ -645,7 +680,11 @@ AST* parse(const char* source) {
   AST* current = NULL;
 
   while (!check(TOKEN_EOF)) {
-    AST* node = AST_NEW(AST_LIST, declaration(), NULL);
+    AST* decl = topLevel();
+    if (decl == NULL) {
+      continue;
+    }
+    AST* node = AST_NEW(AST_LIST, decl, NULL);
 
     if (list == NULL) {
       list = node;

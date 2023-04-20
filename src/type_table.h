@@ -30,10 +30,11 @@
 typedef struct TYPE_TABLE_ENTRY {
   STRING* name;
   size_t parent;
+  size_t byteSize;
 } TYPE_TABLE_ENTRY;
 
 extern TYPE_TABLE_ENTRY* typeTable;
-TYPE_TABLE_ENTRY* initTypeTable(void);
-void freeTypeTable(void);
+TYPE_TABLE_ENTRY* TYPE_TABLE_init(void);
+void TYPE_TABLE_free(void);
 
 #endif

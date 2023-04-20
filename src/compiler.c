@@ -29,19 +29,24 @@
 #include "parser.h"
 #include "traverse.h"
 #include "type_table.h"
+#include "const_table.h"
 #include "emit.h"
 
 bool compile(const char* source) {
-  // testScanner(source);
+  testScanner(source);
+  TYPE_TABLE_init();
+  CONST_TABLE_init();
   initScanner(source);
-  initTypeTable();
   AST* ast = parse(source);
+  bool result = true;
   if (ast != NULL) {
     traverseTree(ast);
     emitTree(ast);
     ast_free(ast);
-    return true;
+  } else {
+    result = false;
   }
-  freeTypeTable();
-  return false;
+  CONST_TABLE_free();
+  TYPE_TABLE_free();
+  return result;
 }
