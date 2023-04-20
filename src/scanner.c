@@ -175,6 +175,7 @@ static TokenType checkTypeKeyword() {
         return TOKEN_TYPE_NAME;
       }
       break;
+    case 'c': return checkKeyword(1, 3, "har", TOKEN_TYPE_NAME);
     case 's':
       if (checkKeyword(1, 5, "tring", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
         return TOKEN_TYPE_NAME;
@@ -290,6 +291,20 @@ static Token number() {
   return makeToken(TOKEN_NUMBER);
 }
 
+static Token character() {
+  while (peek() != '\'' && !isAtEnd()) {
+    if (peek() == '\\' && peekNext() == '\'') {
+      advance();
+    }
+    advance();
+  }
+
+  if (isAtEnd()) return errorToken("Unterminated char literal.");
+
+  // The closing quote.
+  advance();
+  return makeToken(TOKEN_CHAR);
+}
 static Token string() {
   while (peek() != '"' && !isAtEnd()) {
     if (peek() == '\n') scanner.line++;
@@ -354,6 +369,7 @@ Token scanToken() {
       return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
     case ':':
       return makeToken(match(':') ? TOKEN_COLON_COLON : TOKEN_COLON);
+    case '\'': return character();
     case '"': return string();
   }
 
@@ -420,6 +436,7 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_ERROR: return "ERROR";
     case TOKEN_ENUM: return "ENUM";
     case TOKEN_EOF: return "EOF";
+    case TOKEN_CHAR: return "CHAR";
     case TOKEN_AS: return "AS";
   }
 }

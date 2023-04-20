@@ -1,7 +1,6 @@
-enum Type { NONE, SOME = 5, OTHER = "g" }
-const text: string = "Hello world!";
-var n: string = g() as int8;
+'H';
 
+/*
 asm {
   "mov X0, #1"
   "adr X1, const_1"
@@ -9,4 +8,5 @@ asm {
   "mov X16, #4"
   "svc 0"
 };
+*/
 return 0 + 0;

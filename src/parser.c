@@ -24,7 +24,6 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "common.h"
 #include "compiler.h"
@@ -140,6 +139,13 @@ static AST* variable(bool canAssign) {
     return AST_NEW(AST_ASSIGNMENT, variable, expr);
   }
   return variable;
+}
+static AST* character(bool canAssign) {
+  // copy the character to memory
+  STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
+  int index = CONST_TABLE_store(STRING(string->chars));
+  printf("Storing %s at index %i\n", string->chars, index);
+  return AST_NEW(AST_LITERAL, TYPE_STRING, AST_NEW(AST_STRING, string));
 }
 static AST* string(bool canAssign) {
   // copy the string to memory
@@ -464,6 +470,7 @@ ParseRule rules[] = {
   [TOKEN_TYPE_NAME]       = {NULL,     NULL,   PREC_NONE},
   [TOKEN_STRING]          = {string,   NULL,   PREC_NONE},
   [TOKEN_NUMBER]          = {number,   NULL,   PREC_NONE},
+  [TOKEN_CHAR]            = {character,NULL,   PREC_NONE},
   [TOKEN_TRUE]            = {literal,  NULL,   PREC_NONE},
   [TOKEN_FALSE]           = {literal,  NULL,   PREC_NONE},
   [TOKEN_TYPE]            = {NULL,     NULL,   PREC_NONE},

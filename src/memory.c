@@ -23,11 +23,8 @@
   SOFTWARE.
 */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include "memory.h"
 #include "common.h"
+#include "memory.h"
 
 static void strunesc(const char *dest, const char *str, size_t length) {
   char* s = (char*)dest;

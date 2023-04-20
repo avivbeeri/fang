@@ -33,6 +33,7 @@ typedef enum {
   VAL_I8,
   VAL_I16,
   VAL_STRING,
+  VAL_CHAR,
   VAL_PTR,
 } ValueType;
 
@@ -45,6 +46,7 @@ typedef struct Value {
     int8_t i8;
     int16_t i16;
     char* string;
+    char character;
     uint16_t ptr;
   } as;
 } Value;
@@ -55,6 +57,7 @@ typedef struct Value {
 #define U16(value) ((Value){VAL_U16, {.u16 = value}})
 #define I16(value) ((Value){VAL_I16, {.i16 = value}})
 #define STRING(value) ((Value){VAL_STRING, {.string = value}})
+#define CHAR(value) ((Value){VAL_CHAR, {.character = value}})
 #define PTR(value) ((Value){VAL_PTR, {.ptr = value}})
 
 #define AS_BOOL(value)    ((value).as.boolean)
@@ -63,6 +66,7 @@ typedef struct Value {
 #define AS_U16(value)  ((value).as.u16)
 #define AS_I16(value)  ((value).as.i16)
 #define AS_STRING(value)  ((value).as.string)
+#define AS_CHAR(value)  ((value).as.character)
 #define AS_PTR(value)  ((value).as.ptr)
 
 
@@ -72,6 +76,7 @@ typedef struct Value {
 #define IS_U16(value)    ((value).type == VAL_U16)
 #define IS_I16(value)    ((value).type == VAL_I16)
 #define IS_STRING(value)    ((value).type == VAL_STRING)
+#define IS_CHAR(value)    ((value).type == VAL_CHAR)
 #define IS_PTR(value)    ((value).type == VAL_PTR)
 
 #endif

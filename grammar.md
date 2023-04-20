@@ -6,7 +6,7 @@ Fang is a programming language designed for embedded binary environments.
 It's weakly and statically typed, imperative and procedural.
 
 ## Data types:
-Fang supports the following atomic types: void (functions only), ptr, bool, uint8, uint16, int8, int16, string.
+Fang supports the following atomic types: void (functions only), ptr, bool, uint8, uint16, int8, int16, string, char.
 Fang also allows for the creation of composite datatypes.
 Arrays of types will be supported.
 
@@ -89,7 +89,7 @@ or_list -> logic_or ( "," logic_or )* ( "," )? ;
 
 type       -> "$"? ("[" type "]") | typename;
 typename   -> "void" | "bool" | "ptr" | "int8" | "uint8" 
-            | "int16" | "uint16" | "string" | IDENTIFIER; 
+            | "int16" | "uint16" | "char" | "string" | IDENTIFIER; 
 function   -> IDENTIFIER "(" parameters? ")" ":" type block ;
 parameters -> IDENTIFIER ":" type (, IDENTIFIER ":" type)* ;
 arguments  -> expression (, expression)* ;
