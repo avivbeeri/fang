@@ -45,7 +45,7 @@ char unesc(const char* str, size_t len) {
       case 'x': {
         t += 2;
         len -= 2;
-        return strtod(t, NULL);
+        return strtol(t, NULL, 16);
       };
     }
   }

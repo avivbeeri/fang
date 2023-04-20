@@ -6,4 +6,4 @@ asm {
   "mov X16, #4"
   "svc 0"
 };
-return 0 + 0 + '\x65';
+return 0 + 0 + '\x2F';
