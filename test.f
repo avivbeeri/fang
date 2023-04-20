@@ -11,4 +11,4 @@ asm {
 };
 */
 
-return 5;
+return 0 + 1;

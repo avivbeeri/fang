@@ -31,10 +31,66 @@
 #include "ast.h"
 
 #define emitf(fmt, ...) do { fprintf(f, fmt, ##__VA_ARGS__); } while(0)
+static FILE* f;
 
-static void traverse(FILE* f, AST* ptr) {
+
+static bool freereg[4];
+static char *regList[4] = { "X1", "X2", "X3", "X4" };
+
+static void genPreamble() {
+  emitf(".global _start\n");
+  emitf(".align 2\n");
+  emitf("_start:\n");
+}
+static void genExit(int r) {
+  // Assumes return code is in reg r.
+  emitf("mov X0, %s\n", regList[r]);
+  emitf("mov X16, #1\n");
+  emitf("svc 0\n");
+}
+
+static void freeAllRegisters() {
+  for (int i = 0; i < sizeof(freereg); i++) {
+    freereg[i] = true;
+  }
+}
+
+static void freeRegister(int r) {
+  if (freereg[r]) {
+    printf("Double-freeing register, abort to check");
+    exit(1);
+  }
+  freereg[r] = true;
+}
+
+static int allocateRegister() {
+  for (int i = 0; i < sizeof(freereg); i++) {
+    if (freereg[i]) {
+      freereg[i] = false;
+      return i;
+    }
+  }
+  printf("Out of registers, abort");
+  exit(1);
+}
+
+static int genLoad(int i) {
+  // Load i into a register
+  // return the register index
+  int r = allocateRegister();
+  emitf("mov %s, #%i\n", regList[r], i);
+  return r;
+}
+
+static int genAdd(int leftReg, int rightReg) {
+  emitf("add %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
+
+static int traverse(FILE* f, AST* ptr) {
   if (ptr == NULL) {
-    return;
+    return 0;
   }
   AST ast = *ptr;
   switch(ast.tag) {
@@ -43,38 +99,40 @@ static void traverse(FILE* f, AST* ptr) {
     }
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;
-      emitf(".global _start\n");
-      emitf(".align 2\n");
-      emitf("_start:\n");
+      genPreamble();
       traverse(f, data.body);
+      return 0;
       break;
     }
     case AST_EXIT: {
       struct AST_EXIT data = ast.data.AST_EXIT;
-      traverse(f, data.value);
-      emitf("\n");
-      emitf("mov X16, #1\n");
-      emitf("svc 0\n");
+      int r = traverse(f, data.value);
+      genExit(r);
+      return r;
       break;
     }
     case AST_LIST: {
       AST* next = ptr;
+      int r = 0;
       while (next != NULL) {
         struct AST_LIST data = next->data.AST_LIST;
-        traverse(f, data.node);
+        r = traverse(f, data.node);
         next = data.next;
         emitf("\n");
       }
+      return r;
       break;
     }
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;
-      traverse(f, data.node);
+      int r = traverse(f, data.node);
+      return r;
       break;
     }
     case AST_STMT: {
       struct AST_STMT data = ast.data.AST_STMT;
-      traverse(f, data.node);
+      int r = traverse(f, data.node);
+      return r;
       break;
     }
     case AST_ASM: {
@@ -84,7 +142,8 @@ static void traverse(FILE* f, AST* ptr) {
     }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
-      traverse(f, data.value);
+      int r = traverse(f, data.value);
+      return r;
       break;
     }
     case AST_STRING: {
@@ -92,9 +151,38 @@ static void traverse(FILE* f, AST* ptr) {
       emitf("%s", data.text->chars);
       break;
     }
+
     case AST_NUMBER: {
       struct AST_NUMBER data = ast.data.AST_NUMBER;
-      emitf("mov X0, #%i", data.number);
+      return genLoad(data.number);
+      break;
+    }
+    case AST_BINARY: {
+      struct AST_BINARY data = ast.data.AST_BINARY;
+      int leftReg = traverse(f, data.left);
+      int rightReg = traverse(f, data.right);
+      switch(data.op) {
+        case OP_ADD: return genAdd(leftReg, rightReg);
+                     /*
+        case OP_SUB: str = "-"; break;
+        case OP_MUL: str = "*"; break;
+        case OP_DIV: str = "/"; break;
+        case OP_MOD: str = "%"; break;
+        case OP_OR: str = "||"; break;
+        case OP_AND: str = "&&"; break;
+        case OP_BITWISE_OR: str = "|"; break;
+        case OP_BITWISE_AND: str = "&"; break;
+        case OP_SHIFT_LEFT: str = "<<"; break;
+        case OP_SHIFT_RIGHT: str = ">>"; break;
+        case OP_COMPARE_EQUAL: str = "=="; break;
+        case OP_NOT_EQUAL: str = "!="; break;
+        case OP_GREATER_EQUAL: str = ">="; break;
+        case OP_LESS_EQUAL: str = "<="; break;
+        case OP_GREATER: str = ">"; break;
+        case OP_LESS: str = "<"; break;
+        default: str = "MISSING"; break;
+        */
+      }
       break;
     }
                   /*
@@ -248,15 +336,17 @@ static void traverse(FILE* f, AST* ptr) {
       break;
     }
   }
+  return 0;
 }
 void emitTree(AST* ptr) {
-  FILE *f = fopen("file.S", "w");
+  f = fopen("file.S", "w");
   if (f == NULL)
   {
       printf("Error opening file!\n");
       exit(1);
   }
 
+  freeAllRegisters();
   traverse(f, ptr);
   fprintf(f, "\n");
 
