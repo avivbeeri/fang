@@ -57,8 +57,8 @@ static void genPostamble() {
     if (bytes % 4 != 0) {
       emitf(".align %lu\n", 4 - bytes % 4);
     }
-    emitf("const_%i: .ascii \"%s\"\n", i, AS_STRING(constTable[i].value));
-    bytes += strlen(AS_STRING(constTable[i].value));
+    emitf("const_%i: .ascii \"%s\"\n", i, AS_STRING(constTable[i].value)->chars);
+    bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
 
 }
@@ -139,7 +139,7 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;
       int r = traverse(f, data.node);
-      emitf("\n");
+      //emitf("\n");
       return r;
       break;
     }
@@ -159,6 +159,10 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       switch (data.value.type) {
+        case VAL_CHAR: {
+          printf("%c\n", AS_CHAR(data.value));
+          return genLoad(AS_CHAR(data.value));
+        }
         case VAL_INT: {
           return genLoad(AS_NUMBER(data.value));
         }

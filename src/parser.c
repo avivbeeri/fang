@@ -142,15 +142,18 @@ static AST* variable(bool canAssign) {
 }
 static AST* character(bool canAssign) {
   // copy the character to memory
+  return AST_NEW(AST_LITERAL, CHAR(unesc(parser.previous.start + 1, parser.previous.length - 3)));
+  /*
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
   int index = CONST_TABLE_store(STRING(string->chars));
   printf("Storing %s at index %i\n", string->chars, index);
   return AST_NEW(AST_LITERAL, STRING(string));
+  */
 }
 static AST* string(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
-  int index = CONST_TABLE_store(STRING(string->chars));
+  int index = CONST_TABLE_store(STRING(string));
   printf("Storing %s at index %i\n", string->chars, index);
   return AST_NEW(AST_LITERAL, STRING(string));
 }

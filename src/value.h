@@ -47,8 +47,8 @@ typedef struct Value {
     uint16_t u16;
     int8_t i8;
     int16_t i16;
-    char* string;
-    char character;
+    STRING* string;
+    unsigned char character;
     uint16_t ptr;
   } as;
 } Value;

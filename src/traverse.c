@@ -236,7 +236,7 @@ static void traverse(AST* ptr, int level) {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       switch (data.value.type) {
         case VAL_INT: printf("%lli", AS_NUMBER(data.value)); break;
-        case VAL_STRING: printf("%s", AS_STRING(data.value)); break;
+        case VAL_STRING: printf("%s", AS_STRING(data.value)->chars); break;
         case VAL_BOOL: printf("%s", AS_BOOL(data.value) ? "true" : "false"); break;
         case VAL_CHAR: printf("%c", AS_CHAR(data.value)); break;
       }

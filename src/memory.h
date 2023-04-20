@@ -42,6 +42,7 @@ typedef struct {
 } STRING;
 
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
+char unesc(const char* str, size_t length);
 STRING* copyString(const char* chars, size_t length);
 STRING* createString(const char* chars);
 void STRING_free(STRING* str);

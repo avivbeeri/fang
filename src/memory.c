@@ -26,6 +26,32 @@
 #include "common.h"
 #include "memory.h"
 
+char unesc(const char* str, size_t len) {
+  char* t = (char*)str;
+  char* next = (char*)str + 1;
+  if (*t == '\\') {
+    switch (*next) {
+      case '0': return '\0';
+      case 'n': return '\n';
+      case 'r': return '\r';
+      case 'a': return '\a';
+      case 't': return '\t';
+      case 'b': return '\b';
+      case 'v': return '\v';
+      case 'f': return '\f';
+      case '\\': return '\\';
+      case '"': return '\"';
+      case '?': return '\?';
+      case 'x': {
+        t += 2;
+        len -= 2;
+        return strtod(t, NULL);
+      };
+    }
+  }
+  return t[0];
+}
+
 static void strunesc(const char *dest, const char *str, size_t length) {
   char* s = (char*)dest;
   char* t = (char*)str;
