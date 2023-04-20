@@ -247,7 +247,11 @@ static void traverse(AST* ptr, int level) {
       printf("%*s", level * 2, "");
       struct AST_ASM data = ast.data.AST_ASM;
       printf("ASM {\n");
-      traverse(data.strings, level + 1);
+      for (int i = 0; i < arrlen(data.strings); i++) {
+        printf("%*s", (level + 1) * 2, "");
+        printf("%s\n", data.strings[i]->chars);
+      }
+      printf("%*s", level * 2, "");
       printf("}\n");
       break;
     }

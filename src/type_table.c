@@ -47,4 +47,5 @@ void TYPE_TABLE_free() {
   for (int i = 0; i < arrlen(typeTable); i++) {
     STRING_free(typeTable[i].name);
   }
+  arrfree(typeTable);
 }

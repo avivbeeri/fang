@@ -42,4 +42,5 @@ void CONST_TABLE_free() {
   for (int i = 0; i < arrlen(constTable); i++) {
     // TODO
   }
+  arrfree(constTable);
 }

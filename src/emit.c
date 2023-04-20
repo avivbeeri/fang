@@ -54,7 +54,7 @@ static void genPostamble() {
   size_t bytes = 0;
   for (int i = 0; i < arrlen(constTable); i++) {
     if (bytes % 4 != 0) {
-      emitf(".align %i\n", 4 - bytes % 4);
+      emitf(".align %lu\n", 4 - bytes % 4);
     }
     emitf("const_%i: .ascii \"%s\"\n", i, AS_STRING(constTable[i].value));
     bytes += strlen(AS_STRING(constTable[i].value));
@@ -150,7 +150,9 @@ static int traverse(FILE* f, AST* ptr) {
     }
     case AST_ASM: {
       struct AST_ASM data = ast.data.AST_ASM;
-      traverse(f, data.strings);
+      for (int i = 0; i < arrlen(data.strings); i++) {
+        emitf("%s\n", data.strings[i]->chars);
+      }
       break;
     }
     case AST_LITERAL: {

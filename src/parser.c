@@ -238,26 +238,18 @@ static AST* unary(bool canAssign) {
 
 static AST* asmDecl() {
   consume(TOKEN_LEFT_BRACE, "Expect '{' after keyword 'asm'.");
-  AST* strings = NULL;
+  STRING** output = NULL;
   if (!check(TOKEN_RIGHT_BRACE)) {
-    AST* node = NULL;
     consume(TOKEN_STRING, "ASM blocks can only contain strings.");
     do {
       STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
-      AST* text = AST_NEW(AST_STRING, string);
-      AST* newNode = AST_NEW(AST_LIST, text, NULL);
-      if (node != NULL) {
-        node->data.AST_LIST.next = newNode;
-      } else {
-        strings = newNode;
-      }
-      node = newNode;
+      arrput(output, string);
     } while (match(TOKEN_STRING));
   }
 
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after keyword 'asm'.");
   consume(TOKEN_SEMICOLON, "Expect ';' after asm declaration.");
-  return AST_NEW(AST_ASM, strings);
+  return AST_NEW(AST_ASM, output);
 }
 
 static AST* argumentList(){

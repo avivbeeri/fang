@@ -47,7 +47,10 @@ void ast_free(AST *ptr) {
       break;
     case AST_ASM: {
       struct AST_ASM data = ast.data.AST_ASM;
-      ast_free(data.strings);
+      for (int i = 0; i < arrlen(data.strings); i++) {
+        STRING_free(data.strings[i]);
+      }
+      arrfree(data.strings);
       break;
     }
     }
