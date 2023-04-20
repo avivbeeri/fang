@@ -151,6 +151,13 @@ static void traverse(AST* ptr, int level) {
       printf("}");
       break;
     }
+    case AST_CAST: {
+      struct AST_CAST data = ast.data.AST_CAST;
+      traverse(data.identifier, 0);
+      printf(" as ");
+      traverse(data.type, 0);
+      break;
+    }
     case AST_CALL: {
       struct AST_CALL data = ast.data.AST_CALL;
       traverse(data.identifier, 0);

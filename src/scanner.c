@@ -209,7 +209,16 @@ static TokenType identifierType() {
     case 'c': return checkKeyword(1, 4, "onst", TOKEN_CONST);
     case 'r': return checkKeyword(1, 5, "eturn", TOKEN_RETURN);
     case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
-    case 'a': return checkKeyword(1, 2, "sm", TOKEN_ASM);
+    case 'a':
+      if (scanner.current - scanner.start > 1) {
+        if (checkKeyword(1, 2, "sm", TOKEN_ASM) == TOKEN_ASM) {
+          return TOKEN_ASM;
+        }
+        if (checkKeyword(1, 1, "s", TOKEN_AS) == TOKEN_AS) {
+          return TOKEN_AS;
+        }
+      }
+      break;
     case 'v':
       if (scanner.current - scanner.start > 1) {
         switch (scanner.start[1]) {
@@ -376,6 +385,8 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_EQUAL: return "EQUAL";
     case TOKEN_EQUAL_EQUAL: return "EQUAL_EQUAL";
     case TOKEN_GREATER: return "GREATER";
+    case TOKEN_GREATER_GREATER: return "GREATER_GREATER";
+    case TOKEN_LESS_LESS: return "LESS_LESS";
     case TOKEN_GREATER_EQUAL: return "GREATER_EQUAL";
     case TOKEN_LESS: return "LESS";
     case TOKEN_LESS_EQUAL: return "LESS_EQUAL";
@@ -409,5 +420,6 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_ERROR: return "ERROR";
     case TOKEN_ENUM: return "ENUM";
     case TOKEN_EOF: return "EOF";
+    case TOKEN_AS: return "AS";
   }
 }

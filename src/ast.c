@@ -151,6 +151,12 @@ void ast_free(AST *ptr) {
       ast_free(data.value);
       break;
     }
+    case AST_CAST: {
+      struct AST_CAST data = ast.data.AST_CAST;
+      ast_free(data.identifier);
+      ast_free(data.type);
+      break;
+    }
     case AST_CALL: {
       struct AST_CALL data = ast.data.AST_CALL;
       ast_free(data.identifier);
@@ -228,6 +234,7 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_NUMBER: return "NUMBER";
     case AST_LITERAL: return "LITERAL";
     case AST_ASM: return "ASM";
+    case AST_CAST: return "CAST";
   }
   return "UNKNOWN";
 }

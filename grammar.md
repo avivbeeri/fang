@@ -28,7 +28,7 @@ Unimplemented but planned:
 
 ## Keywords
 import, const, var, ext, asm, type, fn, void, 
-return, false, true, while, for, if, else, this
+return, false, true, while, for, if, else, this, as
 
 ## Grammar
 
@@ -80,7 +80,8 @@ term       -> factor ( ("-" | "+") factor)*;
 factor     -> unary ( ("/" | "*" | "%" ) unary )*;
 unary      -> ("!" | "-" | "&" | "$" ) unary | call;
 call       -> subscript ( "(" arguments? ")" | "." IDENTIFIER )*;
-subscript  -> primary ( "[" logic_or "]" )*; 
+subscript  -> casted ( "[" logic_or "]" )*; 
+casted     -> primary ( "as" type )* ; 
 primary    -> literal | IDENTIFIER | "(" expression ")" | "[" list_display? "]";
 literal    -> "true" | "false" | "this" | NUMBER | STRING;  
 

@@ -1,6 +1,7 @@
+var n: string = g() as int8;
+/*
 enum Type { NONE, SOME = 5, OTHER = "g" }
 const text: string = "Hello world!";
-var new: string = "another value";
 
 asm {
   "mov X0, #1"
@@ -10,3 +11,4 @@ asm {
   "svc 0"
 };
 return 0 + 0;
+*/

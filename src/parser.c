@@ -55,6 +55,7 @@ typedef enum {
   PREC_UNARY,       // ! -
   PREC_REF,         // @ $
   PREC_CALL,        // . ()
+  PREC_AS,          // as
   PREC_PRIMARY
 } Precedence;
 
@@ -156,7 +157,6 @@ static AST* type() {
     consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     return AST_NEW(AST_IDENTIFIER, string);
-
   }
 }
 static AST* literal(bool canAssign) {
@@ -256,7 +256,7 @@ static AST* emitAsm() {
   }
 
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after keyword 'asm'.");
-  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  consume(TOKEN_SEMICOLON, "Expect ';' after asm declaration.");
   return AST_NEW(AST_ASM, strings);
 }
 
@@ -278,6 +278,15 @@ static AST* argumentList(){
   return list;
 }
 
+static AST* as(bool canAssign, AST* left) {
+  AST* right = type();
+  AST* expr = AST_NEW(AST_CAST, left, right);
+  if (canAssign && match(TOKEN_EQUAL)) {
+    AST* right = expression();
+    expr = AST_NEW(AST_ASSIGNMENT, expr, right);
+  }
+  return expr;
+}
 static AST* call(bool canAssign, AST* left) {
   AST* params = argumentList();
   return AST_NEW(AST_CALL, left, params);
@@ -366,7 +375,7 @@ static AST* constDecl() {
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type();
 
-  consume(TOKEN_EQUAL, "Expect '=' after const type declaration.");
+  consume(TOKEN_EQUAL, "Expect '=' after constant declaration.");
   AST* result = expression();
   // evaluate
   /*
@@ -394,7 +403,7 @@ static AST* varDecl() {
     decl = AST_NEW(AST_VAR_DECL, global, varType);
   }
 
-  consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+  consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
   return decl;
 }
 
@@ -430,14 +439,6 @@ static AST* fnDecl() {
   return AST_NEW(AST_FN, identifier, params, returnType, block());
 }
 
-
-static void beginScope() {
-
-}
-static void endScope() {
-
-}
-
 ParseRule rules[] = {
   [TOKEN_LEFT_PAREN]      = {grouping, call,   PREC_CALL},
   [TOKEN_RIGHT_PAREN]     = {NULL,     NULL,   PREC_NONE},
@@ -468,6 +469,7 @@ ParseRule rules[] = {
 
   [TOKEN_COMMA]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_DOT]             = {NULL,     dot,    PREC_CALL},
+  [TOKEN_AS]              = {NULL,     as,     PREC_AS},
   [TOKEN_AT]              = {ref,    NULL,   PREC_REF},
   [TOKEN_DOLLAR]          = {ref,    NULL,   PREC_REF},
   [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
@@ -627,9 +629,7 @@ static AST* exitStatement() {
 static AST* statement() {
   AST* expr = NULL;
   if (match(TOKEN_LEFT_BRACE)) {
-    beginScope();
     expr = block();
-    endScope();
   } else if (match(TOKEN_IF)) {
     expr = ifStatement();
   } else if (match(TOKEN_FOR)) {
@@ -639,8 +639,7 @@ static AST* statement() {
   } else if (match(TOKEN_WHILE)) {
     expr = whileStatement();
   } else {
-    expr = expression();
-    consume(TOKEN_SEMICOLON, "Expect ';' after expression statement.");
+    expr = expressionStatement();
   }
   return AST_NEW(AST_STMT, expr);
 }
