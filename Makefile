@@ -1,7 +1,7 @@
 SRC := src
 OBJ := obj
 
-CFLAGS := -g -Wall
+CFLAGS := -g -Wall -std=c99
 
 SOURCES := $(wildcard $(SRC)/*.c)
 OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
