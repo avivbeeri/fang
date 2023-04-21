@@ -350,6 +350,10 @@ static int traverse(FILE* f, AST* ptr) {
       }
       break;
     }
+    case AST_LVALUE: {
+      struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+      break;
+    }
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
       break;

@@ -42,7 +42,7 @@ bool compile(const char* source) {
   bool result = true;
   if (ast != NULL) {
     traverseTree(ast);
-    emitTree(ast);
+//     emitTree(ast);
     evalTree(ast);
     ast_free(ast);
   } else {

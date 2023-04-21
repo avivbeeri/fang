@@ -9,5 +9,7 @@ asm {
   "svc 0"
 };
 */
-var a: int = 5;
+const a: int = 7;
+var b: int = 5;
+c = 5;
 return a;

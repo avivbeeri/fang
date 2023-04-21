@@ -51,6 +51,11 @@ void ast_free(AST *ptr) {
       arrfree(data.strings);
       break;
     }
+    case AST_LVALUE: {
+      struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+      STRING_free(data.identifier);
+      break;
+    }
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
       STRING_free(data.identifier);

@@ -133,11 +133,12 @@ static bool match(TokenType type) {
 static AST* variable(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start, parser.previous.length);
-  AST* variable = AST_NEW(AST_IDENTIFIER, string);
   if (canAssign && match(TOKEN_EQUAL)) {
+    AST* variable = AST_NEW(AST_LVALUE, string);
     AST* expr = expression();
     return AST_NEW(AST_ASSIGNMENT, variable, expr);
   }
+  AST* variable = AST_NEW(AST_IDENTIFIER, string);
   return variable;
 }
 static AST* character(bool canAssign) {
@@ -317,7 +318,7 @@ static AST* block() {
 
 static AST* parseVariable(const char* errorMessage) {
   consume(TOKEN_IDENTIFIER, errorMessage);
-  return AST_NEW(AST_IDENTIFIER, copyString(parser.previous.start, parser.previous.length));
+  return AST_NEW(AST_LVALUE, copyString(parser.previous.start, parser.previous.length));
 }
 
 static AST* dot(bool canAssign, AST* left) {

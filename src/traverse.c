@@ -267,6 +267,11 @@ static void traverse(AST* ptr, int level) {
       printf("}\n");
       break;
     }
+    case AST_LVALUE: {
+      struct AST_LVALUE data = ast.data.AST_LVALUE;
+      printf("%s", data.identifier->chars);
+      break;
+    }
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
       printf("%s", data.identifier->chars);

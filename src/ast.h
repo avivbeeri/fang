@@ -66,6 +66,7 @@ typedef enum {
   AST_ASM,
   AST_LITERAL,
   AST_IDENTIFIER,
+  AST_LVALUE,
   AST_TYPE_NAME,
   AST_UNARY,
   AST_BINARY,
@@ -97,6 +98,7 @@ struct AST {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_LITERAL { Value value; } AST_LITERAL;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
+    struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
@@ -110,10 +112,12 @@ struct AST {
     struct AST_EXIT { AST* value; } AST_EXIT;
     struct AST_PARAM { AST* identifier; AST* type; } AST_PARAM;
     struct AST_PARAM_LIST { AST* node; AST* next; } AST_PARAM_LIST;
-    struct AST_CONST_DECL { AST* identifier; AST* type; AST* expr; } AST_CONST_DECL;
+
     struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
     struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
     struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
+    struct AST_CONST_DECL { AST* identifier; AST* type; AST* expr; } AST_CONST_DECL;
+
     struct AST_FN { AST* identifier; AST* paramList; AST* returnType; AST* body; } AST_FN;
     struct AST_TYPE_DECL { AST* identifier; AST* fields; } AST_TYPE_DECL;
     struct AST_ASM { STRING** strings; } AST_ASM;

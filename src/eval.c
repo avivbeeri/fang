@@ -31,11 +31,29 @@
 #include "ast.h"
 #include "value.h"
 #include "const_table.h"
-
+typedef struct {
+  Value value;
+  bool constant;
+} ENV_ENTRY;
 typedef struct Environment {
-  struct { char *key; Value value; } *values;
+  struct { char *key; ENV_ENTRY value; } *values;
 } Environment;
 
+static void printValueType(Value value) {
+  switch (value.type) {
+    case VAL_BOOL: printf("bool"); break;
+    case VAL_CHAR: printf("CHAR"); break;
+    case VAL_U8: printf("U8"); break;
+    case VAL_I8: printf("I8"); break;
+    case VAL_I16: printf("I16"); break;
+    case VAL_U16: printf("U16"); break;
+    case VAL_PTR: printf("PTR"); break;
+    case VAL_INT: printf("INT"); break;
+    case VAL_STRING: printf("STRING"); break;
+    case VAL_ERROR: printf("ERROR"); break;
+    case VAL_UNDEF: printf("0"); break;
+  }
+}
 static void printValue(Value value) {
   switch (value.type) {
     case VAL_BOOL: printf("%s", AS_BOOL(value) ? "true" : "false"); break;
@@ -52,15 +70,29 @@ static void printValue(Value value) {
   }
 }
 
-void defineSymbol(Environment* env, char* name, Value value) {
-  shput(env->values, name, value);
-  printf("%s = ", name);
-  printValue(value);
-  printf("\n");
+bool assign(Environment* env, char* name, Value value) {
+  if (shgeti(env->values, name) == -1) {
+    printf("Cannot assign to undefined variable %s.\n", name);
+    return false;
+  }
+  if (shget(env->values, name).constant) {
+    printf("Cannot reassign a constant value.\n");
+    return false;
+  }
+  shput(env->values, name, ((ENV_ENTRY){ value, false }));
+  return true;
+}
+bool define(Environment* env, char* name, Value value, bool constant) {
+  if (shgeti(env->values, name) != -1 && shget(env->values, name).constant) {
+    printf("Cannot reassign.\n");
+    return false;
+  }
+  shput(env->values, name, ((ENV_ENTRY){ value, constant }));
+  return true;
 }
 
 Value getSymbol(Environment* env, char* name) {
-  return shget(env->values, name);
+  return shget(env->values, name).value;
 }
 
 static uint16_t getNumber(Value value) {
@@ -163,6 +195,11 @@ static Value traverse(AST* ptr, Environment* context) {
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       return data.value;
+    }
+    case AST_LVALUE: {
+      struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+      STRING* identifier = data.identifier;
+      return STRING(identifier);
     }
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
@@ -313,11 +350,19 @@ static Value traverse(AST* ptr, Environment* context) {
       }
       break;
     }
+    case AST_CONST_DECL: {
+      struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+      Value identifier = traverse(data.identifier, context);
+      Value type = traverse(data.type, context);
+      Value expr = traverse(data.expr, context);
+      bool success = define(context, AS_STRING(identifier)->chars, expr, true);
+      return success ? EMPTY() : ERROR(1);
+    }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
       Value identifier = traverse(data.identifier, context);
       Value type = traverse(data.type, context);
-      defineSymbol(context, AS_STRING(identifier)->chars, EMPTY());
+      define(context, AS_STRING(identifier)->chars, EMPTY(), false);
       return EMPTY();
     }
 
@@ -326,17 +371,15 @@ static Value traverse(AST* ptr, Environment* context) {
       Value identifier = traverse(data.identifier, context);
       Value type = traverse(data.type, context);
       Value expr = traverse(data.expr, context);
-      printValue(identifier);
-      printf("\n");
-      defineSymbol(context, AS_STRING(identifier)->chars, expr);
+      define(context, AS_STRING(identifier)->chars, expr, false);
       return expr;
     }
     case AST_ASSIGNMENT: {
       struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-      STRING* identifier = data.identifier;
+      Value identifier = traverse(data.identifier, context);
       Value expr = traverse(data.expr, context);
-      defineSymbol(context, identifier->chars, expr);
-      return expr;
+      bool success = assign(context, AS_STRING(identifier)->chars, expr);
+      return success ? expr : ERROR(1);
     }
   /*
     case AST_WHILE: {
@@ -410,16 +453,19 @@ static Value traverse(AST* ptr, Environment* context) {
       return ERROR(0);
     }
   }
+  return ERROR(0);
 }
 
 
 void evalTree(AST* ptr) {
   Environment context = { NULL };
-  shdefault(context.values, (ERROR(0)));
+//  shdefault(context.values, ((ENV_ENTRY){ ERROR(0), true }));
   Value result = traverse(ptr, &context);
 
   printf("Interpreter result: ");
   printValue(result);
+  printf(": ");
+  printValueType(result);
   printf("\n");
 }
 
