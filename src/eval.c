@@ -26,16 +26,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 #include "common.h"
 #include "ast.h"
 #include "value.h"
 #include "const_table.h"
+
+
+// Symbol table
 typedef struct {
   Value value;
   bool constant;
 } ENV_ENTRY;
+
 typedef struct Environment {
+  struct Environment *enclosing;
   struct { char *key; ENV_ENTRY value; } *values;
 } Environment;
 
@@ -71,10 +75,19 @@ static void printValue(Value value) {
 }
 
 bool assign(Environment* env, char* name, Value value) {
+  if (env == NULL) {
+    return false;
+  }
+
   if (shgeti(env->values, name) == -1) {
+    if (env->enclosing != NULL) {
+      return assign(env->enclosing, name, value);
+    }
+
     printf("Cannot assign to undefined variable %s.\n", name);
     return false;
   }
+
   if (shget(env->values, name).constant) {
     printf("Cannot reassign a constant value.\n");
     return false;
@@ -82,17 +95,40 @@ bool assign(Environment* env, char* name, Value value) {
   shput(env->values, name, ((ENV_ENTRY){ value, false }));
   return true;
 }
+
 bool define(Environment* env, char* name, Value value, bool constant) {
   if (shgeti(env->values, name) != -1 && shget(env->values, name).constant) {
     printf("Cannot reassign.\n");
     return false;
   }
+
   shput(env->values, name, ((ENV_ENTRY){ value, constant }));
   return true;
 }
 
 Value getSymbol(Environment* env, char* name) {
+  if (env == NULL) {
+    printf("shouldn't get here\n");
+    return ERROR(2);
+  }
+  if (shgeti(env->values, name) == -1) {
+    if (env->enclosing != NULL) {
+      return getSymbol(env->enclosing, name);
+    }
+
+    printf("Cannot read from undefined variable: %s.\n", name);
+    return ERROR(1);
+  }
+
   return shget(env->values, name).value;
+}
+
+Environment beginScope(Environment* env) {
+  return (Environment){ env, NULL };
+}
+
+void endScope(Environment* env) {
+  shfree(env->values);
 }
 
 static uint16_t getNumber(Value value) {
@@ -381,28 +417,56 @@ static Value traverse(AST* ptr, Environment* context) {
       bool success = assign(context, AS_STRING(identifier)->chars, expr);
       return success ? expr : ERROR(1);
     }
-  /*
+    case AST_IF: {
+      struct AST_IF data = ast.data.AST_IF;
+      Value condition = traverse(data.condition, context);
+      Value value = EMPTY();
+      Environment env = beginScope(context);
+      if (isTruthy(condition)) {
+        value = traverse(data.body, &env);
+      } else if (data.elseClause != NULL) {
+        value = traverse(data.elseClause, &env);
+      }
+      endScope(&env);
+      return value;
+    }
     case AST_WHILE: {
       struct AST_WHILE data = ast.data.AST_WHILE;
-      traverse(n, context);
-      traverse(y, context);
-      break;
+      Value condition = traverse(data.condition, context);
+      Value value = EMPTY();
+      while (isTruthy(condition)) {
+        Environment env = beginScope(context);
+        value = traverse(data.body, &env);
+        endScope(&env);
+
+        condition = traverse(data.condition, context);
+      }
+      return value;
     }
+    case AST_FOR: {
+      struct AST_FOR data = ast.data.AST_FOR;
+      Value value = EMPTY();
+      Environment forEnv = beginScope(context);
+      Value initializer = traverse(data.initializer, &forEnv);
+      Value condition = traverse(data.condition, &forEnv);
+      while (isTruthy(condition)) {
+        Environment env = beginScope(&forEnv);
+        value = traverse(data.body, &env);
+        endScope(&env);
+        Value increment = traverse(data.increment, &forEnv);
+        condition = traverse(data.condition, &forEnv);
+      }
+      endScope(&forEnv);
+
+      return value;
+    }
+  /*
     case AST_FOR: {
       struct AST_FOR data = ast.data.AST_FOR;
       traverse(r, context);
       traverse(n, context);
       traverse(t, context);
       traverse(y, context);
-      break;
-    }
-    case AST_IF: {
-      struct AST_IF data = ast.data.AST_IF;
-      traverse(n, context);
-      traverse(y, context);
-      if (data.elseClause != NULL) {
-        traverse(e, context);
-      }
       break;
     }
     case AST_TYPE_DECL: {
@@ -458,7 +522,7 @@ static Value traverse(AST* ptr, Environment* context) {
 
 
 void evalTree(AST* ptr) {
-  Environment context = { NULL };
+  Environment context = { NULL, NULL };
 //  shdefault(context.values, ((ENV_ENTRY){ ERROR(0), true }));
   Value result = traverse(ptr, &context);
 

@@ -166,7 +166,7 @@ static AST* type() {
   } else {
     consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
     STRING* string = copyString(parser.previous.start, parser.previous.length);
-    return AST_NEW(AST_IDENTIFIER, string);
+    return AST_NEW(AST_TYPE_NAME, string);
   }
 }
 static AST* literal(bool canAssign) {

@@ -9,7 +9,11 @@ asm {
   "svc 0"
 };
 */
-const a: int = 7;
 var b: int = 5;
-c = 5;
-return a;
+while (b) {
+  b = b - 1;
+}
+for (var a: int = 0; a < 10; a = a + 1) {
+  b = b + 1;
+}
+return b;
