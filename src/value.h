@@ -28,14 +28,15 @@
 
 typedef enum {
   VAL_BOOL,
-  VAL_INT,
-  VAL_U8,
-  VAL_U16,
-  VAL_I8,
-  VAL_I16,
-  VAL_STRING,
   VAL_CHAR,
+  VAL_U8,
+  VAL_I8,
+  VAL_U16,
+  VAL_I16,
   VAL_PTR,
+  VAL_INT,
+  VAL_STRING,
+  VAL_ERROR,
 } ValueType;
 
 typedef struct Value {
@@ -62,9 +63,11 @@ typedef struct Value {
 #define STRING(value) ((Value){VAL_STRING, {.string = value}})
 #define CHAR(value) ((Value){VAL_CHAR, {.character = value}})
 #define PTR(value) ((Value){VAL_PTR, {.ptr = value}})
+#define ERROR(value) ((Value){VAL_ERROR, {.ptr = value}})
 
 #define AS_BOOL(value)    ((value).as.boolean)
 #define AS_NUMBER(value)    ((value).as.number)
+#define AS_ERROR(value)    ((value).as.ptr)
 #define AS_U8(value)  ((value).as.u8)
 #define AS_I8(value)  ((value).as.i8)
 #define AS_U16(value)  ((value).as.u16)
@@ -83,5 +86,8 @@ typedef struct Value {
 #define IS_STRING(value)    ((value).type == VAL_STRING)
 #define IS_CHAR(value)    ((value).type == VAL_CHAR)
 #define IS_PTR(value)    ((value).type == VAL_PTR)
+#define IS_ERROR(value)    ((value).type == VAL_ERROR)
+
+#define IS_NUMERICAL(value) ((value).type <= VAL_INT)
 
 #endif

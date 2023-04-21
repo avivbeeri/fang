@@ -22,33 +22,10 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
-
-
+#ifndef eval_h
+#define eval_h
 #include "ast.h"
-#include "scanner.h"
-#include "parser.h"
-#include "traverse.h"
-#include "type_table.h"
-#include "const_table.h"
-#include "emit.h"
-#include "eval.h"
 
-bool compile(const char* source) {
-  //testScanner(source);
-  TYPE_TABLE_init();
-  CONST_TABLE_init();
-  initScanner(source);
-  AST* ast = parse(source);
-  bool result = true;
-  if (ast != NULL) {
-    traverseTree(ast);
-    emitTree(ast);
-    evalTree(ast);
-    ast_free(ast);
-  } else {
-    result = false;
-  }
-  CONST_TABLE_free();
-  TYPE_TABLE_free();
-  return result;
-}
+void evalTree(AST* ptr);
+
+#endif

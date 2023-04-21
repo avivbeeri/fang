@@ -238,8 +238,8 @@ static AST* unary(bool canAssign) {
   AST* operand = parsePrecedence(PREC_UNARY);
   AST* expr = NULL;
   switch (operatorType) {
-    case TOKEN_MINUS: expr = AST_NEW(AST_UNARY, OP_NEG, operand);
-    case TOKEN_BANG: expr = AST_NEW(AST_UNARY, OP_NOT, operand);
+    case TOKEN_MINUS: expr = AST_NEW(AST_UNARY, OP_NEG, operand); break;
+    case TOKEN_BANG: expr = AST_NEW(AST_UNARY, OP_NOT, operand); break;
     default: expr = AST_NEW(AST_ERROR, 0);
   }
   return expr;

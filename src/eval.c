@@ -32,217 +32,149 @@
 #include "value.h"
 #include "const_table.h"
 
-#define emitf(fmt, ...) do { fprintf(f, fmt, ##__VA_ARGS__); } while(0)
-static FILE* f;
-
-
-static bool freereg[4];
-static char *regList[4] = { "X1", "X2", "X3", "X4" };
-
-static void genPreamble() {
-  emitf(".global _start\n");
-  emitf(".align 2\n");
-  emitf("_start:\n");
-}
-static void genExit(int r) {
-  // Assumes return code is in reg r.
-  emitf("mov X0, %s\n", regList[r]);
-  emitf("mov X16, #1\n");
-  emitf("svc 0\n");
-}
-
-static void genPostamble() {
-  size_t bytes = 0;
-  emitf(".text\n");
-  for (int i = 0; i < arrlen(constTable); i++) {
-    if (bytes % 4 != 0) {
-      emitf(".align %lu\n", 4 - bytes % 4);
-    }
-    emitf("const_%i: ", i);
-    emitf(".byte %i\n", (AS_STRING(constTable[i].value)->length - 1) % 256);
-    emitf(".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
-    bytes += strlen(AS_STRING(constTable[i].value)->chars);
-  }
-
-}
-
-static void freeAllRegisters() {
-  for (int i = 0; i < sizeof(freereg); i++) {
-    freereg[i] = true;
+static void printValue(Value value) {
+  switch (value.type) {
+    case VAL_BOOL: printf("%s", AS_BOOL(value) ? "true" : "false"); break;
+    case VAL_CHAR: printf("%c", AS_CHAR(value)); break;
+    case VAL_U8: printf("%hhu", AS_U8(value)); break;
+    case VAL_I8: printf("%hhi", AS_I8(value)); break;
+    case VAL_I16: printf("%hi", AS_I16(value)); break;
+    case VAL_U16: printf("%hu", AS_U16(value)); break;
+    case VAL_PTR: printf("$%hu", AS_PTR(value)); break;
+    case VAL_INT: printf("%lli", AS_NUMBER(value)); break;
+    case VAL_STRING: printf("%s", AS_STRING(value)->chars); break;
+    case VAL_ERROR: printf("ERROR(%i)", AS_ERROR(value)); break;
   }
 }
 
-static void freeRegister(int r) {
-  if (freereg[r]) {
-    printf("Double-freeing register, abort to check");
-    exit(1);
+static bool isTruthy(Value value) {
+  switch (value.type) {
+    case VAL_BOOL: return AS_BOOL(value);
+    case VAL_CHAR: return AS_CHAR(value) != 0;
+    case VAL_U8: return AS_U8(value) != 0;
+    case VAL_I8: return AS_I8(value) != 0;
+    case VAL_I16: return AS_I16(value) != 0;
+    case VAL_U16: return AS_U16(value) != 0;
+    case VAL_PTR: return AS_PTR(value) != 0;
+    case VAL_INT: return AS_NUMBER(value) != 0;
+    case VAL_STRING: return (AS_STRING(value)->length) > 0;
+    case VAL_ERROR: return false;
   }
-  freereg[r] = true;
+  return false;
 }
 
-static int allocateRegister() {
-  for (int i = 0; i < sizeof(freereg); i++) {
-    if (freereg[i]) {
-      freereg[i] = false;
-      return i;
-    }
-  }
-  printf("Out of registers, abort");
-  exit(1);
-}
-
-static int genLoad(int i) {
-  // Load i into a register
-  // return the register index
-  int r = allocateRegister();
-  emitf("mov %s, #%i\n", regList[r], i);
-  return r;
-}
-
-static int genMod(int leftReg, int rightReg) {
-  int r = allocateRegister();
-  emitf("udiv %s, %s, %s\n", regList[r], regList[leftReg], regList[rightReg]);
-  emitf("msub %s, %s, %s, %s\n", regList[leftReg], regList[2], regList[rightReg], regList[leftReg]);
-  freeRegister(r);
-  freeRegister(rightReg);
-  return leftReg;
-}
-static int genDiv(int leftReg, int rightReg) {
-  emitf("sdiv %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  freeRegister(rightReg);
-  return leftReg;
-}
-static int genSub(int leftReg, int rightReg) {
-  emitf("sub %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  freeRegister(rightReg);
-  return leftReg;
-}
-static int genMul(int leftReg, int rightReg) {
-  emitf("mul %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  freeRegister(rightReg);
-  return leftReg;
-}
-static int genAdd(int leftReg, int rightReg) {
-  emitf("add %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  freeRegister(rightReg);
-  return leftReg;
-}
-static int genNegate(int valueReg) {
-  emitf("neg %s, %s\n", regList[valueReg], regList[valueReg]);
-  return valueReg;
-}
-
-static int traverse(FILE* f, AST* ptr) {
+static Value traverse(AST* ptr, void* context) {
   if (ptr == NULL) {
-    return 0;
+    return NUMBER(0);
   }
   AST ast = *ptr;
   switch(ast.tag) {
     case AST_ERROR: {
-      break;
+      return ERROR(0);
     }
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;
-      genPreamble();
-      traverse(f, data.body);
-      return 0;
-      break;
+      return traverse(data.body, context);
+    }
+    case AST_RETURN: {
+      struct AST_RETURN data = ast.data.AST_RETURN;
+      return traverse(data.value, context);
     }
     case AST_EXIT: {
       struct AST_EXIT data = ast.data.AST_EXIT;
-      int r = traverse(f, data.value);
-      genExit(r);
-      return r;
-      break;
+      return traverse(data.value, context);
     }
     case AST_LIST: {
       AST* next = ptr;
-      int r = 0;
+      Value r;
       while (next != NULL) {
         struct AST_LIST data = next->data.AST_LIST;
-        r = traverse(f, data.node);
+        r = traverse(data.node, context);
+        if (IS_ERROR(r)) {
+          return r;
+        }
         next = data.next;
       }
       return r;
-      break;
     }
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;
-      int r = traverse(f, data.node);
-      //emitf("\n");
-      return r;
-      break;
+      return traverse(data.node, context);
     }
     case AST_STMT: {
       struct AST_STMT data = ast.data.AST_STMT;
-      int r = traverse(f, data.node);
-      return r;
-      break;
+      return traverse(data.node, context);
     }
     case AST_ASM: {
-      struct AST_ASM data = ast.data.AST_ASM;
-      for (int i = 0; i < arrlen(data.strings); i++) {
-        emitf("%s\n", data.strings[i]->chars);
-      }
-      break;
+      return NUMBER(0);
     }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
-      switch (data.value.type) {
-        case VAL_CHAR: {
-          return genLoad(AS_CHAR(data.value));
-        }
-        case VAL_I8: {
-          return genLoad(AS_I8(data.value));
-        }
-        case VAL_I16: {
-          return genLoad(AS_I16(data.value));
-        }
-        case VAL_U8: {
-          return genLoad(AS_U8(data.value));
-        }
-        case VAL_U16: {
-          return genLoad(AS_U16(data.value));
-        }
-        case VAL_INT: {
-          return genLoad(AS_NUMBER(data.value));
-        }
-        case VAL_STRING: {
-          // emit a constant value
-          break;
-        }
-        case VAL_BOOL: {
-          return genLoad(AS_BOOL(data.value) ? 1 : 0);
-          break;
-        }
-      }
-      return 0;
-      break;
+      return data.value;
     }
     case AST_UNARY: {
       struct AST_UNARY data = ast.data.AST_UNARY;
-      int valueReg = traverse(f, data.expr);
-
+      Value value = traverse(data.expr, context);
+      if (IS_ERROR(value)) {
+        return value;
+      }
       switch(data.op) {
-        case OP_NEG: genNegate(valueReg); break;
-        // case OP_NOT: str = "!"; break;
+        case OP_NEG:
+          {
+            if (IS_NUMERICAL(value)) {
+              return NUMBER(-AS_NUMBER(value));
+            }
+          }
+        case OP_NOT:
+          {
+            return BOOL_VAL(!isTruthy(value));
+          }
         //case OP_REF: str = "$"; break;
         //case OP_DEREF: str = "@"; break;
-        // default: str = "MISSING";
       }
-
-      break;
+      return ERROR(0);
     }
     case AST_BINARY: {
       struct AST_BINARY data = ast.data.AST_BINARY;
-      int leftReg = traverse(f, data.left);
-      int rightReg = traverse(f, data.right);
+      Value left = traverse(data.left, context);
+      Value right = traverse(data.right, context);
+      if (IS_ERROR(left)) {
+        return left;
+      }
+      if (IS_ERROR(right)) {
+        return right;
+      }
       switch(data.op) {
-        case OP_ADD: return genAdd(leftReg, rightReg);
-        case OP_MUL: return genMul(leftReg, rightReg);
-        case OP_DIV: return genDiv(leftReg, rightReg);
-        case OP_SUB: return genSub(leftReg, rightReg);
-        case OP_MOD: return genMod(leftReg, rightReg);
+        case OP_ADD:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) + AS_NUMBER(right));
+            }
+          };
+        case OP_SUB:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) - AS_NUMBER(right));
+            }
+          };
+        case OP_MUL:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) * AS_NUMBER(right));
+            }
+          };
+        case OP_DIV:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) / AS_NUMBER(right));
+            }
+          };
+        case OP_MOD:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) % AS_NUMBER(right));
+            }
+          };
                      /*
         case OP_SUB: str = "-"; break;
         case OP_MUL: str = "*"; break;
@@ -268,84 +200,84 @@ static int traverse(FILE* f, AST* ptr) {
                   /*
     case AST_WHILE: {
       struct AST_WHILE data = ast.data.AST_WHILE;
-      traverse(f, data.condition);
-      traverse(f, data.body);
+      traverse(n, context);
+      traverse(y, context);
       break;
     }
     case AST_FOR: {
       struct AST_FOR data = ast.data.AST_FOR;
-      traverse(f, data.initializer);
-      traverse(f, data.condition);
-      traverse(f, data.increment);
-      traverse(f, data.body);
+      traverse(r, context);
+      traverse(n, context);
+      traverse(t, context);
+      traverse(y, context);
       break;
     }
     case AST_IF: {
       struct AST_IF data = ast.data.AST_IF;
-      traverse(f, data.condition);
-      traverse(f, data.body);
+      traverse(n, context);
+      traverse(y, context);
       if (data.elseClause != NULL) {
-        traverse(f, data.elseClause);
+        traverse(e, context);
       }
       break;
     }
     case AST_ASSIGNMENT: {
       struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-      traverse(f, data.identifier);
-      traverse(f, data.expr);
+      traverse(r, context);
+      traverse(r, context);
       break;
     }
     case AST_VAR_INIT: {
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      traverse(f, data.identifier);
-      traverse(f, data.type);
-      traverse(f, data.expr);
+      traverse(r, context);
+      traverse(e, context);
+      traverse(r, context);
       break;
     }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      traverse(f, data.identifier);
-      traverse(f, data.type);
+      traverse(r, context);
+      traverse(e, context);
       break;
     }
     case AST_TYPE_DECL: {
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-      traverse(f, data.identifier);
-      traverse(f, data.fields);
+      traverse(r, context);
+      traverse(s, context);
       break;
     }
     case AST_FN: {
       struct AST_FN data = ast.data.AST_FN;
-      traverse(f, data.identifier);
-      traverse(f, data.paramList);
-      traverse(f, data.returnType);
-      traverse(f, data.body);
+      traverse(r, context);
+      traverse(t, context);
+      traverse(e, context);
+      traverse(y, context);
       break;
     }
     case AST_CALL: {
       struct AST_CALL data = ast.data.AST_CALL;
-      traverse(f, data.identifier);
-      traverse(f, data.arguments);
+      traverse(r, context);
+      traverse(s, context);
       break;
     }
     case AST_RETURN: {
       struct AST_RETURN data = ast.data.AST_RETURN;
       if (data.value != NULL) {
-        traverse(f, data.value);
+        traverse(e, context);
       }
       break;
     }
     case AST_PARAM: {
       struct AST_PARAM data = ast.data.AST_PARAM;
-      traverse(f, data.identifier);
-      traverse(f, data.type);
+      traverse(r, context);
+      traverse(e, context);
       break;
     }
     case AST_PARAM_LIST: {
       AST* next = ptr;
       while (next != NULL) {
         struct AST_PARAM_LIST data = next->data.AST_PARAM_LIST;
-        traverse(f, data.node);
+        traverse(e, context);
         next = data.next;
       }
       break;
@@ -373,15 +305,15 @@ static int traverse(FILE* f, AST* ptr) {
         default: str = "MISSING";
       }
 
-      traverse(f, data.expr);
+      traverse(r, context);
       break;
     }
     case AST_DOT: {
       struct AST_DOT data = ast.data.AST_DOT;
       char* str = ".";
-      traverse(f, data.left);
+      traverse(t, context);
 
-      traverse(f, data.right);
+      traverse(t, context);
       break;
     }
     case AST_BINARY: {
@@ -407,29 +339,22 @@ static int traverse(FILE* f, AST* ptr) {
         case OP_LESS: str = "<"; break;
         default: str = "MISSING"; break;
       }
-      traverse(f, data.left);
-      traverse(f, data.right);
+      traverse(t, context);
+      traverse(t, context);
       break;
     }
 */
     default: {
-      break;
+      return ERROR(0);
     }
   }
-  return 0;
 }
-void emitTree(AST* ptr) {
-  f = fopen("file.S", "w");
-  if (f == NULL)
-  {
-      printf("Error opening file!\n");
-      exit(1);
-  }
+void evalTree(AST* ptr) {
+  void* context = NULL;
+  Value result = traverse(ptr, context);
 
-  freeAllRegisters();
-  traverse(f, ptr);
-  genPostamble();
-  fprintf(f, "\n");
-
-  fclose(f);
+  printf("Interpreter result: ");
+  printValue(result);
+  printf("\n");
 }
+
