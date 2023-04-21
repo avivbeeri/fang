@@ -46,6 +46,7 @@ static uint16_t getNumber(Value value) {
   }
   return -1;
 }
+
 static bool isEqual(Value left, Value right) {
   if (IS_NUMERICAL(left) != IS_NUMERICAL(right)) {
     return false;
@@ -256,13 +257,35 @@ static Value traverse(AST* ptr, void* context) {
           {
             return BOOL_VAL(isTruthy(left) && isTruthy(right));
           };
-                     /*
-        case OP_BITWISE_OR: str = "|"; break;
-        case OP_BITWISE_AND: str = "&"; break;
-        case OP_SHIFT_LEFT: str = "<<"; break;
-        case OP_SHIFT_RIGHT: str = ">>"; break;
-        default: str = "MISSING"; break;
-        */
+        case OP_SHIFT_LEFT:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) << AS_NUMBER(right));
+            }
+            break;
+          };
+        case OP_SHIFT_RIGHT:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) << AS_NUMBER(right));
+            }
+            break;
+          };
+        case OP_BITWISE_OR:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) | AS_NUMBER(right));
+            }
+            break;
+          };
+        case OP_BITWISE_AND:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return NUMBER(AS_NUMBER(left) & AS_NUMBER(right));
+            }
+            break;
+          };
+        return ERROR(0);
       }
       break;
     }

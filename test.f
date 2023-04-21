@@ -9,4 +9,4 @@ asm {
   "svc 0"
 };
 */
-return !false && true;
+return 1 << 4;
