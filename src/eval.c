@@ -32,6 +32,38 @@
 #include "value.h"
 #include "const_table.h"
 
+static uint16_t getNumber(Value value) {
+  // PRE: Value must be numeric
+  switch (value.type) {
+    case VAL_BOOL: AS_BOOL(value) ? 1: 0; break;
+    case VAL_CHAR: return AS_CHAR(value);
+    case VAL_U8: return AS_U8(value);
+    case VAL_I8: return AS_I8(value);
+    case VAL_I16: return AS_I16(value);
+    case VAL_U16: return AS_U16(value);
+    case VAL_PTR: return AS_PTR(value);
+    case VAL_INT: return AS_NUMBER(value);
+  }
+  return -1;
+}
+static bool isEqual(Value left, Value right) {
+  if (IS_NUMERICAL(left) != IS_NUMERICAL(right)) {
+    return false;
+  }
+  if (IS_NUMERICAL(left)) {
+    return getNumber(left) == getNumber(right);
+  }
+  STRING* leftStr = AS_STRING(left);
+  STRING* rightStr = AS_STRING(right);
+  if (leftStr->length != rightStr->length) {
+    return false;
+  }
+  size_t len = leftStr->length;
+  // TODO: After string interning, this can be changed to the index
+  return memcmp(leftStr->chars, rightStr->chars, len);
+}
+
+
 static void printValue(Value value) {
   switch (value.type) {
     case VAL_BOOL: printf("%s", AS_BOOL(value) ? "true" : "false"); break;
@@ -150,48 +182,85 @@ static Value traverse(AST* ptr, void* context) {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
               return NUMBER(AS_NUMBER(left) + AS_NUMBER(right));
             }
+            break;
           };
         case OP_SUB:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
               return NUMBER(AS_NUMBER(left) - AS_NUMBER(right));
             }
+            break;
           };
         case OP_MUL:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
               return NUMBER(AS_NUMBER(left) * AS_NUMBER(right));
             }
+            break;
           };
         case OP_DIV:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
               return NUMBER(AS_NUMBER(left) / AS_NUMBER(right));
             }
+            break;
           };
         case OP_MOD:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
               return NUMBER(AS_NUMBER(left) % AS_NUMBER(right));
             }
+            break;
+          };
+        case OP_GREATER:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return BOOL_VAL(AS_NUMBER(left) > AS_NUMBER(right));
+            }
+            break;
+          };
+        case OP_LESS:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return BOOL_VAL(AS_NUMBER(left) < AS_NUMBER(right));
+            }
+            break;
+          };
+        case OP_GREATER_EQUAL:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return BOOL_VAL(AS_NUMBER(left) >= AS_NUMBER(right));
+            }
+            break;
+          };
+        case OP_LESS_EQUAL:
+          {
+            if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
+              return BOOL_VAL(AS_NUMBER(left) <= AS_NUMBER(right));
+            }
+            break;
+          };
+        case OP_COMPARE_EQUAL:
+          {
+            return BOOL_VAL(isEqual(left, right));
+          };
+        case OP_NOT_EQUAL:
+          {
+            return BOOL_VAL(!isEqual(left, right));
+          };
+        case OP_OR:
+          {
+            return BOOL_VAL(isTruthy(left) || isTruthy(right));
+          };
+        case OP_AND:
+          {
+            return BOOL_VAL(isTruthy(left) && isTruthy(right));
           };
                      /*
-        case OP_SUB: str = "-"; break;
-        case OP_MUL: str = "*"; break;
-        case OP_DIV: str = "/"; break;
-        case OP_MOD: str = "%"; break;
-        case OP_OR: str = "||"; break;
-        case OP_AND: str = "&&"; break;
         case OP_BITWISE_OR: str = "|"; break;
         case OP_BITWISE_AND: str = "&"; break;
         case OP_SHIFT_LEFT: str = "<<"; break;
         case OP_SHIFT_RIGHT: str = ">>"; break;
-        case OP_COMPARE_EQUAL: str = "=="; break;
-        case OP_NOT_EQUAL: str = "!="; break;
-        case OP_GREATER_EQUAL: str = ">="; break;
-        case OP_LESS_EQUAL: str = "<="; break;
-        case OP_GREATER: str = ">"; break;
-        case OP_LESS: str = "<"; break;
         default: str = "MISSING"; break;
         */
       }

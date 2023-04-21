@@ -314,9 +314,11 @@ static void traverse(AST* ptr, int level) {
         case OP_LESS: str = "<"; break;
         default: str = "MISSING"; break;
       }
+      printf("(");
       traverse(data.left, 0);
       printf(" %s ", str);
       traverse(data.right, 0);
+      printf(")");
       break;
     }
     default: {
