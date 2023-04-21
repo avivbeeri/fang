@@ -460,6 +460,15 @@ static Value traverse(AST* ptr, Environment* context) {
 
       return value;
     }
+    case AST_CALL: {
+      struct AST_CALL data = ast.data.AST_CALL;
+      Value identifier = traverse(data.identifier, context);
+      // Call should contain it's arguments
+
+
+      traverse(data.params, context);
+      break;
+    }
   /*
     case AST_FOR: {
       struct AST_FOR data = ast.data.AST_FOR;
