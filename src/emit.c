@@ -204,9 +204,6 @@ static int traverse(FILE* f, AST* ptr) {
         case VAL_U16: {
           return genLoad(AS_U16(data.value));
         }
-        case VAL_INT: {
-          return genLoad(AS_NUMBER(data.value));
-        }
         case VAL_STRING: {
           // emit a constant value
           break;

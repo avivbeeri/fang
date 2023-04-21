@@ -26,6 +26,9 @@
 #ifndef value_h
 #define value_h
 
+#include "memory.h"
+#include "common.h"
+
 typedef enum {
   VAL_UNDEF,
   VAL_BOOL,
@@ -82,6 +85,7 @@ typedef struct Value {
 #define AS_STRING(value)  ((value).as.string)
 #define AS_CHAR(value)  ((value).as.character)
 #define AS_PTR(value)  ((value).as.ptr)
+#define AS_RECORD(value)  ((value).as.record)
 
 
 #define IS_BOOL(value)    ((value).type == VAL_BOOL)
@@ -101,7 +105,7 @@ typedef struct Value {
 Value getNumericalValue(int32_t n);
 void printValue(Value value);
 void printValueType(Value value);
-static int32_t getNumber(Value value);
+int32_t getNumber(Value value);
 bool isEqual(Value left, Value right);
 bool isTruthy(Value value);
 #define NUMBER(value) getNumericalValue(value)

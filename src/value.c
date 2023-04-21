@@ -23,20 +23,21 @@
   SOFTWARE.
 */
 
+#include <stdio.h>
 #include "value.h"
 
 Value getNumericalValue(int32_t n) {
-  if (-128 <= value && value <= 127) {
-    return I8(value);
+  if (-128 <= n && n <= 127) {
+    return I8(n);
   }
-  if (value <= 255) {
-    return U8(value);
+  if (n <= 255) {
+    return U8(n);
   }
-  if (-32768 <= value && value <= 32767) {
-    return I16(value);
+  if (-32768 <= n && n <= 32767) {
+    return I16(n);
   }
-  if (value <= 32767) {
-    return U16(value);
+  if (n <= 32767) {
+    return U16(n);
   }
   return ERROR(n);
 }
@@ -52,6 +53,7 @@ void printValueType(Value value) {
     case VAL_PTR: printf("PTR"); break;
     case VAL_STRING: printf("STRING"); break;
     case VAL_ERROR: printf("ERROR"); break;
+    case VAL_RECORD: printf("RECORD"); break;
     case VAL_UNDEF: printf("0"); break;
   }
 }
@@ -68,6 +70,11 @@ void printValue(Value value) {
     case VAL_STRING: printf("%s", AS_STRING(value)->chars); break;
     case VAL_ERROR: printf("ERROR(%i)", AS_ERROR(value)); break;
     case VAL_UNDEF: printf("0"); break;
+    case VAL_RECORD:
+      {
+        printf("RECORD{ <print content eventually> }");
+        break;
+      }
   }
 }
 
