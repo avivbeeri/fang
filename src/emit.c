@@ -59,7 +59,7 @@ static void genPostamble() {
       emitf(".align %lu\n", 4 - bytes % 4);
     }
     emitf("const_%i: ", i);
-    emitf(".byte %i\n", AS_STRING(constTable[i].value)->length - 1);
+    emitf(".byte %i\n", (AS_STRING(constTable[i].value)->length - 1) % 256);
     emitf(".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
