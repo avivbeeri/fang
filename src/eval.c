@@ -32,6 +32,37 @@
 #include "value.h"
 #include "const_table.h"
 
+typedef struct Environment {
+  struct { char *key; Value value; } *values;
+} Environment;
+
+static void printValue(Value value) {
+  switch (value.type) {
+    case VAL_BOOL: printf("%s", AS_BOOL(value) ? "true" : "false"); break;
+    case VAL_CHAR: printf("%c", AS_CHAR(value)); break;
+    case VAL_U8: printf("%hhu", AS_U8(value)); break;
+    case VAL_I8: printf("%hhi", AS_I8(value)); break;
+    case VAL_I16: printf("%hi", AS_I16(value)); break;
+    case VAL_U16: printf("%hu", AS_U16(value)); break;
+    case VAL_PTR: printf("$%hu", AS_PTR(value)); break;
+    case VAL_INT: printf("%lli", AS_NUMBER(value)); break;
+    case VAL_STRING: printf("%s", AS_STRING(value)->chars); break;
+    case VAL_ERROR: printf("ERROR(%i)", AS_ERROR(value)); break;
+    case VAL_UNDEF: printf("0"); break;
+  }
+}
+
+void defineSymbol(Environment* env, char* name, Value value) {
+  shput(env->values, name, value);
+  printf("%s = ", name);
+  printValue(value);
+  printf("\n");
+}
+
+Value getSymbol(Environment* env, char* name) {
+  return shget(env->values, name);
+}
+
 static uint16_t getNumber(Value value) {
   // PRE: Value must be numeric
   switch (value.type) {
@@ -43,6 +74,7 @@ static uint16_t getNumber(Value value) {
     case VAL_U16: return AS_U16(value);
     case VAL_PTR: return AS_PTR(value);
     case VAL_INT: return AS_NUMBER(value);
+    default: return -1;
   }
   return -1;
 }
@@ -65,20 +97,6 @@ static bool isEqual(Value left, Value right) {
 }
 
 
-static void printValue(Value value) {
-  switch (value.type) {
-    case VAL_BOOL: printf("%s", AS_BOOL(value) ? "true" : "false"); break;
-    case VAL_CHAR: printf("%c", AS_CHAR(value)); break;
-    case VAL_U8: printf("%hhu", AS_U8(value)); break;
-    case VAL_I8: printf("%hhi", AS_I8(value)); break;
-    case VAL_I16: printf("%hi", AS_I16(value)); break;
-    case VAL_U16: printf("%hu", AS_U16(value)); break;
-    case VAL_PTR: printf("$%hu", AS_PTR(value)); break;
-    case VAL_INT: printf("%lli", AS_NUMBER(value)); break;
-    case VAL_STRING: printf("%s", AS_STRING(value)->chars); break;
-    case VAL_ERROR: printf("ERROR(%i)", AS_ERROR(value)); break;
-  }
-}
 
 static bool isTruthy(Value value) {
   switch (value.type) {
@@ -91,12 +109,13 @@ static bool isTruthy(Value value) {
     case VAL_PTR: return AS_PTR(value) != 0;
     case VAL_INT: return AS_NUMBER(value) != 0;
     case VAL_STRING: return (AS_STRING(value)->length) > 0;
+    case VAL_UNDEF: return false;
     case VAL_ERROR: return false;
   }
   return false;
 }
 
-static Value traverse(AST* ptr, void* context) {
+static Value traverse(AST* ptr, Environment* context) {
   if (ptr == NULL) {
     return NUMBER(0);
   }
@@ -144,6 +163,11 @@ static Value traverse(AST* ptr, void* context) {
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       return data.value;
+    }
+    case AST_IDENTIFIER: {
+      struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+      STRING* identifier = data.identifier;
+      return getSymbol(context, identifier->chars);
     }
     case AST_UNARY: {
       struct AST_UNARY data = ast.data.AST_UNARY;
@@ -289,7 +313,32 @@ static Value traverse(AST* ptr, void* context) {
       }
       break;
     }
-                  /*
+    case AST_VAR_DECL: {
+      struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
+      Value identifier = traverse(data.identifier, context);
+      Value type = traverse(data.type, context);
+      defineSymbol(context, AS_STRING(identifier)->chars, EMPTY());
+      return EMPTY();
+    }
+
+    case AST_VAR_INIT: {
+      struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
+      Value identifier = traverse(data.identifier, context);
+      Value type = traverse(data.type, context);
+      Value expr = traverse(data.expr, context);
+      printValue(identifier);
+      printf("\n");
+      defineSymbol(context, AS_STRING(identifier)->chars, expr);
+      return expr;
+    }
+    case AST_ASSIGNMENT: {
+      struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
+      STRING* identifier = data.identifier;
+      Value expr = traverse(data.expr, context);
+      defineSymbol(context, identifier->chars, expr);
+      return expr;
+    }
+  /*
     case AST_WHILE: {
       struct AST_WHILE data = ast.data.AST_WHILE;
       traverse(n, context);
@@ -313,25 +362,6 @@ static Value traverse(AST* ptr, void* context) {
       }
       break;
     }
-    case AST_ASSIGNMENT: {
-      struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-      traverse(r, context);
-      traverse(r, context);
-      break;
-    }
-    case AST_VAR_INIT: {
-      struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      traverse(r, context);
-      traverse(e, context);
-      traverse(r, context);
-      break;
-    }
-    case AST_VAR_DECL: {
-      struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      traverse(r, context);
-      traverse(e, context);
-      break;
-    }
     case AST_TYPE_DECL: {
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
       traverse(r, context);
@@ -352,13 +382,6 @@ static Value traverse(AST* ptr, void* context) {
       traverse(s, context);
       break;
     }
-    case AST_RETURN: {
-      struct AST_RETURN data = ast.data.AST_RETURN;
-      if (data.value != NULL) {
-        traverse(e, context);
-      }
-      break;
-    }
     case AST_PARAM: {
       struct AST_PARAM data = ast.data.AST_PARAM;
       traverse(r, context);
@@ -374,64 +397,11 @@ static Value traverse(AST* ptr, void* context) {
       }
       break;
     }
-    case AST_IDENTIFIER: {
-      struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-      break;
-    }
-    case AST_BOOL: {
-      struct AST_BOOL data = ast.data.AST_BOOL;
-      break;
-    }
-    case AST_NUMBER: {
-      struct AST_NUMBER data = ast.data.AST_NUMBER;
-      break;
-    }
-    case AST_UNARY: {
-      struct AST_UNARY data = ast.data.AST_UNARY;
-      char* str;
-      switch(data.op) {
-        case OP_NEG: str = "-"; break;
-        case OP_NOT: str = "!"; break;
-        case OP_REF: str = "$"; break;
-        case OP_DEREF: str = "@"; break;
-        default: str = "MISSING";
-      }
-
-      traverse(r, context);
-      break;
-    }
     case AST_DOT: {
       struct AST_DOT data = ast.data.AST_DOT;
       char* str = ".";
       traverse(t, context);
 
-      traverse(t, context);
-      break;
-    }
-    case AST_BINARY: {
-      struct AST_BINARY data = ast.data.AST_BINARY;
-      char* str;
-      switch(data.op) {
-        case OP_ADD: str = "+"; break;
-        case OP_SUB: str = "-"; break;
-        case OP_MUL: str = "*"; break;
-        case OP_DIV: str = "/"; break;
-        case OP_MOD: str = "%"; break;
-        case OP_OR: str = "||"; break;
-        case OP_AND: str = "&&"; break;
-        case OP_BITWISE_OR: str = "|"; break;
-        case OP_BITWISE_AND: str = "&"; break;
-        case OP_SHIFT_LEFT: str = "<<"; break;
-        case OP_SHIFT_RIGHT: str = ">>"; break;
-        case OP_COMPARE_EQUAL: str = "=="; break;
-        case OP_NOT_EQUAL: str = "!="; break;
-        case OP_GREATER_EQUAL: str = ">="; break;
-        case OP_LESS_EQUAL: str = "<="; break;
-        case OP_GREATER: str = ">"; break;
-        case OP_LESS: str = "<"; break;
-        default: str = "MISSING"; break;
-      }
-      traverse(t, context);
       traverse(t, context);
       break;
     }
@@ -441,9 +411,12 @@ static Value traverse(AST* ptr, void* context) {
     }
   }
 }
+
+
 void evalTree(AST* ptr) {
-  void* context = NULL;
-  Value result = traverse(ptr, context);
+  Environment context = { NULL };
+  shdefault(context.values, (ERROR(0)));
+  Value result = traverse(ptr, &context);
 
   printf("Interpreter result: ");
   printValue(result);

@@ -27,6 +27,7 @@
 #define value_h
 
 typedef enum {
+  VAL_UNDEF,
   VAL_BOOL,
   VAL_CHAR,
   VAL_U8,
@@ -64,6 +65,7 @@ typedef struct Value {
 #define CHAR(value) ((Value){VAL_CHAR, {.character = value}})
 #define PTR(value) ((Value){VAL_PTR, {.ptr = value}})
 #define ERROR(value) ((Value){VAL_ERROR, {.ptr = value}})
+#define EMPTY() ((Value){VAL_UNDEF, { 0 }})
 
 #define AS_BOOL(value)    ((value).as.boolean)
 #define AS_NUMBER(value)    ((value).as.number)

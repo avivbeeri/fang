@@ -9,4 +9,5 @@ asm {
   "svc 0"
 };
 */
-return 1 << 4;
+var a: int = 5;
+return a;
