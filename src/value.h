@@ -103,6 +103,7 @@ typedef struct Value {
 #include "common.h"
 
 Value getNumericalValue(int32_t n);
+Value getTypedNumberValue(ValueType type, int32_t n);
 void printValue(Value value);
 void printValueType(Value value);
 int32_t getNumber(Value value);

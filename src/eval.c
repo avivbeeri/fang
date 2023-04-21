@@ -195,35 +195,35 @@ static Value traverse(AST* ptr, Environment* context) {
         case OP_ADD:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) + AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) + AS_NUMBER(right));
             }
             break;
           };
         case OP_SUB:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) - AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) - AS_NUMBER(right));
             }
             break;
           };
         case OP_MUL:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) * AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) * AS_NUMBER(right));
             }
             break;
           };
         case OP_DIV:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) / AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) / AS_NUMBER(right));
             }
             break;
           };
         case OP_MOD:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) % AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) % AS_NUMBER(right));
             }
             break;
           };
@@ -274,28 +274,28 @@ static Value traverse(AST* ptr, Environment* context) {
         case OP_SHIFT_LEFT:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) << AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) << AS_NUMBER(right));
             }
             break;
           };
         case OP_SHIFT_RIGHT:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) << AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) >> AS_NUMBER(right));
             }
             break;
           };
         case OP_BITWISE_OR:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) | AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) | AS_NUMBER(right));
             }
             break;
           };
         case OP_BITWISE_AND:
           {
             if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-              return NUMBER(AS_NUMBER(left) & AS_NUMBER(right));
+              return getTypedNumberValue(left.type, AS_NUMBER(left) & AS_NUMBER(right));
             }
             break;
           };

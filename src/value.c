@@ -26,6 +26,18 @@
 #include <stdio.h>
 #include "value.h"
 
+Value getTypedNumberValue(ValueType type, int32_t n) {
+  switch (type) {
+    case VAL_BOOL: return U8(n != 0); break;
+    case VAL_U8: return U8(n % 256); break;
+    case VAL_I8: return I8(n); break;
+    case VAL_I16: return I16(n); break;
+    case VAL_U16: return U16(n % 32768); break;
+    case VAL_PTR: return PTR(n % 32768); break;
+  }
+  return ERROR(1);
+}
+
 Value getNumericalValue(int32_t n) {
   if (-128 <= n && n <= 127) {
     return I8(n);
