@@ -177,8 +177,8 @@ static AST* literal(bool canAssign) {
   }
 }
 static AST* number(bool canAssign) {
-  double value = strtod(parser.previous.start, NULL);
-  return AST_NEW(AST_LITERAL, NUMBER(value));
+  int32_t value = strtol(parser.previous.start, NULL, 0);
+  return AST_NEW(AST_LITERAL, getNumericalValue(value));
 }
 
 static AST* grouping(bool canAssign) {

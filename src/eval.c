@@ -43,38 +43,7 @@ typedef struct Environment {
   struct { char *key; ENV_ENTRY value; } *values;
 } Environment;
 
-static void printValueType(Value value) {
-  switch (value.type) {
-    case VAL_BOOL: printf("bool"); break;
-    case VAL_CHAR: printf("CHAR"); break;
-    case VAL_U8: printf("U8"); break;
-    case VAL_I8: printf("I8"); break;
-    case VAL_I16: printf("I16"); break;
-    case VAL_U16: printf("U16"); break;
-    case VAL_PTR: printf("PTR"); break;
-    case VAL_INT: printf("INT"); break;
-    case VAL_STRING: printf("STRING"); break;
-    case VAL_ERROR: printf("ERROR"); break;
-    case VAL_UNDEF: printf("0"); break;
-  }
-}
-static void printValue(Value value) {
-  switch (value.type) {
-    case VAL_BOOL: printf("%s", AS_BOOL(value) ? "true" : "false"); break;
-    case VAL_CHAR: printf("%c", AS_CHAR(value)); break;
-    case VAL_U8: printf("%hhu", AS_U8(value)); break;
-    case VAL_I8: printf("%hhi", AS_I8(value)); break;
-    case VAL_I16: printf("%hi", AS_I16(value)); break;
-    case VAL_U16: printf("%hu", AS_U16(value)); break;
-    case VAL_PTR: printf("$%hu", AS_PTR(value)); break;
-    case VAL_INT: printf("%lli", AS_NUMBER(value)); break;
-    case VAL_STRING: printf("%s", AS_STRING(value)->chars); break;
-    case VAL_ERROR: printf("ERROR(%i)", AS_ERROR(value)); break;
-    case VAL_UNDEF: printf("0"); break;
-  }
-}
-
-bool assign(Environment* env, char* name, Value value) {
+static bool assign(Environment* env, char* name, Value value) {
   if (env == NULL) {
     return false;
   }
@@ -96,7 +65,7 @@ bool assign(Environment* env, char* name, Value value) {
   return true;
 }
 
-bool define(Environment* env, char* name, Value value, bool constant) {
+static bool define(Environment* env, char* name, Value value, bool constant) {
   if (shgeti(env->values, name) != -1 && shget(env->values, name).constant) {
     printf("Cannot reassign.\n");
     return false;
@@ -106,7 +75,7 @@ bool define(Environment* env, char* name, Value value, bool constant) {
   return true;
 }
 
-Value getSymbol(Environment* env, char* name) {
+static Value getSymbol(Environment* env, char* name) {
   if (env == NULL) {
     printf("shouldn't get here\n");
     return ERROR(2);
@@ -123,69 +92,17 @@ Value getSymbol(Environment* env, char* name) {
   return shget(env->values, name).value;
 }
 
-Environment beginScope(Environment* env) {
+static Environment beginScope(Environment* env) {
   return (Environment){ env, NULL };
 }
 
-void endScope(Environment* env) {
+static void endScope(Environment* env) {
   shfree(env->values);
-}
-
-static uint16_t getNumber(Value value) {
-  // PRE: Value must be numeric
-  switch (value.type) {
-    case VAL_BOOL: AS_BOOL(value) ? 1: 0; break;
-    case VAL_CHAR: return AS_CHAR(value);
-    case VAL_U8: return AS_U8(value);
-    case VAL_I8: return AS_I8(value);
-    case VAL_I16: return AS_I16(value);
-    case VAL_U16: return AS_U16(value);
-    case VAL_PTR: return AS_PTR(value);
-    case VAL_INT: return AS_NUMBER(value);
-    default: return -1;
-  }
-  return -1;
-}
-
-static bool isEqual(Value left, Value right) {
-  if (IS_NUMERICAL(left) != IS_NUMERICAL(right)) {
-    return false;
-  }
-  if (IS_NUMERICAL(left)) {
-    return getNumber(left) == getNumber(right);
-  }
-  STRING* leftStr = AS_STRING(left);
-  STRING* rightStr = AS_STRING(right);
-  if (leftStr->length != rightStr->length) {
-    return false;
-  }
-  size_t len = leftStr->length;
-  // TODO: After string interning, this can be changed to the index
-  return memcmp(leftStr->chars, rightStr->chars, len);
-}
-
-
-
-static bool isTruthy(Value value) {
-  switch (value.type) {
-    case VAL_BOOL: return AS_BOOL(value);
-    case VAL_CHAR: return AS_CHAR(value) != 0;
-    case VAL_U8: return AS_U8(value) != 0;
-    case VAL_I8: return AS_I8(value) != 0;
-    case VAL_I16: return AS_I16(value) != 0;
-    case VAL_U16: return AS_U16(value) != 0;
-    case VAL_PTR: return AS_PTR(value) != 0;
-    case VAL_INT: return AS_NUMBER(value) != 0;
-    case VAL_STRING: return (AS_STRING(value)->length) > 0;
-    case VAL_UNDEF: return false;
-    case VAL_ERROR: return false;
-  }
-  return false;
 }
 
 static Value traverse(AST* ptr, Environment* context) {
   if (ptr == NULL) {
-    return NUMBER(0);
+    return U8(0);
   }
   AST ast = *ptr;
   switch(ast.tag) {
@@ -226,7 +143,7 @@ static Value traverse(AST* ptr, Environment* context) {
       return traverse(data.node, context);
     }
     case AST_ASM: {
-      return NUMBER(0);
+      return U8(0);
     }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
@@ -252,7 +169,7 @@ static Value traverse(AST* ptr, Environment* context) {
         case OP_NEG:
           {
             if (IS_NUMERICAL(value)) {
-              return NUMBER(-AS_NUMBER(value));
+              return getNumericalValue(-AS_NUMBER(value));
             }
           }
         case OP_NOT:
@@ -466,7 +383,7 @@ static Value traverse(AST* ptr, Environment* context) {
       // Call should contain it's arguments
 
 
-      traverse(data.params, context);
+      // traverse(data.params, context);
       break;
     }
   /*

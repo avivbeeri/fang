@@ -35,10 +35,16 @@ typedef enum {
   VAL_U16,
   VAL_I16,
   VAL_PTR,
-  VAL_INT,
   VAL_STRING,
-  VAL_ERROR,
+  VAL_RECORD,
+  VAL_ERROR
 } ValueType;
+
+typedef struct {
+  int typeIndex;
+  size_t size;
+  void* data;
+} Record;
 
 typedef struct Value {
   ValueType type;
@@ -52,11 +58,11 @@ typedef struct Value {
     STRING* string;
     unsigned char character;
     uint16_t ptr;
+    Record record;
   } as;
 } Value;
 
 #define BOOL_VAL(value)   ((Value){VAL_BOOL, {.boolean = value}})
-#define NUMBER(value) ((Value){VAL_INT, {.number = value }})
 #define U8(value) ((Value){VAL_U8, {.u8 = value}})
 #define I8(value) ((Value){VAL_I8, {.i8 = value}})
 #define U16(value) ((Value){VAL_U16, {.u16 = value}})
@@ -68,7 +74,6 @@ typedef struct Value {
 #define EMPTY() ((Value){VAL_UNDEF, { 0 }})
 
 #define AS_BOOL(value)    ((value).as.boolean)
-#define AS_NUMBER(value)    ((value).as.number)
 #define AS_ERROR(value)    ((value).as.ptr)
 #define AS_U8(value)  ((value).as.u8)
 #define AS_I8(value)  ((value).as.i8)
@@ -80,16 +85,26 @@ typedef struct Value {
 
 
 #define IS_BOOL(value)    ((value).type == VAL_BOOL)
-#define IS_NUMBER(value)    ((value).type == VAL_INT)
 #define IS_U8(value)    ((value).type == VAL_U8)
 #define IS_I8(value)    ((value).type == VAL_I8)
 #define IS_U16(value)    ((value).type == VAL_U16)
 #define IS_I16(value)    ((value).type == VAL_I16)
+#define IS_PTR(value)    ((value).type == VAL_PTR)
 #define IS_STRING(value)    ((value).type == VAL_STRING)
 #define IS_CHAR(value)    ((value).type == VAL_CHAR)
-#define IS_PTR(value)    ((value).type == VAL_PTR)
 #define IS_ERROR(value)    ((value).type == VAL_ERROR)
 
-#define IS_NUMERICAL(value) ((value).type <= VAL_INT)
+#define IS_NUMERICAL(value) ((value).type <= VAL_PTR)
+
+#include "common.h"
+
+Value getNumericalValue(int32_t n);
+void printValue(Value value);
+void printValueType(Value value);
+static int32_t getNumber(Value value);
+bool isEqual(Value left, Value right);
+bool isTruthy(Value value);
+#define NUMBER(value) getNumericalValue(value)
+#define AS_NUMBER(value) getNumber(value)
 
 #endif

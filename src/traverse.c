@@ -242,7 +242,6 @@ static void traverse(AST* ptr, int level) {
         case VAL_I8: printf("%hhi", AS_I8(data.value)); break;
         case VAL_I16: printf("%hi", AS_I16(data.value)); break;
         case VAL_U16: printf("%hu", AS_U16(data.value)); break;
-        case VAL_INT: printf("%lli", AS_NUMBER(data.value)); break;
         case VAL_STRING: printf("%s", AS_STRING(data.value)->chars); break;
         case VAL_BOOL: printf("%s", AS_BOOL(data.value) ? "true" : "false"); break;
         case VAL_CHAR: printf("%c", AS_CHAR(data.value)); break;
