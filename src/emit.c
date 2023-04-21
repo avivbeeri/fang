@@ -53,11 +53,14 @@ static void genExit(int r) {
 
 static void genPostamble() {
   size_t bytes = 0;
+  emitf(".text\n");
   for (int i = 0; i < arrlen(constTable); i++) {
     if (bytes % 4 != 0) {
       emitf(".align %lu\n", 4 - bytes % 4);
     }
-    emitf("const_%i: .ascii \"%s\"\n", i, AS_STRING(constTable[i].value)->chars);
+    emitf("const_%i: ", i);
+    emitf(".byte %i\n", AS_STRING(constTable[i].value)->length - 1);
+    emitf(".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
 

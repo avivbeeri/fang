@@ -52,14 +52,16 @@ char unesc(const char* str, size_t len) {
   return t[0];
 }
 
-static void strunesc(const char *dest, const char *str, size_t length) {
+static size_t strunesc(const char *dest, const char *str, size_t length) {
   char* s = (char*)dest;
   char* t = (char*)str;
   char* next = (char*)str + 1;
+  size_t newLength = length;
   while (length--) {
     if (*t == '\\' && *next == '"') {
       *s = '"';
       length--;
+      newLength--;
       t += 2;
       next += 2;
     } else {
@@ -70,14 +72,14 @@ static void strunesc(const char *dest, const char *str, size_t length) {
     s++;
   }
   *s = '\0';
+  return newLength;
 }
 
 
 STRING* copyString(const char* chars, size_t length) {
   STRING* string = reallocate(NULL, 0, sizeof(STRING));
-  string->length = length + 1;
   string->chars = strndup(chars, length);
-  strunesc(string->chars, chars, length);
+  string->length = strunesc(string->chars, chars, length);
   return string;
 }
 
