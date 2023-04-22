@@ -59,7 +59,7 @@ static void genPostamble() {
       emitf(".align %lu\n", 4 - bytes % 4);
     }
     emitf("const_%i: ", i);
-    emitf(".byte %i\n", (AS_STRING(constTable[i].value)->length - 1) % 256);
+    emitf(".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length - 1) % 256);
     emitf(".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
@@ -156,15 +156,16 @@ static int traverse(FILE* f, AST* ptr) {
       break;
     }
     case AST_LIST: {
-      AST* next = ptr;
       int r = 0;
-      while (next != NULL) {
-        struct AST_LIST data = next->data.AST_LIST;
-        r = traverse(f, data.node);
-        next = data.next;
+      struct AST_LIST data = ast.data.AST_LIST;
+      for (int i = 0; i < arrlen(data.decls); i++) {
+        r = traverse(f, data.decls[i]);
       }
       return r;
-      break;
+    }
+    case AST_BLOCK: {
+      struct AST_BLOCK data = ast.data.AST_BLOCK;
+      return traverse(f, data.body);
     }
     case AST_DECL: {
       struct AST_DECL data = ast.data.AST_DECL;

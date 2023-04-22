@@ -300,20 +300,14 @@ static AST* expression() {
 }
 
 static AST* block() {
-  AST* list = NULL;
-  AST* current = NULL;
+  AST** declList = NULL;
   while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
-    AST* node = AST_NEW(AST_LIST, declaration(), NULL);
-    if (list == NULL) {
-      list = node;
-    } else {
-      current->data.AST_LIST.next = node;
-    }
-    current = node;
+    arrput(declList, declaration());
   }
 
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
-  return list;
+  AST* list = AST_NEW(AST_LIST, declList);
+  return AST_NEW(AST_BLOCK, list);
 }
 
 static AST* parseVariable(const char* errorMessage) {
@@ -688,30 +682,22 @@ AST* parse(const char* source) {
   AST* list = NULL;
   AST* current = NULL;
 
+  AST** declList = NULL;
+
   while (!check(TOKEN_EOF)) {
     AST* decl = topLevel();
     if (decl == NULL) {
       continue;
     }
-    AST* node = AST_NEW(AST_LIST, decl, NULL);
-
-    if (list == NULL) {
-      list = node;
-    } else {
-      current->data.AST_LIST.next = node;
-    }
-    current = node;
+    arrput(declList, decl);
   }
 
   if (!parser.exitEmit) {
     // Append a "return 0" for exiting safely
     AST* node = AST_NEW(AST_EXIT, AST_NEW(AST_LITERAL, NUMBER(0)));
-    if (list == NULL) {
-      list = node;
-    } else {
-      current->data.AST_LIST.next = node;
-    }
+    arrput(declList, node);
   }
+  list = AST_NEW(AST_LIST, declList);
 
   consume(TOKEN_EOF, "Expect end of expression.");
   if (parser.hadError) {

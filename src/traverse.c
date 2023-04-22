@@ -216,14 +216,17 @@ static void traverse(AST* ptr, int level) {
       break;
     }
     case AST_LIST: {
-      AST* next = ptr;
-      while (next != NULL) {
-        struct AST_LIST data = next->data.AST_LIST;
-        traverse(data.node, level);
-        next = data.next;
+      int r = 0;
+      struct AST_LIST data = ast.data.AST_LIST;
+      for (int i = 0; i < arrlen(data.decls); i++) {
+        traverse(data.decls[i], level);
         printf("\n");
       }
       break;
+    }
+    case AST_BLOCK: {
+      struct AST_BLOCK data = ast.data.AST_BLOCK;
+      return traverse(data.body, level);
     }
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;

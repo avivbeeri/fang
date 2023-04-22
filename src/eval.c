@@ -121,16 +121,20 @@ static Value traverse(AST* ptr, Environment* context) {
       struct AST_EXIT data = ast.data.AST_EXIT;
       return traverse(data.value, context);
     }
+    case AST_BLOCK: {
+      struct AST_BLOCK data = ast.data.AST_BLOCK;
+      Environment env = beginScope(context);
+      return traverse(data.body, &env);
+      endScope(&env);
+    }
     case AST_LIST: {
-      AST* next = ptr;
       Value r;
-      while (next != NULL) {
-        struct AST_LIST data = next->data.AST_LIST;
-        r = traverse(data.node, context);
+      struct AST_LIST data = ast.data.AST_LIST;
+      for (int i = 0; i < arrlen(data.decls); i++) {
+        r = traverse(data.decls[i], context);
         if (IS_ERROR(r)) {
           return r;
         }
-        next = data.next;
       }
       return r;
     }
