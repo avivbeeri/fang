@@ -166,33 +166,37 @@ void ast_free(AST *ptr) {
     case AST_CALL: {
       struct AST_CALL data = ast.data.AST_CALL;
       ast_free(data.identifier);
-      ast_free(data.arguments);
+      for (int i = 0; i < arrlen(data.arguments); i++) {
+        ast_free(data.arguments[i]);
+      }
+      arrfree(data.arguments);
       break;
     }
     case AST_TYPE_DECL: {
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
       ast_free(data.identifier);
-      ast_free(data.fields);
+      for (int i = 0; i < arrlen(data.fields); i++) {
+        ast_free(data.fields[i]);
+      }
+      arrfree(data.fields);
       break;
     }
     case AST_FN: {
       struct AST_FN data = ast.data.AST_FN;
       ast_free(data.identifier);
-      ast_free(data.paramList);
       ast_free(data.returnType);
       ast_free(data.body);
+
+      for (int i = 0; i < arrlen(data.params); i++) {
+        ast_free(data.params[i]);
+      }
+      arrfree(data.params);
       break;
     }
     case AST_PARAM: {
       struct AST_PARAM data = ast.data.AST_PARAM;
       ast_free(data.identifier);
       ast_free(data.type);
-      break;
-    }
-    case AST_PARAM_LIST: {
-      struct AST_PARAM_LIST data = ast.data.AST_PARAM_LIST;
-      ast_free(data.node);
-      ast_free(data.next);
       break;
     }
     case AST_BLOCK: {

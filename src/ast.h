@@ -107,20 +107,19 @@ struct AST {
     struct AST_IF { AST* condition; AST* body; AST* elseClause; } AST_IF;
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
     struct AST_FOR { AST* initializer; AST* condition; AST* increment; AST* body; } AST_FOR;
-    struct AST_CALL { AST* identifier; AST* arguments; } AST_CALL;
+    struct AST_CALL { AST* identifier; AST** arguments; } AST_CALL;
     struct AST_CAST { AST* identifier; AST* type; } AST_CAST;
     struct AST_RETURN { AST* value; } AST_RETURN;
     struct AST_EXIT { AST* value; } AST_EXIT;
     struct AST_PARAM { AST* identifier; AST* type; } AST_PARAM;
-    struct AST_PARAM_LIST { AST* node; AST* next; } AST_PARAM_LIST;
 
     struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
     struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
     struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
     struct AST_CONST_DECL { AST* identifier; AST* type; AST* expr; } AST_CONST_DECL;
 
-    struct AST_FN { AST* identifier; AST* paramList; AST* returnType; AST* body; } AST_FN;
-    struct AST_TYPE_DECL { AST* identifier; AST* fields; } AST_TYPE_DECL;
+    struct AST_FN { AST* identifier; AST** params; AST* returnType; AST* body; } AST_FN;
+    struct AST_TYPE_DECL { AST* identifier; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STRING** strings; } AST_ASM;
     struct AST_STMT { AST* node; } AST_STMT;
     struct AST_DECL { AST* node; } AST_DECL;

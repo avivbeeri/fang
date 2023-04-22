@@ -262,22 +262,15 @@ static AST* asmDecl() {
   return AST_NEW(AST_ASM, output);
 }
 
-static AST* argumentList(){
-  AST* list = NULL;
+static AST** argumentList() {
+  AST** arguments = NULL;
   if (!check(TOKEN_RIGHT_PAREN)) {
-    AST* node = NULL;
     do {
-      AST* newNode = AST_NEW(AST_PARAM_LIST, expression(), NULL);
-      if (node != NULL) {
-        node->data.AST_PARAM_LIST.next = newNode;
-      } else {
-        list = newNode;
-      }
-      node = newNode;
+      arrput(arguments, expression());
     } while (match(TOKEN_COMMA));
   }
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after arguments.");
-  return list;
+  return arguments;
 }
 
 static AST* as(bool canAssign, AST* left) {
@@ -290,7 +283,7 @@ static AST* as(bool canAssign, AST* left) {
   return expr;
 }
 static AST* call(bool canAssign, AST* left) {
-  AST* params = argumentList();
+  AST** params = argumentList();
   return AST_NEW(AST_CALL, left, params);
 }
 
@@ -340,26 +333,16 @@ static AST* enumValueList() {
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
   return NULL;
 }
-static AST* fieldList() {
-  size_t arity = 0;
-  AST* params = NULL;
+static AST** fieldList() {
+  AST** params = NULL;
   if (!check(TOKEN_RIGHT_BRACE)) {
-    AST* node = NULL;
     do {
-      arity++;
       AST* identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
       AST* typeName = type();
-
-      AST* param = AST_NEW(AST_PARAM, identifier, typeName);
-      AST* newNode = AST_NEW(AST_PARAM_LIST, param, NULL);
-      if (node != NULL) {
-        node->data.AST_PARAM_LIST.next = newNode;
-      } else {
-        params = newNode;
-      }
-      node = newNode;
       consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
+      AST* param = AST_NEW(AST_PARAM, identifier, typeName);
+      arrput(params, param);
     } while (!check(TOKEN_RIGHT_BRACE));
     consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
   }
@@ -398,26 +381,16 @@ static AST* varDecl() {
 static AST* fnDecl() {
   AST* identifier = parseVariable("Expect function identifier");
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
-  // Parameters
-  size_t arity = 0;
-  AST* params = NULL;
+
+  AST** params = NULL;
   if (!check(TOKEN_RIGHT_PAREN)) {
-    AST* node = NULL;
     do {
-      arity++;
       // TODO: Fix a maximum number of parameters here
       AST* identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
       AST* typeName = type();
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
-
-      AST* newNode = AST_NEW(AST_PARAM_LIST, param, NULL);
-      if (node != NULL) {
-        node->data.AST_PARAM_LIST.next = newNode;
-      } else {
-        params = newNode;
-      }
-      node = newNode;
+      arrput(params, param);
     } while (match(TOKEN_COMMA));
   }
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
@@ -636,7 +609,7 @@ static AST* enumDecl() {
 static AST* typeDecl() {
   AST* identifier = parseVariable("Expect a data type name");
   consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
-  AST* fields = fieldList();
+  AST** fields = fieldList();
   return AST_NEW(AST_TYPE_DECL, identifier, fields);
 }
 

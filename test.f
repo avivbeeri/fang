@@ -9,6 +9,8 @@ asm {
   "svc 0"
 };
 */
+fn test(a: int, b: string): void {
+}
 var b: int = 5;
 while (b) {
   b = b - 1;

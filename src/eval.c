@@ -425,15 +425,6 @@ static Value traverse(AST* ptr, Environment* context) {
       traverse(e, context);
       break;
     }
-    case AST_PARAM_LIST: {
-      AST* next = ptr;
-      while (next != NULL) {
-        struct AST_PARAM_LIST data = next->data.AST_PARAM_LIST;
-        traverse(e, context);
-        next = data.next;
-      }
-      break;
-    }
     case AST_DOT: {
       struct AST_DOT data = ast.data.AST_DOT;
       char* str = ".";

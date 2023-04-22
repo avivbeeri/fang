@@ -339,15 +339,6 @@ static int traverse(FILE* f, AST* ptr) {
       traverse(f, data.type);
       break;
     }
-    case AST_PARAM_LIST: {
-      AST* next = ptr;
-      while (next != NULL) {
-        struct AST_PARAM_LIST data = next->data.AST_PARAM_LIST;
-        traverse(f, data.node);
-        next = data.next;
-      }
-      break;
-    }
     case AST_LVALUE: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
       break;

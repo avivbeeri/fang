@@ -1,7 +1,7 @@
 SRC := src
 OBJ := obj
 
-CFLAGS := -g -Wall -std=c99 -Werror -Wno-error=switch -Wno-error=unused-variable
+CFLAGS := -g -Wall -std=c99 -Werror -Wno-error=switch -Wno-error=unused-variable -ferror-limit=1
 
 SOURCES := $(wildcard $(SRC)/*.c)
 OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))

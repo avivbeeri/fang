@@ -140,7 +140,10 @@ static void traverse(AST* ptr, int level) {
       printf("type ");
       traverse(data.identifier, 0);
       printf("{\n");
-      traverse(data.fields, level + 1);
+      for (int i = 0; i < arrlen(data.fields); i++) {
+        traverse(data.fields[i], level + 1);
+        printf("\n");
+      }
       printf("\n%*s", level * 2, "");
       printf("}");
       break;
@@ -151,8 +154,13 @@ static void traverse(AST* ptr, int level) {
       printf("fn ");
       traverse(data.identifier, 0);
       printf("(");
-      traverse(data.paramList, 0);
-      printf("):");
+      for (int i = 0; i < arrlen(data.params); i++) {
+        traverse(data.params[i], level + 1);
+        if (i < arrlen(data.params) - 1) {
+          printf(", ");
+        }
+      }
+      printf("): ");
       traverse(data.returnType, 0);
       printf(" ");
       printf("{\n");
@@ -172,7 +180,12 @@ static void traverse(AST* ptr, int level) {
       struct AST_CALL data = ast.data.AST_CALL;
       traverse(data.identifier, 0);
       printf("(");
-      traverse(data.arguments, 0);
+      for (int i = 0; i < arrlen(data.arguments); i++) {
+        traverse(data.arguments[i], level + 1);
+        if (i < arrlen(data.arguments) - 1) {
+          printf(", ");
+        }
+      }
       printf(")");
       break;
     }
@@ -201,18 +214,6 @@ static void traverse(AST* ptr, int level) {
       traverse(data.identifier, 0);
       printf(": ");
       traverse(data.type, 0);
-      break;
-    }
-    case AST_PARAM_LIST: {
-      AST* next = ptr;
-      while (next != NULL) {
-        struct AST_PARAM_LIST data = next->data.AST_PARAM_LIST;
-        traverse(data.node, 0);
-        next = data.next;
-        if (next != NULL) {
-          printf(", ");
-        }
-      }
       break;
     }
     case AST_LIST: {
