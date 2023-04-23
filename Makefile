@@ -20,7 +20,7 @@ test: file.o
         -arch arm64
 file.o: file.S
 	as -o file.o file.S
-file.S: fcc test.f
+file.S: fcc test.fg
 	./fcc 
 
 $(OBJ)/%.o: $(SRC)/%.c

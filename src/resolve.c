@@ -26,6 +26,7 @@
 #include "common.h"
 #include "ast.h"
 #include "environment.h"
+#include "type_table.h"
 
 static bool resolveTopLevel(AST* ptr, Environment* context) {
   if (ptr == NULL) {
@@ -62,8 +63,16 @@ static bool resolveTopLevel(AST* ptr, Environment* context) {
     case AST_TYPE_DECL:
     {
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-      STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
-      printf("declaration: type %s\n", identifier->chars);
+      STRING* identifier = typeTable[data.index].name;
+      printf("declaration: type %s {\n", identifier->chars);
+
+      for (int i = 0; i < arrlen(data.fields); i++) {
+        struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
+        STRING* fieldName = field.identifier->data.AST_LVALUE.identifier;
+        STRING* fieldType = field.type->data.AST_TYPE_NAME.typeName;
+        printf("  %s: %s\n", fieldName->chars, fieldType->chars);
+      }
+      printf("}\n");
       return true;
     }
     case AST_FN:

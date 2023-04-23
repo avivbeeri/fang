@@ -29,28 +29,43 @@
 
 TYPE_TABLE_ENTRY* typeTable = NULL;
 
-TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = NULL, .parent = 0, .byteSize = 0 })); // NONE
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("void"), .parent = 0, .byteSize = 0 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("bool"), .parent = 0, .byteSize = 1 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("uint8"), .parent = 0, .byteSize = 1 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("int8"), .parent = 0 , .byteSize = 2}));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("uint16"), .parent = 0, .byteSize = 2 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("int16"), .parent = 0, .byteSize = 2 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("string"), .parent = 0, .byteSize = 2 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("ptr"), .parent = 0, .byteSize = 2 }));
 
-  return typeTable;
+int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, size_t size) {
+  typeTable[index].defined = true;
+  typeTable[index].parent = parent;
+  typeTable[index].fields = fields;
+  typeTable[index].byteSize = size;
+
+  return index;
 }
 
-int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent) {
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .byteSize = size, .parent = parent }));
-  return arrlen(typeTable);
+int TYPE_TABLE_declare(STRING* name) {
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .defined = false, .fields = NULL, .byteSize = 0, .parent = 0 }));
+  return arrlen(typeTable) - 1;
+}
+int TYPE_TABLE_register(STRING* name, size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .byteSize = size, .parent = parent, .defined = true, .fields = fields }));
+  return arrlen(typeTable) - 1;
 }
 
 void TYPE_TABLE_free() {
   for (int i = 0; i < arrlen(typeTable); i++) {
+    arrfree(typeTable[i].fields);
     STRING_free(typeTable[i].name);
   }
   arrfree(typeTable);
+}
+
+TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
+  TYPE_TABLE_register(NULL, 0, 0, NULL);
+  TYPE_TABLE_register(createString("void"), 0, 0, NULL);
+  TYPE_TABLE_register(createString("bool"), 1, 0, NULL);
+  TYPE_TABLE_register(createString("uint8"), 1, 0, NULL);
+  TYPE_TABLE_register(createString("int8"), 1, 0, NULL);
+  TYPE_TABLE_register(createString("uint16"), 2, 0, NULL);
+  TYPE_TABLE_register(createString("int16"), 2, 0, NULL);
+  TYPE_TABLE_register(createString("string"), 2, 0, NULL);
+  TYPE_TABLE_register(createString("ptr"), 2, 0, NULL);
+
+  return typeTable;
 }

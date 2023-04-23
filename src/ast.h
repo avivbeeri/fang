@@ -29,6 +29,7 @@
 #include "memory.h"
 #include "value.h"
 
+
 typedef struct AST AST; // Forward reference
 typedef int TYPE_INDEX;
 
@@ -119,7 +120,7 @@ struct AST {
     struct AST_CONST_DECL { AST* identifier; AST* type; AST* expr; } AST_CONST_DECL;
 
     struct AST_FN { AST* identifier; AST** params; AST* returnType; AST* body; } AST_FN;
-    struct AST_TYPE_DECL { AST* identifier; AST** fields; } AST_TYPE_DECL;
+    struct AST_TYPE_DECL { int index; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STRING** strings; } AST_ASM;
     struct AST_STMT { AST* node; } AST_STMT;
     struct AST_DECL { AST* node; } AST_DECL;
@@ -128,6 +129,7 @@ struct AST {
     struct AST_MAIN { AST* body; } AST_MAIN;
   } data;
   TYPE_INDEX type;
+  uint64_t id;
 };
 
 AST* ast_new(AST ast);

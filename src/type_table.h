@@ -27,14 +27,20 @@
 #define type_table_h
 
 #include "memory.h"
+typedef struct TYPE_TABLE_FIELD_ENTRY { STRING* name; int typeIndex; } TYPE_TABLE_FIELD_ENTRY;
 typedef struct TYPE_TABLE_ENTRY {
   STRING* name;
+  bool defined;
   size_t parent;
   size_t byteSize;
+  TYPE_TABLE_FIELD_ENTRY* fields;
 } TYPE_TABLE_ENTRY;
 
 extern TYPE_TABLE_ENTRY* typeTable;
+
 TYPE_TABLE_ENTRY* TYPE_TABLE_init(void);
+int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, size_t size);
+int TYPE_TABLE_declare(STRING* name);
 int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent);
 void TYPE_TABLE_free(void);
 

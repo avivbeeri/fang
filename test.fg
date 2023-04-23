@@ -1,15 +1,18 @@
-/*
-asm {
+/* asm {
   "mov X0, #1"
   "adr X1, const_0 + 1"
   "adr X2, const_0"
   "ldrb W2,[X2, 0]"
   "mov X16, #4"
   "svc 0"
-};
-*/
+}; */
 
-fn test(a: int, b: int): int {}
+
+type TableEntry { 
+  wordlike: string;
+}
+
+fn test(a: int8, b: int8): int {}
 var b: int = 5;
 while (b) {
   b = b - 1;

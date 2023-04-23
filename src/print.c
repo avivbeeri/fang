@@ -28,6 +28,7 @@
 #include "common.h"
 #include "ast.h"
 #include "const_table.h"
+#include "type_table.h"
 
 static void traverse(AST* ptr, int level) {
   if (ptr == NULL) {
@@ -138,9 +139,7 @@ static void traverse(AST* ptr, int level) {
     case AST_TYPE_DECL: {
       printf("%*s", level * 2, "");
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-      printf("type ");
-      traverse(data.identifier, 0);
-      printf("{\n");
+      printf("type %s {\n", typeTable[data.index].name->chars);
       for (int i = 0; i < arrlen(data.fields); i++) {
         traverse(data.fields[i], level + 1);
         printf("\n");

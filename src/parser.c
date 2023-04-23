@@ -607,9 +607,10 @@ static AST* enumDecl() {
 }
 static AST* typeDecl() {
   AST* identifier = parseVariable("Expect a data type name");
+  int index = TYPE_TABLE_declare(identifier->data.AST_LVALUE.identifier);
   consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
   AST** fields = fieldList();
-  return AST_NEW(AST_TYPE_DECL, identifier, fields);
+  return AST_NEW(AST_TYPE_DECL, index, fields);
 }
 
 static AST* topLevel() {

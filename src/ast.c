@@ -28,9 +28,13 @@
 #include "ast.h"
 #include "memory.h"
 
+static uint64_t id = 0;
+
 AST *ast_new(AST ast) {
   AST *ptr = reallocate(NULL, 0, sizeof(AST));
   if (ptr) *ptr = ast;
+  ptr->id = id;
+  id++;
   return ptr;
 }
 
@@ -171,7 +175,6 @@ void ast_free(AST *ptr) {
     }
     case AST_TYPE_DECL: {
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-      ast_free(data.identifier);
       for (int i = 0; i < arrlen(data.fields); i++) {
         ast_free(data.fields[i]);
       }
