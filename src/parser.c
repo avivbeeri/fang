@@ -143,20 +143,18 @@ static AST* variable(bool canAssign) {
 }
 static AST* character(bool canAssign) {
   // copy the character to memory
-  return AST_NEW(AST_LITERAL, CHAR(unesc(parser.previous.start + 1, parser.previous.length - 3)));
-  /*
-  STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
-  int index = CONST_TABLE_store(STRING(string->chars));
-  printf("Storing %s at index %i\n", string->chars, index);
-  return AST_NEW(AST_LITERAL, STRING(string));
-  */
+  Value value = CHAR(unesc(parser.previous.start + 1, parser.previous.length - 3));
+  int index = CONST_TABLE_store(value);
+
+  return AST_NEW(AST_LITERAL, index);
 }
+
 static AST* string(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
   int index = CONST_TABLE_store(STRING(string));
   printf("Storing %s at index %i\n", string->chars, index);
-  return AST_NEW(AST_LITERAL, STRING(string));
+  return AST_NEW(AST_LITERAL, index);
 }
 
 static AST* type() {
@@ -171,14 +169,15 @@ static AST* type() {
 }
 static AST* literal(bool canAssign) {
   switch (parser.previous.type) {
-    case TOKEN_FALSE: return AST_NEW(AST_LITERAL, BOOL_VAL(false));
-    case TOKEN_TRUE: return AST_NEW(AST_LITERAL, BOOL_VAL(true));
+    case TOKEN_FALSE: return AST_NEW(AST_LITERAL, 0);
+    case TOKEN_TRUE: return AST_NEW(AST_LITERAL, 1);
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
 static AST* number(bool canAssign) {
   int32_t value = strtol(parser.previous.start, NULL, 0);
-  return AST_NEW(AST_LITERAL, getNumericalValue(value));
+  int index = CONST_TABLE_store(LIT_NUM(value));
+  return AST_NEW(AST_LITERAL, index);
 }
 
 static AST* grouping(bool canAssign) {
@@ -667,7 +666,7 @@ AST* parse(const char* source) {
 
   if (!parser.exitEmit) {
     // Append a "return 0" for exiting safely
-    AST* node = AST_NEW(AST_EXIT, AST_NEW(AST_LITERAL, NUMBER(0)));
+    AST* node = AST_NEW(AST_EXIT, AST_NEW(AST_LITERAL, 2));
     arrput(declList, node);
   }
   list = AST_NEW(AST_LIST, declList);

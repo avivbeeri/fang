@@ -97,7 +97,7 @@ struct AST {
   AST_TAG tag;
   union {
     struct AST_ERROR { int number; } AST_ERROR;
-    struct AST_LITERAL { Value value; } AST_LITERAL;
+    struct AST_LITERAL { int constantIndex; } AST_LITERAL;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;

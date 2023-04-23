@@ -38,6 +38,7 @@ typedef struct CONST_TABLE_ENTRY {
 extern CONST_TABLE_ENTRY* constTable;
 CONST_TABLE_ENTRY* CONST_TABLE_init(void);
 int CONST_TABLE_store(Value value);
+Value CONST_TABLE_get(int index);
 void CONST_TABLE_free(void);
 
 #endif

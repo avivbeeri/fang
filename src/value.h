@@ -37,6 +37,7 @@ typedef enum {
   VAL_I8,
   VAL_U16,
   VAL_I16,
+  VAL_LIT_NUM,
   VAL_PTR,
   VAL_STRING,
   VAL_RECORD,
@@ -58,6 +59,7 @@ typedef struct Value {
     uint16_t u16;
     int8_t i8;
     int16_t i16;
+    int32_t literalNum;
     STRING* string;
     unsigned char character;
     uint16_t ptr;
@@ -70,6 +72,7 @@ typedef struct Value {
 #define I8(value) ((Value){VAL_I8, {.i8 = value}})
 #define U16(value) ((Value){VAL_U16, {.u16 = value}})
 #define I16(value) ((Value){VAL_I16, {.i16 = value}})
+#define LIT_NUM(value) ((Value){VAL_LIT_NUM, {.literalNum = value}})
 #define STRING(value) ((Value){VAL_STRING, {.string = value}})
 #define CHAR(value) ((Value){VAL_CHAR, {.character = value}})
 #define PTR(value) ((Value){VAL_PTR, {.ptr = value}})
@@ -82,23 +85,27 @@ typedef struct Value {
 #define AS_I8(value)  ((value).as.i8)
 #define AS_U16(value)  ((value).as.u16)
 #define AS_I16(value)  ((value).as.i16)
+#define AS_LIT_NUM(value)  ((value).as.literalNum)
 #define AS_STRING(value)  ((value).as.string)
 #define AS_CHAR(value)  ((value).as.character)
 #define AS_PTR(value)  ((value).as.ptr)
 #define AS_RECORD(value)  ((value).as.record)
 
+#define AS_NUMBER(value) getNumber(value)
 
 #define IS_BOOL(value)    ((value).type == VAL_BOOL)
 #define IS_U8(value)    ((value).type == VAL_U8)
 #define IS_I8(value)    ((value).type == VAL_I8)
 #define IS_U16(value)    ((value).type == VAL_U16)
 #define IS_I16(value)    ((value).type == VAL_I16)
+#define IS_LIT_NUM(value)    ((value).type == VAL_LIT_NUM)
 #define IS_PTR(value)    ((value).type == VAL_PTR)
 #define IS_STRING(value)    ((value).type == VAL_STRING)
 #define IS_CHAR(value)    ((value).type == VAL_CHAR)
 #define IS_ERROR(value)    ((value).type == VAL_ERROR)
 
 #define IS_NUMERICAL(value) ((value).type <= VAL_PTR)
+
 
 #include "common.h"
 
@@ -109,7 +116,5 @@ void printValueType(Value value);
 int32_t getNumber(Value value);
 bool isEqual(Value left, Value right);
 bool isTruthy(Value value);
-#define NUMBER(value) getNumericalValue(value)
-#define AS_NUMBER(value) getNumber(value)
 
 #endif

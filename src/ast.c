@@ -68,9 +68,6 @@ void ast_free(AST *ptr) {
     }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
-      if (IS_STRING(data.value)) {
-        STRING_free(AS_STRING(data.value));
-      }
       break;
     }
     case AST_UNARY: {

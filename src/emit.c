@@ -189,28 +189,29 @@ static int traverse(FILE* f, AST* ptr) {
     }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
-      switch (data.value.type) {
+      Value value = CONST_TABLE_get(data.constantIndex);
+      switch (value.type) {
         case VAL_CHAR: {
-          return genLoad(AS_CHAR(data.value));
+          return genLoad(AS_CHAR(value));
         }
         case VAL_I8: {
-          return genLoad(AS_I8(data.value));
+          return genLoad(AS_I8(value));
         }
         case VAL_I16: {
-          return genLoad(AS_I16(data.value));
+          return genLoad(AS_I16(value));
         }
         case VAL_U8: {
-          return genLoad(AS_U8(data.value));
+          return genLoad(AS_U8(value));
         }
         case VAL_U16: {
-          return genLoad(AS_U16(data.value));
+          return genLoad(AS_U16(value));
         }
         case VAL_STRING: {
           // emit a constant value
           break;
         }
         case VAL_BOOL: {
-          return genLoad(AS_BOOL(data.value) ? 1 : 0);
+          return genLoad(AS_BOOL(value) ? 1 : 0);
           break;
         }
       }

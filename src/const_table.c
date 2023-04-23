@@ -29,7 +29,14 @@
 
 CONST_TABLE_ENTRY* constTable = NULL;
 
+Value CONST_TABLE_get(int index) {
+  return constTable[index].value;
+}
+
 CONST_TABLE_ENTRY* CONST_TABLE_init() {
+  CONST_TABLE_store(BOOL_VAL(false));
+  CONST_TABLE_store(BOOL_VAL(true));
+  CONST_TABLE_store(U8(0));
   return constTable;
 }
 
@@ -40,7 +47,9 @@ int CONST_TABLE_store(Value value) {
 
 void CONST_TABLE_free() {
   for (int i = 0; i < arrlen(constTable); i++) {
-    // TODO
+    if (IS_STRING(constTable[i].value)) {
+      STRING_free(AS_STRING(constTable[i].value));
+    }
   }
   arrfree(constTable);
 }
