@@ -112,7 +112,7 @@ struct AST {
     struct AST_CAST { AST* identifier; AST* type; } AST_CAST;
     struct AST_RETURN { AST* value; } AST_RETURN;
     struct AST_EXIT { AST* value; } AST_EXIT;
-    struct AST_PARAM { AST* identifier; AST* type; } AST_PARAM;
+    struct AST_PARAM { AST* identifier; AST* type;  } AST_PARAM;
 
     struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
     struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;

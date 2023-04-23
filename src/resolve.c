@@ -65,6 +65,7 @@ static bool resolveTopLevel(AST* ptr, Environment* context) {
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
       STRING* identifier = typeTable[data.index].name;
       printf("declaration: type %s {\n", identifier->chars);
+      TYPE_TABLE_FIELD_ENTRY* fields = NULL;
 
       for (int i = 0; i < arrlen(data.fields); i++) {
         struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
