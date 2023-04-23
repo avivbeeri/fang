@@ -27,11 +27,11 @@
 #include "ast.h"
 #include "scanner.h"
 #include "parser.h"
-#include "traverse.h"
 #include "type_table.h"
 #include "const_table.h"
-#include "emit.h"
-#include "eval.h"
+#include "tree/print.h"
+#include "tree/emit.h"
+#include "tree/eval.h"
 
 bool compile(const char* source) {
   //testScanner(source);

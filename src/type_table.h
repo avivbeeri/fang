@@ -35,6 +35,7 @@ typedef struct TYPE_TABLE_ENTRY {
 
 extern TYPE_TABLE_ENTRY* typeTable;
 TYPE_TABLE_ENTRY* TYPE_TABLE_init(void);
+int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent);
 void TYPE_TABLE_free(void);
 
 #endif

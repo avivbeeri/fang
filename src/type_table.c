@@ -32,15 +32,20 @@ TYPE_TABLE_ENTRY* typeTable = NULL;
 TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = NULL, .parent = 0, .byteSize = 0 })); // NONE
   arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("void"), .parent = 0, .byteSize = 0 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("int8"), .parent = 0 , .byteSize = 2}));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("int16"), .parent = 0, .byteSize = 2 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("uint8"), .parent = 0, .byteSize = 1 }));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("uint8"), .parent = 0, .byteSize = 1 }));
   arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("bool"), .parent = 0, .byteSize = 1 }));
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("uint8"), .parent = 0, .byteSize = 1 }));
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("int8"), .parent = 0 , .byteSize = 2}));
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("uint16"), .parent = 0, .byteSize = 2 }));
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("int16"), .parent = 0, .byteSize = 2 }));
   arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("string"), .parent = 0, .byteSize = 2 }));
   arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = createString("ptr"), .parent = 0, .byteSize = 2 }));
 
   return typeTable;
+}
+
+int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent) {
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .byteSize = size, .parent = parent }));
+  return arrlen(typeTable);
 }
 
 void TYPE_TABLE_free() {

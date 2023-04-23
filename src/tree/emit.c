@@ -27,10 +27,10 @@
 #include <stdlib.h>
 
 
-#include "common.h"
-#include "ast.h"
-#include "value.h"
-#include "const_table.h"
+#include "../common.h"
+#include "../ast.h"
+#include "../value.h"
+#include "../const_table.h"
 
 #define emitf(fmt, ...) do { fprintf(f, fmt, ##__VA_ARGS__); } while(0)
 static FILE* f;

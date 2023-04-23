@@ -24,7 +24,7 @@
 */
 #ifndef eval_h
 #define eval_h
-#include "ast.h"
+#include "../ast.h"
 
 void evalTree(AST* ptr);
 

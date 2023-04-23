@@ -22,10 +22,10 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
-#ifndef emit_h
-#define emit_h
-#include "ast.h"
+#ifndef traverse_h
+#define traverse_h
+#include "../ast.h"
 
-void emitTree(AST* ptr);
+void traverseTree(AST* ptr);
 
 #endif

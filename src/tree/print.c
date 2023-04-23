@@ -25,8 +25,8 @@
 
 #include <stdio.h>
 
-#include "common.h"
-#include "ast.h"
+#include "../common.h"
+#include "../ast.h"
 
 static void traverse(AST* ptr, int level) {
   if (ptr == NULL) {
@@ -217,7 +217,6 @@ static void traverse(AST* ptr, int level) {
       break;
     }
     case AST_LIST: {
-      int r = 0;
       struct AST_LIST data = ast.data.AST_LIST;
       for (int i = 0; i < arrlen(data.decls); i++) {
         traverse(data.decls[i], level);

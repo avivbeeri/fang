@@ -26,10 +26,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "common.h"
-#include "ast.h"
-#include "value.h"
-#include "const_table.h"
+#include "../common.h"
+#include "../ast.h"
+#include "../value.h"
+#include "../const_table.h"
 
 
 // Symbol table
@@ -194,6 +194,10 @@ static Value traverse(AST* ptr, Environment* context) {
       }
       if (IS_ERROR(right)) {
         return right;
+      }
+      if (data.left->type != data.right->type) {
+        printf("%s vs %s\n", getNodeTypeName(data.left->tag), getNodeTypeName(data.right->tag));
+        return ERROR(0);
       }
       switch(data.op) {
         case OP_ADD:
@@ -435,7 +439,7 @@ static Value traverse(AST* ptr, Environment* context) {
     }
 */
     default: {
-      return ERROR(0);
+      return EMPTY();
     }
   }
   return ERROR(0);
