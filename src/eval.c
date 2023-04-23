@@ -29,76 +29,8 @@
 #include "common.h"
 #include "ast.h"
 #include "value.h"
+#include "environment.h"
 #include "const_table.h"
-
-
-// Symbol table
-typedef struct {
-  Value value;
-  bool constant;
-} ENV_ENTRY;
-
-typedef struct Environment {
-  struct Environment *enclosing;
-  struct { char *key; ENV_ENTRY value; } *values;
-} Environment;
-
-static bool assign(Environment* env, char* name, Value value) {
-  if (env == NULL) {
-    return false;
-  }
-
-  if (shgeti(env->values, name) == -1) {
-    if (env->enclosing != NULL) {
-      return assign(env->enclosing, name, value);
-    }
-
-    printf("Cannot assign to undefined variable %s.\n", name);
-    return false;
-  }
-
-  if (shget(env->values, name).constant) {
-    printf("Cannot reassign a constant value.\n");
-    return false;
-  }
-  shput(env->values, name, ((ENV_ENTRY){ value, false }));
-  return true;
-}
-
-static bool define(Environment* env, char* name, Value value, bool constant) {
-  if (shgeti(env->values, name) != -1 && shget(env->values, name).constant) {
-    printf("Cannot reassign.\n");
-    return false;
-  }
-
-  shput(env->values, name, ((ENV_ENTRY){ value, constant }));
-  return true;
-}
-
-static Value getSymbol(Environment* env, char* name) {
-  if (env == NULL) {
-    printf("shouldn't get here\n");
-    return ERROR(2);
-  }
-  if (shgeti(env->values, name) == -1) {
-    if (env->enclosing != NULL) {
-      return getSymbol(env->enclosing, name);
-    }
-
-    printf("Cannot read from undefined variable: %s.\n", name);
-    return ERROR(1);
-  }
-
-  return shget(env->values, name).value;
-}
-
-static Environment beginScope(Environment* env) {
-  return (Environment){ env, NULL };
-}
-
-static void endScope(Environment* env) {
-  shfree(env->values);
-}
 
 static Value traverse(AST* ptr, Environment* context) {
   if (ptr == NULL) {

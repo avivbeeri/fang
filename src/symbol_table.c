@@ -23,37 +23,24 @@
   SOFTWARE.
 */
 
+#include "common.h"
+#include "memory.h"
+#include "symbol_table.h"
 
-#include "ast.h"
-#include "scanner.h"
-#include "parser.h"
-#include "type_table.h"
-#include "const_table.h"
-#include "resolve.h"
-#include "print.h"
-#include "emit.h"
-#include "eval.h"
+SYMBOL_TABLE_ENTRY* symbolTable = NULL;
 
-bool compile(const char* source) {
-  //testScanner(source);
-  TYPE_TABLE_init();
-  CONST_TABLE_init();
-  initScanner(source);
-  AST* ast = parse(source);
-  bool result = true;
-  if (ast != NULL) {
-    if (resolveTree(ast)) {
-      traverseTree(ast);
-      // emitTree(ast);
-      evalTree(ast);
-    } else {
-      result = false;
-    }
-    ast_free(ast);
-  } else {
-    result = false;
+SYMBOL_TABLE_ENTRY* SYMBOL_TABLE_init() {
+  return symbolTable;
+}
+
+int SYMBOL_TABLE_registerType(STRING* name, size_t size, size_t parent) {
+  // arrput(symbolTable, ((SYMBOL_TABLE_ENTRY){ .name = name, .byteSize = size, .parent = parent }));
+  return arrlen(symbolTable);
+}
+
+void SYMBOL_TABLE_free() {
+  for (int i = 0; i < arrlen(symbolTable); i++) {
+    STRING_free(symbolTable[i].name);
   }
-  CONST_TABLE_free();
-  TYPE_TABLE_free();
-  return result;
+  arrfree(symbolTable);
 }

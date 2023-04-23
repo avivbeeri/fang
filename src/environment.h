@@ -23,37 +23,27 @@
   SOFTWARE.
 */
 
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "ast.h"
-#include "scanner.h"
-#include "parser.h"
-#include "type_table.h"
-#include "const_table.h"
-#include "resolve.h"
-#include "print.h"
-#include "emit.h"
-#include "eval.h"
+#include "common.h"
+#include "value.h"
 
-bool compile(const char* source) {
-  //testScanner(source);
-  TYPE_TABLE_init();
-  CONST_TABLE_init();
-  initScanner(source);
-  AST* ast = parse(source);
-  bool result = true;
-  if (ast != NULL) {
-    if (resolveTree(ast)) {
-      traverseTree(ast);
-      // emitTree(ast);
-      evalTree(ast);
-    } else {
-      result = false;
-    }
-    ast_free(ast);
-  } else {
-    result = false;
-  }
-  CONST_TABLE_free();
-  TYPE_TABLE_free();
-  return result;
-}
+
+// Symbol table
+typedef struct {
+  Value value;
+  bool constant;
+} ENV_ENTRY;
+
+typedef struct Environment {
+  struct Environment *enclosing;
+  struct { char *key; ENV_ENTRY value; } *values;
+} Environment;
+
+
+bool assign(Environment* env, char* name, Value value);
+bool define(Environment* env, char* name, Value value, bool constant);
+Value getSymbol(Environment* env, char* name);
+Environment beginScope(Environment* env);
+void endScope(Environment* env);

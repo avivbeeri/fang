@@ -22,38 +22,10 @@
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 */
-
-
+#ifndef resolve_h
+#define resolve_h
 #include "ast.h"
-#include "scanner.h"
-#include "parser.h"
-#include "type_table.h"
-#include "const_table.h"
-#include "resolve.h"
-#include "print.h"
-#include "emit.h"
-#include "eval.h"
 
-bool compile(const char* source) {
-  //testScanner(source);
-  TYPE_TABLE_init();
-  CONST_TABLE_init();
-  initScanner(source);
-  AST* ast = parse(source);
-  bool result = true;
-  if (ast != NULL) {
-    if (resolveTree(ast)) {
-      traverseTree(ast);
-      // emitTree(ast);
-      evalTree(ast);
-    } else {
-      result = false;
-    }
-    ast_free(ast);
-  } else {
-    result = false;
-  }
-  CONST_TABLE_free();
-  TYPE_TABLE_free();
-  return result;
-}
+bool resolveTree(AST* ptr);
+
+#endif
