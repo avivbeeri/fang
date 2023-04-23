@@ -29,9 +29,9 @@
 #include "parser.h"
 #include "type_table.h"
 #include "const_table.h"
-#include "tree/print.h"
-#include "tree/emit.h"
-#include "tree/eval.h"
+#include "print.h"
+#include "emit.h"
+#include "eval.h"
 
 bool compile(const char* source) {
   //testScanner(source);

@@ -26,10 +26,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../common.h"
-#include "../ast.h"
-#include "../value.h"
-#include "../const_table.h"
+#include "common.h"
+#include "ast.h"
+#include "value.h"
+#include "const_table.h"
 
 
 // Symbol table

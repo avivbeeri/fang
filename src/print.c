@@ -25,8 +25,8 @@
 
 #include <stdio.h>
 
-#include "../common.h"
-#include "../ast.h"
+#include "common.h"
+#include "ast.h"
 
 static void traverse(AST* ptr, int level) {
   if (ptr == NULL) {
