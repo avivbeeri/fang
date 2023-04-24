@@ -343,8 +343,8 @@ static AST** fieldList() {
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
       arrput(params, param);
     } while (!check(TOKEN_RIGHT_BRACE));
-    consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
   }
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
   return params;
 }
 

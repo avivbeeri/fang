@@ -29,6 +29,8 @@
 #include "type_table.h"
 
 TYPE_TABLE_ENTRY* typeTable = NULL;
+typedef struct { int key; bool value; } TYPE_VISIT_SET;
+typedef struct { int size; bool error; } TYPE_TABLE_RESULT;
 
 
 int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
@@ -78,12 +80,11 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   return typeTable;
 }
 
-typedef struct { int key; bool value; } INT_SET;
 
-static int TYPE_TABLE_calculateTypeSize(int typeIndex, INT_SET* visitSet) {
+static TYPE_TABLE_RESULT TYPE_TABLE_calculateTypeSize(int typeIndex, TYPE_VISIT_SET* visitSet) {
   TYPE_TABLE_ENTRY* entry = typeTable + typeIndex;
   if (entry->primitive || entry->status == STATUS_COMPLETE) {
-    return entry->byteSize;
+    return (TYPE_TABLE_RESULT){ entry->byteSize, false };
   }
   hmput(visitSet, typeIndex, true);
 
@@ -92,7 +93,7 @@ static int TYPE_TABLE_calculateTypeSize(int typeIndex, INT_SET* visitSet) {
     TYPE_TABLE_FIELD_ENTRY field = entry->fields[j];
     if (hmgeti(visitSet, field.typeIndex) != -1) {
       printf("Types cannot be recursively defined.\n");
-      return 0;
+      return (TYPE_TABLE_RESULT){ 0, true };
     }
 
     TYPE_TABLE_ENTRY fieldType = typeTable[field.typeIndex];
@@ -102,26 +103,24 @@ static int TYPE_TABLE_calculateTypeSize(int typeIndex, INT_SET* visitSet) {
       if (fieldType.status == STATUS_COMPLETE) {
         total += fieldType.byteSize;
       } else {
-        size_t size = TYPE_TABLE_calculateTypeSize(field.typeIndex, visitSet);
-        if (size == 0) {
-          return 0;
+        TYPE_TABLE_RESULT result = TYPE_TABLE_calculateTypeSize(field.typeIndex, visitSet);
+        if (result.error) {
+          return result;
         }
-        total += size;
+        total += result.size;
       }
     }
   }
-  if (total > 0) {
-    entry->byteSize = total;
-    entry->status = STATUS_COMPLETE;
-  }
-  return total;
+  entry->byteSize = total;
+  entry->status = STATUS_COMPLETE;
+  return (TYPE_TABLE_RESULT){ total, false };
 }
 
 bool TYPE_TABLE_calculateSizes() {
   for (int i = 1; i < arrlen(typeTable); i++) {
-    INT_SET* visited = NULL;
-    size_t size = TYPE_TABLE_calculateTypeSize(i, visited);
-    if (!typeTable[i].primitive && size == 0) {
+    TYPE_VISIT_SET* visited = NULL;
+    TYPE_TABLE_RESULT result = TYPE_TABLE_calculateTypeSize(i, visited);
+    if (result.error) {
       return false;
     }
   }
