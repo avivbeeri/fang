@@ -162,15 +162,16 @@ static AST* type() {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     return AST_NEW(AST_TYPE_NAME, string);
   } else if (match(TOKEN_LEFT_PAREN)) {
-    char buffer[1024];
+    size_t len = 1024;
+    char* buffer = reallocate(NULL, 0, len * sizeof(char));
     int i = 0;
-    i += snprintf(buffer+i, sizeof(buffer) - i, "(");
+    i += snprintf(buffer+i, len - i, "(");
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         AST* paramType = type();
-        i += snprintf(buffer+i, sizeof(buffer) - i, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
+        i += snprintf(buffer+i, len - i, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
         if (check(TOKEN_COMMA)) {
-          i += snprintf(buffer+i, sizeof(buffer) - i, ", ");
+          i += snprintf(buffer+i, len - i, ", ");
         }
       } while (match(TOKEN_COMMA));
     }
@@ -178,7 +179,7 @@ static AST* type() {
     consume(TOKEN_COLON, "Expect ':' after a function pointer type");
     AST* resultType = type();
 
-    i += snprintf(buffer+i, sizeof(buffer) - i, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
+    i += snprintf(buffer + i, len - i, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
     printf("SIGNATURE: %s\n", buffer);
     return AST_NEW(AST_TYPE_NAME, copyString(buffer, i));
   } else {

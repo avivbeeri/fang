@@ -91,8 +91,11 @@ bool STRING_equality(STRING* left, STRING* right) {
 
 STRING* copyString(const char* chars, size_t length) {
   STRING* string = reallocate(NULL, 0, sizeof(STRING));
-  string->chars = strndup(chars, length);
+  string->chars = ALLOCATE(char, length + 1);
   string->length = strunesc(string->chars, chars, length);
+
+  // Resize memory incase it got smaller
+  string->chars = reallocate(string->chars, length, string->length + 1);
   return string;
 }
 
