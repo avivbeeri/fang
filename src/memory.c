@@ -75,6 +75,19 @@ static size_t strunesc(const char *dest, const char *str, size_t length) {
   return newLength;
 }
 
+bool STRING_equality(STRING* left, STRING* right) {
+  if (left->length != right->length) {
+    // different lengths, can't be equal
+    return false;
+  }
+
+  // left and right have same length
+  size_t len = left->length;
+
+  // char by char diff
+  return memcmp(left->chars, right->chars, len) == 0;
+}
+
 
 STRING* copyString(const char* chars, size_t length) {
   STRING* string = reallocate(NULL, 0, sizeof(STRING));

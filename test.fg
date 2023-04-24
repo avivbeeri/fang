@@ -8,8 +8,13 @@
 }; */
 
 
+type WordEntry { 
+  wordlike: string;
+//  entry: TableEntry;
+}
 type TableEntry { 
   wordlike: string;
+  entry: WordEntry;
 }
 
 fn test(a: int8, b: int8): int {}

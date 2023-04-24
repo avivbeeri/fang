@@ -26,11 +26,22 @@
 #ifndef type_table_h
 #define type_table_h
 
+enum TYPE_TABLE_ENTRY_STATUS {
+  STATUS_DECLARED,
+  STATUS_DEFINED,
+  STATUS_COMPLETE
+};
+
 #include "memory.h"
-typedef struct TYPE_TABLE_FIELD_ENTRY { STRING* name; int typeIndex; } TYPE_TABLE_FIELD_ENTRY;
+typedef struct TYPE_TABLE_FIELD_ENTRY {
+  STRING* name;
+  int typeIndex;
+} TYPE_TABLE_FIELD_ENTRY;
+
 typedef struct TYPE_TABLE_ENTRY {
   STRING* name;
-  bool defined;
+  enum TYPE_TABLE_ENTRY_STATUS status;
+  bool primitive;
   size_t parent;
   size_t byteSize;
   TYPE_TABLE_FIELD_ENTRY* fields;
@@ -39,9 +50,13 @@ typedef struct TYPE_TABLE_ENTRY {
 extern TYPE_TABLE_ENTRY* typeTable;
 
 TYPE_TABLE_ENTRY* TYPE_TABLE_init(void);
-int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, size_t size);
+int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
 int TYPE_TABLE_declare(STRING* name);
 int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent);
 void TYPE_TABLE_free(void);
+bool TYPE_TABLE_calculateSizes();
+int TYPE_TABLE_lookup(STRING* name);
+
+void TYPE_TABLE_report();
 
 #endif

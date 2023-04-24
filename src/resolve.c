@@ -71,8 +71,16 @@ static bool resolveTopLevel(AST* ptr, Environment* context) {
         struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
         STRING* fieldName = field.identifier->data.AST_LVALUE.identifier;
         STRING* fieldType = field.type->data.AST_TYPE_NAME.typeName;
+        int index = TYPE_TABLE_lookup(fieldType);
+        if (index == 0) {
+          printf("type look up failed: %s %i\n", fieldType->chars, index);
+          arrfree(fields);
+          return false;
+        }
         printf("  %s: %s\n", fieldName->chars, fieldType->chars);
+        arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = fieldName } ));
       }
+      TYPE_TABLE_define(data.index, 0, fields);
       printf("}\n");
       return true;
     }
@@ -453,7 +461,8 @@ return ERROR(0);
 bool resolveTree(AST* ptr) {
   Environment context = { NULL, NULL };
   bool success = resolveTopLevel(ptr, &context);
-  //  Value result = traverse(ptr, &context);
+  success &= TYPE_TABLE_calculateSizes();
+  TYPE_TABLE_report();
   return success;
 }
 
