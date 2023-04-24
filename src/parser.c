@@ -180,7 +180,7 @@ static AST* type() {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     return AST_NEW(AST_TYPE_NAME, string);
   } else if (match(TOKEN_LEFT_PAREN)) {
-    size_t len = 4;
+    size_t len = 16;
     char* buffer = reallocate(NULL, 0, len * sizeof(char));
     size_t i = 0;
     APPEND_STR(i, len, buffer, "(");

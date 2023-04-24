@@ -11,20 +11,20 @@
 
 
 type WordEntry { 
-/*
-geelo woeld
-*/
+  i: i16;
 }
 
 type TableEntry { 
   b: WordEntry;
 }
+/*
 
-fn test(a: int8, b: int8): int {}
-var b: int8 = 0x0;
-var m: ((): void, int16): (string, char): char;
+fn test(a: i8, b: i8): int {}
+var b: i8 = 0x0;
+var m: ((): void, i16): (string, char): char;
 
 for (var a: int = 0; a < 0b1101; a = a + 1) {
   b = b + 1;
 }
 return b;
+*/

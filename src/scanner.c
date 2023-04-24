@@ -189,6 +189,12 @@ static TokenType checkTypeKeyword() {
         if (checkKeyword(1, 5, "int16", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
           return TOKEN_TYPE_NAME;
         }
+        if (checkKeyword(1, 1, "8", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+          return TOKEN_TYPE_NAME;
+        }
+        if (checkKeyword(1, 2, "16", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+          return TOKEN_TYPE_NAME;
+        }
       }
       break;
     case 'i':
@@ -197,6 +203,12 @@ static TokenType checkTypeKeyword() {
           return TOKEN_TYPE_NAME;
         }
         if (checkKeyword(1, 4, "nt16", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+          return TOKEN_TYPE_NAME;
+        }
+        if (checkKeyword(1, 1, "8", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
+          return TOKEN_TYPE_NAME;
+        }
+        if (checkKeyword(1, 2, "16", TOKEN_TYPE_NAME) == TOKEN_TYPE_NAME) {
           return TOKEN_TYPE_NAME;
         }
       }

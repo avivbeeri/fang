@@ -28,9 +28,11 @@
 #include "memory.h"
 #include "type_table.h"
 
-TYPE_TABLE_ENTRY* typeTable = NULL;
 typedef struct { int key; bool value; } TYPE_VISIT_SET;
 typedef struct { int size; bool error; } TYPE_TABLE_RESULT;
+
+TYPE_TABLE_ENTRY* typeTable = NULL;
+struct { char *key; int value; }* aliasTable = NULL;
 
 
 int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
@@ -42,11 +44,15 @@ int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) 
 }
 
 int TYPE_TABLE_declare(STRING* name) {
+  shput(aliasTable, name->chars, arrlen(typeTable));
   arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .status = STATUS_DECLARED, .fields = NULL, .byteSize = 0, .parent = 0 }));
   return arrlen(typeTable) - 1;
 }
 
 int TYPE_TABLE_register(STRING* name, size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
+  if (name != NULL) {
+    shput(aliasTable, name->chars, arrlen(typeTable));
+  }
   arrput(typeTable, ((TYPE_TABLE_ENTRY){
         .name = name,
         .byteSize = size,
@@ -64,19 +70,28 @@ void TYPE_TABLE_free() {
     STRING_free(typeTable[i].name);
   }
   arrfree(typeTable);
+  shfree(aliasTable);
 }
 
 TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
+  sh_new_arena(aliasTable);
+  shdefault(aliasTable, 0);
+  shput(aliasTable, "uint8", 3);
+  shput(aliasTable, "int8", 4);
+  shput(aliasTable, "uint16", 5);
+  shput(aliasTable, "int16", 6);
+
   TYPE_TABLE_register(NULL, 0, 0, NULL);
   TYPE_TABLE_register(createString("void"), 0, 0, NULL);
   TYPE_TABLE_register(createString("bool"), 1, 0, NULL);
-  TYPE_TABLE_register(createString("uint8"), 1, 0, NULL);
-  TYPE_TABLE_register(createString("int8"), 1, 0, NULL);
-  TYPE_TABLE_register(createString("uint16"), 2, 0, NULL);
-  TYPE_TABLE_register(createString("int16"), 2, 0, NULL);
+  TYPE_TABLE_register(createString("u8"), 1, 0, NULL);
+  TYPE_TABLE_register(createString("i8"), 1, 0, NULL);
+  TYPE_TABLE_register(createString("u16"), 2, 0, NULL);
+  TYPE_TABLE_register(createString("i16"), 2, 0, NULL);
   TYPE_TABLE_register(createString("string"), 2, 0, NULL);
   TYPE_TABLE_register(createString("ptr"), 2, 0, NULL);
   TYPE_TABLE_register(createString("fn"), 2, 0, NULL);
+
 
   return typeTable;
 }
@@ -130,12 +145,19 @@ bool TYPE_TABLE_calculateSizes() {
 
 int TYPE_TABLE_lookup(STRING* name) {
   // We skip type 0 because 0 is the not-exist option.
+  if (name == NULL || name->chars == NULL) {
+    return 0;
+  }
+  return shget(aliasTable, name->chars);
+
+  /*
   for (int i = 1; i < arrlen(typeTable); i++) {
     if (STRING_equality(name, typeTable[i].name)) {
       return i;
     }
   }
   return 0;
+  */
 }
 
 void TYPE_TABLE_report() {

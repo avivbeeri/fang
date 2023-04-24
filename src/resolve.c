@@ -461,7 +461,13 @@ return ERROR(0);
 bool resolveTree(AST* ptr) {
   Environment context = { NULL, NULL };
   bool success = resolveTopLevel(ptr, &context);
+  if (!success) {
+    return false;
+  }
   success &= TYPE_TABLE_calculateSizes();
+  if (!success) {
+    return false;
+  }
   TYPE_TABLE_report();
   return success;
 }
