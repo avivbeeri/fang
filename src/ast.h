@@ -66,6 +66,7 @@ typedef enum {
   AST_ERROR,
   AST_ASM,
   AST_LITERAL,
+  AST_INITIALIZER,
   AST_IDENTIFIER,
   AST_LVALUE,
   AST_TYPE_NAME,
@@ -99,6 +100,7 @@ struct AST {
   union {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_LITERAL { int constantIndex; } AST_LITERAL;
+    struct AST_INITIALIZER { AST** assignments; } AST_INITIALIZER;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;

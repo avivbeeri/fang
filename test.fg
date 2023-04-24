@@ -10,6 +10,7 @@
 
 
 
+/*
 type WordEntry { 
   i: i16;
 }
@@ -19,11 +20,9 @@ type TableEntry {
   q: i8;
   n: u16;
 }
+*/
 
 var entry: TableEntry = {
-  b = { 
-    i = 7;
-  };
   q = 6;
   n = "hello world";
 };

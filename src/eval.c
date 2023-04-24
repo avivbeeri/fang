@@ -81,6 +81,18 @@ static Value traverse(AST* ptr, Environment* context) {
     case AST_ASM: {
       return U8(0);
     }
+    case AST_INITIALIZER: {
+      struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
+      for (int i = 0; i < arrlen(data.assignments); i++) {
+        // Get name, get value
+        /*
+        if (IS_ERROR(r)) {
+          return r;
+        }
+        */
+      }
+      return U8(0);
+    }
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       return CONST_TABLE_get(data.constantIndex); // data.value;

@@ -137,6 +137,10 @@ static void consume(TokenType type, const char* message) {
 
   errorAtCurrent(message);
 }
+static AST* parseVariable(const char* errorMessage) {
+  consume(TOKEN_IDENTIFIER, errorMessage);
+  return AST_NEW(AST_LVALUE, copyString(parser.previous.start, parser.previous.length));
+}
 
 static bool check(TokenType type) {
   return parser.current.type == type;
@@ -208,6 +212,23 @@ static AST* type() {
     return AST_NEW(AST_TYPE_NAME, string);
   }
 }
+
+static AST* record(bool canAssign) {
+  AST** assignments = NULL;
+  if (!check(TOKEN_RIGHT_BRACE)) {
+    do {
+      // Becomes an assignment statement because of the coming equality sign
+      AST* identifier = parseVariable("Expect field value name in record literal.");
+      consume(TOKEN_EQUAL, "Expect '=' after field name in record literal.");
+      AST* value = expression();
+      consume(TOKEN_SEMICOLON, "Expect ';' after field in record literal.");
+      arrput(assignments, AST_NEW(AST_ASSIGNMENT, identifier, value));
+    } while (!check(TOKEN_RIGHT_BRACE));
+  }
+  consume(TOKEN_RIGHT_BRACE, "Expect '}' after a record literal.");
+  return AST_NEW(AST_INITIALIZER, assignments);
+}
+
 static AST* literal(bool canAssign) {
   switch (parser.previous.type) {
     case TOKEN_FALSE: return AST_NEW(AST_LITERAL, 0);
@@ -215,6 +236,7 @@ static AST* literal(bool canAssign) {
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
+
 static AST* number(bool canAssign) {
   const char* start = parser.previous.start;
   int32_t value;
@@ -350,10 +372,6 @@ static AST* block() {
   return AST_NEW(AST_BLOCK, list);
 }
 
-static AST* parseVariable(const char* errorMessage) {
-  consume(TOKEN_IDENTIFIER, errorMessage);
-  return AST_NEW(AST_LVALUE, copyString(parser.previous.start, parser.previous.length));
-}
 
 static AST* dot(bool canAssign, AST* left) {
   AST* field = parseVariable("Expect property name after '.'.");
@@ -450,9 +468,9 @@ static AST* fnDecl() {
 ParseRule rules[] = {
   [TOKEN_LEFT_PAREN]      = {grouping, call,   PREC_CALL},
   [TOKEN_RIGHT_PAREN]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LEFT_BRACE]      = {NULL,     NULL,   PREC_NONE},
+  [TOKEN_LEFT_BRACE]      = {record,   NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACE]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LEFT_BRACKET]    = {grouping, NULL,   PREC_NONE},
+  [TOKEN_LEFT_BRACKET]    = {literal,  NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACKET]   = {NULL,     NULL,   PREC_NONE},
 
   [TOKEN_MINUS]           = {unary,    binary, PREC_TERM},
