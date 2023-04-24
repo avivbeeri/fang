@@ -127,10 +127,12 @@ static Value traverse(AST* ptr, Environment* context) {
       if (IS_ERROR(right)) {
         return right;
       }
+      /*
       if (data.left->type != data.right->type) {
         printf("%s vs %s\n", getNodeTypeName(data.left->tag), getNodeTypeName(data.right->tag));
         return ERROR(0);
       }
+      */
       switch(data.op) {
         case OP_ADD:
           {

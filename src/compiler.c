@@ -35,7 +35,7 @@
 #include "eval.h"
 
 bool compile(const char* source) {
-  //testScanner(source);
+  // testScanner(source);
   TYPE_TABLE_init();
   CONST_TABLE_init();
   initScanner(source);

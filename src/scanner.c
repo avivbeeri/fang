@@ -278,6 +278,12 @@ static Token identifier() {
 
 static Token number() {
   // TODO: Handle hexadecimal
+  if (peek() == 'x' || peek() == 'X' || peek() == 'b' || peek() == 'B') {
+    // hexadecimal
+    advance();
+    advance();
+  }
+
   while (isDigit(peek())) advance();
 
   // Look for a fractional part.
@@ -347,7 +353,6 @@ Token scanToken() {
     case '^': return makeToken(TOKEN_CARET);
     case '~': return makeToken(TOKEN_TILDE);
     case '@': return makeToken(TOKEN_AT);
-    case '$': return makeToken(TOKEN_DOLLAR);
     case '%': return makeToken(TOKEN_PERCENT);
     case '&':
       return makeToken(match('&') ? TOKEN_AND_AND : TOKEN_AND);

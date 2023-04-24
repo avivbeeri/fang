@@ -161,6 +161,26 @@ static AST* type() {
   if (match(TOKEN_TYPE_NAME)) {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     return AST_NEW(AST_TYPE_NAME, string);
+  } else if (match(TOKEN_LEFT_PAREN)) {
+    char buffer[1024];
+    int i = 0;
+    i += snprintf(buffer+i, sizeof(buffer) - i, "(");
+    if (!check(TOKEN_RIGHT_PAREN)) {
+      do {
+        AST* paramType = type();
+        i += snprintf(buffer+i, sizeof(buffer) - i, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
+        if (check(TOKEN_COMMA)) {
+          i += snprintf(buffer+i, sizeof(buffer) - i, ", ");
+        }
+      } while (match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
+    consume(TOKEN_COLON, "Expect ':' after a function pointer type");
+    AST* resultType = type();
+
+    i += snprintf(buffer+i, sizeof(buffer) - i, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
+    printf("SIGNATURE: %s\n", buffer);
+    return AST_NEW(AST_TYPE_NAME, copyString(buffer, i));
   } else {
     consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
     STRING* string = copyString(parser.previous.start, parser.previous.length);
@@ -175,7 +195,14 @@ static AST* literal(bool canAssign) {
   }
 }
 static AST* number(bool canAssign) {
-  int32_t value = strtol(parser.previous.start, NULL, 0);
+  const char* start = parser.previous.start;
+  int32_t value;
+  if (start[1] == 'b') {
+    // Binary prefix syntax isn't handled by strtol directly, so we advance the string pointer
+    value = strtol(start + 2, NULL, 2);
+  } else {
+    value = strtol(start, NULL, 0);
+  }
   int index = CONST_TABLE_store(LIT_NUM(value));
   return AST_NEW(AST_LITERAL, index);
 }
@@ -223,10 +250,10 @@ static AST* ref(bool canAssign) {
   AST* expr = NULL;
   switch (operatorType) {
     case TOKEN_AT: expr = AST_NEW(AST_UNARY, OP_DEREF, operand); break;
-    case TOKEN_DOLLAR: expr = AST_NEW(AST_UNARY, OP_REF, operand); break;
+    case TOKEN_CARET: expr = AST_NEW(AST_UNARY, OP_REF, operand); break;
     default: expr = AST_NEW(AST_ERROR, 0); break;
   }
-  printf("REF Token: %s\n", getTokenTypeName(operatorType));
+
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
     expr = AST_NEW(AST_ASSIGNMENT, expr, right);
@@ -431,7 +458,7 @@ ParseRule rules[] = {
   [TOKEN_DOT]             = {NULL,     dot,    PREC_CALL},
   [TOKEN_AS]              = {NULL,     as,     PREC_AS},
   [TOKEN_AT]              = {ref,    NULL,   PREC_REF},
-  [TOKEN_DOLLAR]          = {ref,    NULL,   PREC_REF},
+  [TOKEN_CARET]          = {ref,    NULL,   PREC_REF},
   [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
 

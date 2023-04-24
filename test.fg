@@ -8,19 +8,27 @@
 }; */
 
 
+
+
 type WordEntry { 
+/*
+geelo woeld
+*/
 }
+// hello comment
 
 type TableEntry { 
-  b: TableEntry;
+  b: WordEntry;
 }
 
 fn test(a: int8, b: int8): int {}
-var b: int = 5;
-while (b) {
-  b = b - 1;
-}
-for (var a: int = 0; a < 10; a = a + 1) {
+var b: int8 = 0x0;
+var m: (int8, int16): (string, char): char;
+
+for (var a: int = 0; a < 0b1101; a = a + 1) {
   b = b + 1;
 }
 return b;
+/*
+/*
+*/

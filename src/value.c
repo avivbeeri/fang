@@ -34,6 +34,7 @@ Value getTypedNumberValue(ValueType type, int32_t n) {
     case VAL_I16: return I16(n); break;
     case VAL_U16: return U16(n % 32768); break;
     case VAL_PTR: return PTR(n % 32768); break;
+    case VAL_LIT_NUM: return LIT_NUM(n); break;
   }
   return ERROR(1);
 }
@@ -51,7 +52,7 @@ Value getNumericalValue(int32_t n) {
   if (n <= 32767) {
     return U16(n);
   }
-  return ERROR(n);
+  return LIT_NUM(n);
 }
 
 void printValueType(Value value) {
@@ -102,6 +103,7 @@ int32_t getNumber(Value value) {
     case VAL_I16: return AS_I16(value);
     case VAL_U16: return AS_U16(value);
     case VAL_PTR: return AS_PTR(value);
+    case VAL_LIT_NUM: return AS_LIT_NUM(value);
     default: return -1;
   }
   return -1;

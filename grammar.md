@@ -81,7 +81,8 @@ factor     -> unary ( ("/" | "*" | "%" ) unary )*;
 unary      -> ("!" | "-" | "&" | "$" ) unary | call;
 call       -> subscript ( "(" arguments? ")" | "." IDENTIFIER )*;
 subscript  -> casted ( "[" logic_or "]" )*; 
-casted     -> primary ( "as" type )* ; 
+casted     -> reference ( "as" type )* ; 
+reference  -> ("@" | "$")? primary ;
 primary    -> literal | IDENTIFIER | "(" expression ")" | "[" list_display? "]";
 literal    -> "true" | "false" | "this" | NUMBER | STRING;  
 
