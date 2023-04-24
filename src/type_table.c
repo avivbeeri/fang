@@ -76,6 +76,7 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   TYPE_TABLE_register(createString("int16"), 2, 0, NULL);
   TYPE_TABLE_register(createString("string"), 2, 0, NULL);
   TYPE_TABLE_register(createString("ptr"), 2, 0, NULL);
+  TYPE_TABLE_register(createString("fn"), 2, 0, NULL);
 
   return typeTable;
 }
