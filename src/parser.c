@@ -24,6 +24,7 @@
 */
 
 #include <stdio.h>
+#include <math.h>
 
 #include "common.h"
 #include "compiler.h"
@@ -32,6 +33,23 @@
 #include "memory.h"
 #include "type_table.h"
 #include "const_table.h"
+
+
+#define APPEND_STR(i, len, buffer, format, ...) do { \
+  size_t writeLen = 0; \
+  do { \
+    if (writeLen >= (len - i)) { \
+      size_t oldLen = len; \
+      len *= 2; \
+      buffer = reallocate(buffer, oldLen, len * sizeof(char)); \
+    } \
+    writeLen = snprintf(buffer + i, fmax(len - i, 0), format, ##__VA_ARGS__); \
+    if (writeLen < 0) { \
+      exit(1); \
+    } \
+  } while (writeLen >= (len - i)); \
+  i += writeLen; \
+} while(0);
 
 typedef struct {
   Token current;
@@ -162,26 +180,28 @@ static AST* type() {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     return AST_NEW(AST_TYPE_NAME, string);
   } else if (match(TOKEN_LEFT_PAREN)) {
-    size_t len = 1024;
+    size_t len = 4;
     char* buffer = reallocate(NULL, 0, len * sizeof(char));
-    int i = 0;
-    i += snprintf(buffer+i, len - i, "(");
+    size_t i = 0;
+    APPEND_STR(i, len, buffer, "(");
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         AST* paramType = type();
-        i += snprintf(buffer+i, len - i, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
+        APPEND_STR(i, len, buffer, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
         if (check(TOKEN_COMMA)) {
-          i += snprintf(buffer+i, len - i, ", ");
+          APPEND_STR(i, len, buffer, ", ");
         }
       } while (match(TOKEN_COMMA));
     }
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
     consume(TOKEN_COLON, "Expect ':' after a function pointer type");
     AST* resultType = type();
+    APPEND_STR(i, len, buffer, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
 
-    i += snprintf(buffer + i, len - i, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
     printf("SIGNATURE: %s\n", buffer);
-    return AST_NEW(AST_TYPE_NAME, copyString(buffer, i));
+    STRING* str = copyString(buffer, i);
+    FREE(char, buffer);
+    return AST_NEW(AST_TYPE_NAME, str);
   } else {
     consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
     STRING* string = copyString(parser.previous.start, parser.previous.length);
