@@ -16,7 +16,17 @@ type WordEntry {
 
 type TableEntry { 
   b: WordEntry;
+  q: i8;
+  n: u16;
 }
+
+var entry: TableEntry = {
+  b = { 
+    i = 7;
+  };
+  q = 6;
+  n = "hello world";
+};
 /*
 
 fn test(a: i8, b: i8): int {}
