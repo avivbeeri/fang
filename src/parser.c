@@ -72,6 +72,7 @@ typedef enum {
   PREC_UNARY,       // ! -
   PREC_REF,         // @ $
   PREC_CALL,        // . ()
+  PREC_SUBSCRIPT,   // []
   PREC_AS,          // as
   PREC_PRIMARY
 } Precedence;
@@ -211,6 +212,31 @@ static AST* type() {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     return AST_NEW(AST_TYPE_NAME, string);
   }
+}
+
+static AST* array(bool canAssign) {
+  AST** values = NULL;
+  if (!check(TOKEN_RIGHT_BRACKET)) {
+    do {
+      // Becomes an assignment statement because of the coming equality sign
+      AST* value = parsePrecedence(PREC_SUBSCRIPT);
+      arrput(values, value);
+    } while (match(TOKEN_COMMA));
+  }
+  consume(TOKEN_RIGHT_BRACKET, "Expect ']' after a record literal.");
+  return AST_NEW(AST_INITIALIZER, values);
+}
+
+static AST* subscript(bool canAssign, AST* left) {
+  AST* value = expression();
+  AST* expr = AST_NEW(AST_SUBSCRIPT, left, value);
+  consume(TOKEN_RIGHT_BRACKET, "Expect ']' after a subscript.");
+
+  if (canAssign && match(TOKEN_EQUAL)) {
+    AST* right = expression();
+    expr = AST_NEW(AST_ASSIGNMENT, expr, right);
+  }
+  return expr;
 }
 
 static AST* record(bool canAssign) {
@@ -470,9 +496,8 @@ ParseRule rules[] = {
   [TOKEN_RIGHT_PAREN]     = {NULL,     NULL,   PREC_NONE},
   [TOKEN_LEFT_BRACE]      = {record,   NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACE]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LEFT_BRACKET]    = {literal,  NULL,   PREC_NONE},
+  [TOKEN_LEFT_BRACKET]    = {array,    subscript, PREC_SUBSCRIPT},
   [TOKEN_RIGHT_BRACKET]   = {NULL,     NULL,   PREC_NONE},
-
   [TOKEN_MINUS]           = {unary,    binary, PREC_TERM},
   [TOKEN_PLUS]            = {NULL,     binary, PREC_TERM},
   [TOKEN_SEMICOLON]       = {NULL,     NULL,   PREC_NONE},

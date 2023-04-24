@@ -22,10 +22,8 @@ type TableEntry {
 }
 */
 
-var entry: TableEntry = {
-  q = 6;
-  n = "hello world";
-};
+g[5] = 5;
+// var entry: i8 = [ 1, 2, 3, 4 ];
 /*
 
 fn test(a: i8, b: i8): int {}

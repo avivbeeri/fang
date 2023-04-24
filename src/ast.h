@@ -84,6 +84,7 @@ typedef enum {
   AST_DECL,
   AST_STMT,
   AST_CALL,
+  AST_SUBSCRIPT,
   AST_CAST,
   AST_RETURN,
   AST_EXIT,
@@ -111,6 +112,7 @@ struct AST {
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
     struct AST_FOR { AST* initializer; AST* condition; AST* increment; AST* body; } AST_FOR;
     struct AST_CALL { AST* identifier; AST** arguments; } AST_CALL;
+    struct AST_SUBSCRIPT { AST* identifier; AST* index; } AST_SUBSCRIPT;
     struct AST_CAST { AST* identifier; AST* type; } AST_CAST;
     struct AST_RETURN { AST* value; } AST_RETURN;
     struct AST_EXIT { AST* value; } AST_EXIT;
