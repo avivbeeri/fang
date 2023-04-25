@@ -23,21 +23,12 @@
    SOFTWARE.
    */
 
+#include <stdio.h>
 #include "common.h"
+#include "parser.h"
 #include "ast.h"
 #include "type_table.h"
-
-int scopeId = 0;
-int* scopeStack = NULL;
-
-static void beginScope() {
-  arrput(scopeStack, scopeId);
-  scopeId++;
-}
-
-static void endScope() {
-  arrdel(scopeStack, arrlen(scopeStack) - 1);
-}
+#include "symbol_table.h"
 
 static bool resolveTopLevel(AST* ptr) {
   if (ptr == NULL) {
@@ -128,9 +119,9 @@ static bool traverse(AST* ptr) {
     case AST_BLOCK:
       {
         struct AST_BLOCK data = ast.data.AST_BLOCK;
-        beginScope();
+        SYMBOL_TABLE_openScope();
         bool r = traverse(data.body);
-        endScope();
+        SYMBOL_TABLE_closeScope();
         return r;
       }
     case AST_LIST:
@@ -145,11 +136,57 @@ static bool traverse(AST* ptr) {
         }
         return r;
       }
-/*
+    case AST_VAR_INIT:
+      {
+        struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
+        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
+        return true;
+      }
+    case AST_VAR_DECL:
+      {
+        struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
+        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
+        return true;
+      }
+    case AST_CONST_DECL:
+      {
+        struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, 0);
+        return true;
+      }
+    case AST_ASSIGNMENT:
+      {
+        struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
+        bool ident = traverse(data.identifier);
+        bool expr = traverse(data.expr);
+        return ident && expr;
+      }
     case AST_ASM:
       {
-        return U8(0);
+        return true;
       }
+    case AST_FN:
+      {
+        struct AST_FN data = ast.data.AST_FN;
+        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_FUNCTION, 0);
+        return true;
+      }
+    case AST_IDENTIFIER:
+      {
+        struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+        STRING* identifier = data.identifier;
+        bool result = SYMBOL_TABLE_scopeHas(identifier);
+        if (!result) {
+          errorAt(&ast.token, "Identifier was not found.");
+        }
+
+        return result;
+      }
+      /*
     case AST_LITERAL:
       {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
@@ -160,12 +197,6 @@ static bool traverse(AST* ptr) {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         STRING* identifier = data.identifier;
         return STRING(identifier);
-      }
-    case AST_IDENTIFIER:
-      {
-        struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-        STRING* identifier = data.identifier;
-        return getSymbol(context, identifier->chars);
       }
     case AST_UNARY:
       {
@@ -379,7 +410,7 @@ static bool traverse(AST* ptr) {
       {
         struct AST_FOR data = ast.data.AST_FOR;
         Value value = EMPTY();
-        beginScope();
+        SYMBOL_TABLE_openScope();
         Value initializer = traverse(data.initializer);
         Value condition = traverse(data.condition);
         while (isTruthy(condition)) {
@@ -387,7 +418,7 @@ static bool traverse(AST* ptr) {
           Value increment = traverse(data.increment);
           condition = traverse(data.condition);
         }
-        endScope();
+        SYMBOL_TABLE_closeScope();
 
         return value;
       }
@@ -444,6 +475,7 @@ static bool traverse(AST* ptr) {
 
 
 bool resolveTree(AST* ptr) {
+  SYMBOL_TABLE_init();
   bool success = resolveTopLevel(ptr);
   if (!success) {
     return false;
@@ -453,7 +485,9 @@ bool resolveTree(AST* ptr) {
     return false;
   }
   success &= traverse(ptr);
+  SYMBOL_TABLE_closeScope();
   TYPE_TABLE_report();
+  SYMBOL_TABLE_report();
   return success;
 }
 

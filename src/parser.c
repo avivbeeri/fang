@@ -92,7 +92,7 @@ static AST* parsePrecedence(Precedence precedence);
 
 Parser parser;
 
-static void errorAt(Token* token, const char* message) {
+void errorAt(Token* token, const char* message) {
   if (parser.panicMode) return;
 
   parser.panicMode = true;
