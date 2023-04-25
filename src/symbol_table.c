@@ -46,7 +46,7 @@ void SYMBOL_TABLE_openScope() {
   }
   hmputs(scopes, ((SYMBOL_TABLE_SCOPE){ scopeId, parent, NULL }));
   arrput(scopeStack, scopeId);
-  printf("scope opens %u\n", scopeId);
+  // printf("scope opens %u\n", scopeId);
   scopeId++;
 }
 
@@ -63,7 +63,7 @@ bool SYMBOL_TABLE_scopeHas(STRING* name) {
 }
 
 void SYMBOL_TABLE_closeScope() {
-  printf("scope close %u\n", scopeStack[arrlen(scopeStack)-1]);
+  // printf("scope close %u\n", scopeStack[arrlen(scopeStack)-1]);
   arrdel(scopeStack, arrlen(scopeStack) - 1);
 }
 
@@ -72,7 +72,7 @@ void SYMBOL_TABLE_init(void) {
 }
 
 void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
-  printf("putting %s\n", name->chars);
+  // printf("putting %s\n", name->chars);
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
   SYMBOL_TABLE_ENTRY entry = {

@@ -34,6 +34,7 @@ typedef struct {
   const char* start;
   const char* current;
   int line;
+  int pos;
 } Scanner;
 
 Scanner scanner;
@@ -41,6 +42,7 @@ Scanner scanner;
 void initScanner(const char* source) {
   scanner.start = source;
   scanner.current = source;
+  scanner.pos = 0;
   scanner.line = 1;
 }
 
@@ -60,6 +62,7 @@ static bool isAtEnd() {
 
 static char advance() {
   scanner.current++;
+  scanner.pos++;
   return scanner.current[-1];
 }
 
@@ -76,6 +79,7 @@ static bool match(char expected) {
   if (isAtEnd()) return false;
   if (*scanner.current != expected) return false;
   scanner.current++;
+  scanner.pos++;
   return true;
 }
 
@@ -85,6 +89,7 @@ static Token makeToken(TokenType type) {
   token.start = scanner.start;
   token.length = (int)(scanner.current - scanner.start);
   token.line = scanner.line;
+  token.pos = scanner.pos;
   return token;
 }
 
@@ -110,6 +115,7 @@ static void skipWhitespace() {
       case '\n':
         scanner.line++;
         advance();
+        scanner.pos = 0;
         break;
       case '/':
         if (peekNext() == '/') {
@@ -124,6 +130,7 @@ static void skipWhitespace() {
             }
             if (peek() == '\n') {
               scanner.line++;
+              scanner.pos = 0;
             }
             if (peek() == '*' && peekNext() == '/') {
               scopes--;
@@ -325,7 +332,10 @@ static Token character() {
 }
 static Token string() {
   while (peek() != '"' && !isAtEnd()) {
-    if (peek() == '\n') scanner.line++;
+    if (peek() == '\n') {
+      scanner.line++;
+      scanner.pos = 0;
+    }
     if (peek() == '\\' && peekNext() == '"') {
       advance();
     }

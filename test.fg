@@ -7,18 +7,19 @@
   "svc 0"
 }; */
 
-/*
 var a: TableEntry = {
-  f = 5;
+  f = {
+    g = 6;
+    j = "hello";
+  };
   h = 6;
 };
-*/
 type TableEntry {
   f: string;
   h: i8;
 }
 
-fn test(f: i8, b: i8): i8 {
+fn test(f: i8, b: i8): (i:string): TableEntry {
   return f+b;
 }
 

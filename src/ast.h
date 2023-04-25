@@ -101,7 +101,7 @@ struct AST {
     struct AST_INITIALIZER { AST** assignments; } AST_INITIALIZER;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
-    struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
+    struct AST_TYPE_NAME { STRING* typeName; AST** components; } AST_TYPE_NAME;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
     struct AST_DOT { AST *left; STRING* name; } AST_DOT;

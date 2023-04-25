@@ -96,7 +96,7 @@ void errorAt(Token* token, const char* message) {
   if (parser.panicMode) return;
 
   parser.panicMode = true;
-  fprintf(stderr, "[line %d] Error", token->line);
+  fprintf(stderr, "[line %d; pos %d] Error", token->line, token->pos);
 
   if (token->type == TOKEN_EOF) {
     fprintf(stderr, " at end");
@@ -187,11 +187,13 @@ static AST* type() {
     size_t len = 16;
     char* buffer = reallocate(NULL, 0, len * sizeof(char));
     size_t i = 0;
+    AST** components = NULL;
     Token start = parser.previous;
     APPEND_STR(i, len, buffer, "(");
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         AST* paramType = type();
+        arrput(components, paramType);
         APPEND_STR(i, len, buffer, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
         if (check(TOKEN_COMMA)) {
           APPEND_STR(i, len, buffer, ", ");
@@ -201,12 +203,13 @@ static AST* type() {
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
     consume(TOKEN_COLON, "Expect ':' after a function pointer type");
     AST* resultType = type();
+    arrput(components, resultType);
     APPEND_STR(i, len, buffer, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
 
     printf("SIGNATURE: %s\n", buffer);
     STRING* str = copyString(buffer, i);
     FREE(char, buffer);
-    return AST_NEW_T(AST_TYPE_NAME, start, str);
+    return AST_NEW_T(AST_TYPE_NAME, start, str, components);
   } else {
     consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
     STRING* string = copyString(parser.previous.start, parser.previous.length);
