@@ -82,8 +82,6 @@ typedef enum {
   AST_WHILE,
   AST_FOR,
   AST_BLOCK,
-  AST_DECL,
-  AST_STMT,
   AST_CALL,
   AST_CAST,
   AST_RETURN,
@@ -125,8 +123,6 @@ struct AST {
     struct AST_FN { AST* identifier; AST** params; AST* returnType; AST* body; } AST_FN;
     struct AST_TYPE_DECL { int index; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STRING** strings; } AST_ASM;
-    struct AST_STMT { AST* node; } AST_STMT;
-    struct AST_DECL { AST* node; } AST_DECL;
     struct AST_BLOCK { AST* body; } AST_BLOCK;
     struct AST_LIST { AST** decls; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;

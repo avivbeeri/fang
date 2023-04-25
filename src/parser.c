@@ -666,7 +666,7 @@ static AST* statement() {
   } else {
     expr = expressionStatement();
   }
-  return AST_NEW(AST_STMT, expr);
+  return expr;
 }
 
 static AST* enumDecl() {
@@ -698,7 +698,7 @@ static AST* topLevel() {
     return declaration();
   }
   if (parser.panicMode) synchronize();
-  return AST_NEW(AST_DECL, decl);
+  return decl;
 }
 
 static AST* declaration() {
@@ -714,7 +714,7 @@ static AST* declaration() {
     decl = statement();
   }
   if (parser.panicMode) synchronize();
-  return AST_NEW_T(AST_DECL, next, decl);
+  return decl;
 }
 
 AST* parse(const char* source) {

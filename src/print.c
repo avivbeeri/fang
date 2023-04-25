@@ -41,11 +41,6 @@ static void traverse(AST* ptr, int level) {
       printf("An error occurred in the tree");
       break;
     }
-    case AST_STMT: {
-      struct AST_STMT data = ast.data.AST_STMT;
-      traverse(data.node, level);
-      break;
-    }
     case AST_WHILE: {
       printf("%*s", level * 2, "");
       struct AST_WHILE data = ast.data.AST_WHILE;
@@ -128,12 +123,6 @@ static void traverse(AST* ptr, int level) {
       traverse(data.type, 0);
       printf(" = ");
       traverse(data.expr, 0);
-      break;
-    }
-    case AST_DECL: {
-      struct AST_DECL data = ast.data.AST_DECL;
-      traverse(data.node, level);
-      //printf("\n");
       break;
     }
     case AST_TYPE_DECL: {
@@ -326,7 +315,7 @@ static void traverse(AST* ptr, int level) {
     }
   }
 }
-void traverseTree(AST* ptr) {
+void printTree(AST* ptr) {
   traverse(ptr, 1);
   printf("\n");
 }

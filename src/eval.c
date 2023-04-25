@@ -70,14 +70,6 @@ static Value traverse(AST* ptr, Environment* context) {
       }
       return r;
     }
-    case AST_DECL: {
-      struct AST_DECL data = ast.data.AST_DECL;
-      return traverse(data.node, context);
-    }
-    case AST_STMT: {
-      struct AST_STMT data = ast.data.AST_STMT;
-      return traverse(data.node, context);
-    }
     case AST_ASM: {
       return U8(0);
     }

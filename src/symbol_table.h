@@ -27,7 +27,7 @@
 #define symbol_table_h
 
 #include "memory.h"
-typedef struct SYMBOL_TYPE {
+typedef enum SYMBOL_TYPE {
   SYMBOL_TYPE_UNKNOWN,
   SYMBOL_TYPE_KEYWORD,
   SYMBOL_TYPE_FUNCTION,

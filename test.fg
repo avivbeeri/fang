@@ -8,32 +8,9 @@
 }; */
 
 
-
-
-/*
-type WordEntry { 
-  i: i16;
-}
-
-type TableEntry { 
-  b: WordEntry;
-  q: i8;
-  n: u16;
-}
-*/
-
-var entry: TableEntry = {
-  q = 6;
-  n = "hello world";
-};
-/*
-
 fn test(a: i8, b: i8): int {}
-var b: i8 = 0x0;
-var m: ((): void, i16): (string, char): char;
 
 for (var a: int = 0; a < 0b1101; a = a + 1) {
   b = b + 1;
 }
 return b;
-*/

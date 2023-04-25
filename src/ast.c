@@ -112,11 +112,6 @@ void ast_free(AST *ptr) {
       ast_free(data.elseClause);
       break;
     }
-    case AST_DECL: {
-      struct AST_DECL data = ast.data.AST_DECL;
-      ast_free(data.node);
-      break;
-    }
     case AST_CONST_DECL: {
       struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
       ast_free(data.identifier);
@@ -141,11 +136,6 @@ void ast_free(AST *ptr) {
       struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
       ast_free(data.identifier);
       ast_free(data.expr);
-      break;
-    }
-    case AST_STMT: {
-      struct AST_STMT data = ast.data.AST_STMT;
-      ast_free(data.node);
       break;
     }
     case AST_EXIT: {
@@ -235,8 +225,6 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_CALL: return "CALL";
     case AST_RETURN: return "RETURN";
     case AST_EXIT: return "EXIT";
-    case AST_STMT: return "STMT";
-    case AST_DECL: return "DECL";
     case AST_FOR: return "FOR";
     case AST_WHILE: return "WHILE";
     case AST_IF: return "IF";
