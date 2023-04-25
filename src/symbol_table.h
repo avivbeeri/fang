@@ -27,11 +27,27 @@
 #define symbol_table_h
 
 #include "memory.h"
+typedef struct SYMBOL_TYPE {
+  SYMBOL_TYPE_UNKNOWN,
+  SYMBOL_TYPE_KEYWORD,
+  SYMBOL_TYPE_FUNCTION,
+  SYMBOL_TYPE_VARIABLE,
+  SYMBOL_TYPE_CONSTANT,
+} SYMBOL_TYPE;
+
 typedef struct SYMBOL_TABLE_ENTRY {
   STRING* name;
-  bool defined;
+  SYMBOL_TYPE entryType;
   int typeIndex;
+  bool defined;
+  uint32_t pointer;
+  uint32_t array;
+  uint32_t scopeIndex;
 } SYMBOL_TABLE_ENTRY;
+
+// 0 - LANGUAGE
+// 1 - User-defined globals
+// 2 - Function/record scopes
 
 extern SYMBOL_TABLE_ENTRY* symbolTable;
 SYMBOL_TABLE_ENTRY* SYMBOL_TABLE_init(void);
