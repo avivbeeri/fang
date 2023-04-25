@@ -8,19 +8,18 @@
 }; */
 
 /*
-type TableEntry {
-  f: i8;
-  h: i8;
-}
-
 var a: TableEntry = {
   f = 5;
   h = 6;
 };
 */
+type TableEntry {
+  f: string;
+  h: i8;
+}
 
-fn test(f: i8, b: i8): int {
-  return f;
+fn test(f: i8, b: i8): i8 {
+  return f+b;
 }
 
 var a: i8 = 0;

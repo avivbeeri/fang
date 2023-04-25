@@ -180,11 +180,24 @@ static bool traverse(AST* ptr) {
       {
         return true;
       }
+    case AST_TYPE_NAME:
+      {
+        struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
+        int index = TYPE_TABLE_lookup(data.typeName);
+        if (index == 0) {
+          // arrfree(fields);
+          return false;
+        }
+      }
     case AST_FN:
       {
         struct AST_FN data = ast.data.AST_FN;
         STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_FUNCTION, 0);
+        bool r = traverse(data.returnType);
+        if (!r) {
+          return false;
+        }
         SYMBOL_TABLE_openScope();
         for (int i = 0; i < arrlen(data.params); i++) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
@@ -199,7 +212,7 @@ static bool traverse(AST* ptr) {
           // arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = fieldName } ));
         }
         // TODO: Store params in type table
-        bool r = traverse(data.body);
+        r = traverse(data.body);
         SYMBOL_TABLE_closeScope();
         return r;
       }
