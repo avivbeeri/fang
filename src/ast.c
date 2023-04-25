@@ -218,7 +218,6 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_MAIN: return "MAIN";
     case AST_LIST: return "LIST";
     case AST_BLOCK: return "BLOCK";
-    case AST_PARAM_LIST: return "PARAM_LIST";
     case AST_PARAM: return "PARAM";
     case AST_FN: return "FN";
     case AST_TYPE_DECL: return "TYPE_DECL";

@@ -183,6 +183,7 @@ static AST* type() {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
   } else if (match(TOKEN_LEFT_PAREN)) {
+    // Function pointer
     size_t len = 16;
     char* buffer = reallocate(NULL, 0, len * sizeof(char));
     size_t i = 0;

@@ -89,7 +89,6 @@ typedef enum {
   AST_FN,
   AST_TYPE_DECL,
   AST_PARAM,
-  AST_PARAM_LIST,
   AST_LIST,
   AST_MAIN,
 } AST_TAG;

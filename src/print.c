@@ -130,11 +130,24 @@ static void traverse(AST* ptr, int level) {
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
       printf("type %s {\n", data.name->chars);
       for (int i = 0; i < arrlen(data.fields); i++) {
+        printf("%*s", (level + 1) * 2, "");
         traverse(data.fields[i], level + 1);
         printf("\n");
       }
-      printf("\n%*s", level * 2, "");
+      printf("%*s", level * 2, "");
       printf("}");
+      break;
+    }
+    case AST_INITIALIZER: {
+      struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
+      printf("%*s", level * 2, "");
+      printf("{\n");
+      for (int i = 0; i < arrlen(data.assignments); i++) {
+        printf("%*s", (level+1) * 2, "");
+        traverse(data.assignments[i], level + 1);
+        printf(";\n");
+      }
+      printf("%*s}", (level+1) * 2, "");
       break;
     }
     case AST_FN: {

@@ -7,13 +7,24 @@
   "svc 0"
 }; */
 
+/*
+type TableEntry {
+  f: i8;
+  h: i8;
+}
 
-fn test(a: i8, b: i8): int {
-  return b;
+var a: TableEntry = {
+  f = 5;
+  h = 6;
+};
+*/
+
+fn test(f: i8, b: i8): int {
+  return f;
 }
 
 var a: i8 = 0;
-a = 7;
+@(a + 1) = 7;
 {
   const b: i8 = 0;
 }
@@ -28,4 +39,3 @@ for (var a: int = 0; a < 0b1101; a = a + 1) {
   b = b + 1;
 }
 */
-return;
