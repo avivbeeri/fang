@@ -137,9 +137,9 @@ static void consume(TokenType type, const char* message) {
 
   errorAtCurrent(message);
 }
-static AST* parseVariable(const char* errorMessage) {
+static STRING* parseVariable(const char* errorMessage) {
   consume(TOKEN_IDENTIFIER, errorMessage);
-  return AST_NEW_T(AST_LVALUE, (parser.previous), copyString(parser.previous.start, parser.previous.length));
+  return copyString(parser.previous.start, parser.previous.length);
 }
 
 static bool check(TokenType type) {
@@ -219,11 +219,11 @@ static AST* record(bool canAssign) {
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
       // Becomes an assignment statement because of the coming equality sign
-      AST* identifier = parseVariable("Expect field value name in record literal.");
+      STRING* name = parseVariable("Expect field value name in record literal.");
       consume(TOKEN_EQUAL, "Expect '=' after field name in record literal.");
       AST* value = expression();
       consume(TOKEN_SEMICOLON, "Expect ';' after field in record literal.");
-      arrput(assignments, AST_NEW(AST_ASSIGNMENT, identifier, value));
+      arrput(assignments, AST_NEW(AST_ASSIGNMENT, AST_NEW(AST_IDENTIFIER, name), value));
     } while (!check(TOKEN_RIGHT_BRACE));
   }
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after a record literal.");
@@ -378,7 +378,8 @@ static AST* block() {
 
 
 static AST* dot(bool canAssign, AST* left) {
-  AST* field = parseVariable("Expect property name after '.'.");
+  consume(TOKEN_STRING, "Expect property name after '.'.");
+  STRING* field = copyString(parser.previous.start, parser.previous.length);
   AST* expr = AST_NEW(AST_DOT, left, field);
 
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -388,12 +389,13 @@ static AST* dot(bool canAssign, AST* left) {
   return expr;
 }
 
+/*
 static AST* enumValueList() {
   size_t arity = 0;
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
       arity++;
-      AST* identifier = parseVariable("Expect value name");
+      * identifier = parseVariable("Expect value name");
       if (match(TOKEN_EQUAL)) {
         expression();
       }
@@ -402,11 +404,13 @@ static AST* enumValueList() {
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
   return NULL;
 }
+*/
+
 static AST** fieldList() {
   AST** params = NULL;
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
-      AST* identifier = parseVariable("Expect parameter name.");
+      STRING* identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
       AST* typeName = type();
       consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
@@ -419,7 +423,7 @@ static AST** fieldList() {
 }
 
 static AST* constDecl() {
-  AST* global = parseVariable("Expect constant name.");
+  STRING* global = parseVariable("Expect constant name.");
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type();
 
@@ -431,7 +435,7 @@ static AST* constDecl() {
 }
 
 static AST* varDecl() {
-  AST* global = parseVariable("Expect variable name");
+  STRING* global = parseVariable("Expect variable name");
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type();
 
@@ -448,14 +452,14 @@ static AST* varDecl() {
 }
 
 static AST* fnDecl() {
-  AST* identifier = parseVariable("Expect function identifier");
+  STRING* identifier = parseVariable("Expect function identifier");
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
 
   AST** params = NULL;
   if (!check(TOKEN_RIGHT_PAREN)) {
     do {
       // TODO: Fix a maximum number of parameters here
-      AST* identifier = parseVariable("Expect parameter name.");
+      STRING* identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
       AST* typeName = type();
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
@@ -669,18 +673,21 @@ static AST* statement() {
   return expr;
 }
 
+/*
 static AST* enumDecl() {
   AST* identifier = parseVariable("Expect an enum name");
   consume(TOKEN_LEFT_BRACE, "Expect '{' before enum definition.");
   AST* fields = enumValueList();
   return NULL;
 }
+*/
+
 static AST* typeDecl() {
-  AST* identifier = parseVariable("Expect a data type name");
-  int index = TYPE_TABLE_declare(identifier->data.AST_LVALUE.identifier);
+  STRING* identifier = parseVariable("Expect a data type name");
+  int index = TYPE_TABLE_declare(identifier);
   consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
   AST** fields = fieldList();
-  return AST_NEW(AST_TYPE_DECL, index, fields);
+  return AST_NEW(AST_TYPE_DECL, identifier, index, fields);
 }
 
 static AST* topLevel() {
@@ -688,7 +695,7 @@ static AST* topLevel() {
   if (match(TOKEN_TYPE)) {
     decl = typeDecl();
   } else if (match(TOKEN_ENUM)) {
-    decl = enumDecl();
+    //decl = enumDecl();
   } else if (match(TOKEN_FN)) {
     decl = fnDecl();
   } else if (match(TOKEN_RETURN)) {

@@ -10,6 +10,7 @@
 
 fn test(a: i8, b: i8): int {}
 var a: i8 = 0;
+a = 7;
 {
   const b: i8 = 0;
 }

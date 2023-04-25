@@ -65,7 +65,7 @@ static bool resolveTopLevel(AST* ptr) {
 
         for (int i = 0; i < arrlen(data.fields); i++) {
           struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
-          STRING* fieldName = field.identifier->data.AST_LVALUE.identifier;
+          STRING* fieldName = field.identifier;
           STRING* fieldType = field.type->data.AST_TYPE_NAME.typeName;
           int index = TYPE_TABLE_lookup(fieldType);
           if (index == 0) {
@@ -80,7 +80,7 @@ static bool resolveTopLevel(AST* ptr) {
     case AST_FN:
       {
         struct AST_FN data = ast.data.AST_FN;
-        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        STRING* identifier = data.identifier;
         return true;
       }
     default:
@@ -139,28 +139,28 @@ static bool traverse(AST* ptr) {
     case AST_VAR_INIT:
       {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
         return true;
       }
     case AST_VAR_DECL:
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
         return true;
       }
     case AST_CONST_DECL:
       {
         struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, 0);
         return true;
       }
     case AST_ASSIGNMENT:
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-        bool ident = traverse(data.identifier);
+        bool ident = traverse(data.lvalue);
         bool expr = traverse(data.expr);
         return ident && expr;
       }
@@ -171,7 +171,7 @@ static bool traverse(AST* ptr) {
     case AST_FN:
       {
         struct AST_FN data = ast.data.AST_FN;
-        STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
+        STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_FUNCTION, 0);
         return true;
       }
@@ -186,18 +186,13 @@ static bool traverse(AST* ptr) {
 
         return result;
       }
-      /*
-    case AST_LITERAL:
-      {
-        struct AST_LITERAL data = ast.data.AST_LITERAL;
-        return CONST_TABLE_get(data.constantIndex); // data.value;
-      }
     case AST_LVALUE:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         STRING* identifier = data.identifier;
-        return STRING(identifier);
+        return SYMBOL_TABLE_scopeHas(identifier);
       }
+      /*
     case AST_UNARY:
       {
         struct AST_UNARY data = ast.data.AST_UNARY;
@@ -374,14 +369,6 @@ static bool traverse(AST* ptr) {
         Value expr = traverse(data.expr);
         define(context, AS_STRING(identifier)->chars, expr, false);
         return expr;
-      }
-    case AST_ASSIGNMENT:
-      {
-        struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-        Value identifier = traverse(data.identifier);
-        Value expr = traverse(data.expr);
-        bool success = assign(context, AS_STRING(identifier)->chars, expr);
-        return success ? expr : ERROR(1);
       }
     case AST_IF:
       {

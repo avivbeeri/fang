@@ -88,7 +88,7 @@ void ast_free(AST *ptr) {
     case AST_DOT: {
       struct AST_DOT data = ast.data.AST_DOT;
       ast_free(data.left);
-      ast_free(data.right);
+      STRING_free(data.name);
       break;
     }
     case AST_WHILE: {
@@ -114,27 +114,27 @@ void ast_free(AST *ptr) {
     }
     case AST_CONST_DECL: {
       struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.type);
       ast_free(data.expr);
       break;
     }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.type);
       break;
     }
     case AST_VAR_INIT: {
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.type);
       ast_free(data.expr);
       break;
     }
     case AST_ASSIGNMENT: {
       struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-      ast_free(data.identifier);
+      ast_free(data.lvalue);
       ast_free(data.expr);
       break;
     }
@@ -173,7 +173,7 @@ void ast_free(AST *ptr) {
     }
     case AST_FN: {
       struct AST_FN data = ast.data.AST_FN;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.returnType);
       ast_free(data.body);
 
@@ -185,7 +185,7 @@ void ast_free(AST *ptr) {
     }
     case AST_PARAM: {
       struct AST_PARAM data = ast.data.AST_PARAM;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.type);
       break;
     }

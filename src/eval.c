@@ -251,31 +251,31 @@ static Value traverse(AST* ptr, Environment* context) {
     }
     case AST_CONST_DECL: {
       struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-      Value identifier = traverse(data.identifier, context);
+      STRING* identifier = data.identifier;
       Value type = traverse(data.type, context);
       Value expr = traverse(data.expr, context);
-      bool success = define(context, AS_STRING(identifier)->chars, expr, true);
+      bool success = define(context, identifier->chars, expr, true);
       return success ? EMPTY() : ERROR(1);
     }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      Value identifier = traverse(data.identifier, context);
+      STRING* identifier = data.identifier;
       Value type = traverse(data.type, context);
-      define(context, AS_STRING(identifier)->chars, EMPTY(), false);
+      define(context, identifier->chars, EMPTY(), false);
       return EMPTY();
     }
 
     case AST_VAR_INIT: {
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      Value identifier = traverse(data.identifier, context);
+      STRING* identifier = data.identifier;
       Value type = traverse(data.type, context);
       Value expr = traverse(data.expr, context);
-      define(context, AS_STRING(identifier)->chars, expr, false);
+      define(context, identifier->chars, expr, false);
       return expr;
     }
     case AST_ASSIGNMENT: {
       struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-      Value identifier = traverse(data.identifier, context);
+      Value identifier = traverse(data.lvalue, context);
       Value expr = traverse(data.expr, context);
       bool success = assign(context, AS_STRING(identifier)->chars, expr);
       return success ? expr : ERROR(1);
