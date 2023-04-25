@@ -128,12 +128,27 @@ static bool traverse(AST* ptr) {
       {
         bool r;
         struct AST_LIST data = ast.data.AST_LIST;
+        int* deferred = NULL;
         for (int i = 0; i < arrlen(data.decls); i++) {
+          // Hoist FN resolution until after the main code
+          // for type-check reasons
+          if (data.decls[i]->tag == AST_FN) {
+            arrput(deferred, i);
+            continue;
+          }
           r = traverse(data.decls[i]);
           if (!r) {
-            return r;
+            return false;
           }
         }
+
+        for (int i = 0; i < arrlen(deferred); i++) {
+          r = resolveTopLevel(data.decls[deferred[i]]);
+          if (!r) {
+            return false;
+          }
+        }
+        arrfree(deferred);
         return r;
       }
     case AST_VAR_INIT:
@@ -173,7 +188,7 @@ static bool traverse(AST* ptr) {
         struct AST_FN data = ast.data.AST_FN;
         STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_FUNCTION, 0);
-        return true;
+        return traverse(data.body);
       }
     case AST_IDENTIFIER:
       {

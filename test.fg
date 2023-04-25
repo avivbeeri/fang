@@ -8,7 +8,10 @@
 }; */
 
 
-fn test(a: i8, b: i8): int {}
+fn test(a: i8, b: i8): int {
+  return b;
+}
+
 var a: i8 = 0;
 a = 7;
 {
