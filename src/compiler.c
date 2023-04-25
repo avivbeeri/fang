@@ -24,6 +24,7 @@
 */
 
 
+#include <stdio.h>
 #include "ast.h"
 #include "scanner.h"
 #include "parser.h"

@@ -156,11 +156,11 @@ static AST* variable(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start, parser.previous.length);
   if (canAssign && match(TOKEN_EQUAL)) {
-    AST* variable = AST_NEW(AST_LVALUE, string);
+    AST* variable = AST_NEW_T(AST_LVALUE, parser.previous, string);
     AST* expr = expression();
     return AST_NEW(AST_ASSIGNMENT, variable, expr);
   }
-  AST* variable = AST_NEW(AST_IDENTIFIER, string);
+  AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, string);
   return variable;
 }
 static AST* character(bool canAssign) {
@@ -168,15 +168,14 @@ static AST* character(bool canAssign) {
   Value value = CHAR(unesc(parser.previous.start + 1, parser.previous.length - 3));
   int index = CONST_TABLE_store(value);
 
-  return AST_NEW(AST_LITERAL, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index);
 }
 
 static AST* string(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
   int index = CONST_TABLE_store(STRING(string));
-  printf("Storing %s at index %i\n", string->chars, index);
-  return AST_NEW(AST_LITERAL, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index);
 }
 
 static AST* type() {
@@ -286,18 +285,19 @@ static AST* binary(bool canAssign, AST* left) {
     case TOKEN_GREATER_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_GREATER_EQUAL, left, right);
     case TOKEN_LESS_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_LESS_EQUAL, left, right);
 
-    default: return AST_NEW(AST_ERROR, 0);
+    default: return AST_NEW_T(AST_ERROR, parser.previous, 0);
   }
 }
 
 static AST* ref(bool canAssign) {
   TokenType operatorType = parser.previous.type;
+  Token start = parser.previous;
   AST* operand = parsePrecedence(PREC_REF);
   AST* expr = NULL;
   switch (operatorType) {
-    case TOKEN_AT: expr = AST_NEW(AST_UNARY, OP_DEREF, operand); break;
-    case TOKEN_CARET: expr = AST_NEW(AST_UNARY, OP_REF, operand); break;
-    default: expr = AST_NEW(AST_ERROR, 0); break;
+    case TOKEN_AT: expr = AST_NEW_T(AST_UNARY, start, OP_DEREF, operand); break;
+    case TOKEN_CARET: expr = AST_NEW_T(AST_UNARY, start, OP_REF, operand); break;
+    default: expr = AST_NEW_T(AST_ERROR, start, 0); break;
   }
 
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -307,13 +307,14 @@ static AST* ref(bool canAssign) {
   return expr;
 }
 static AST* unary(bool canAssign) {
+  Token start = parser.previous;
   TokenType operatorType = parser.previous.type;
   AST* operand = parsePrecedence(PREC_UNARY);
   AST* expr = NULL;
   switch (operatorType) {
-    case TOKEN_MINUS: expr = AST_NEW(AST_UNARY, OP_NEG, operand); break;
-    case TOKEN_BANG: expr = AST_NEW(AST_UNARY, OP_NOT, operand); break;
-    default: expr = AST_NEW(AST_ERROR, 0);
+    case TOKEN_MINUS: expr = AST_NEW_T(AST_UNARY, start, OP_NEG, operand); break;
+    case TOKEN_BANG: expr = AST_NEW_T(AST_UNARY, start, OP_NOT, operand); break;
+    default: expr = AST_NEW_T(AST_ERROR, start, 0);
   }
   return expr;
 }
@@ -347,7 +348,7 @@ static AST** argumentList() {
 
 static AST* as(bool canAssign, AST* left) {
   AST* right = type();
-  AST* expr = AST_NEW(AST_CAST, left, right);
+  AST* expr = AST_NEW_T(AST_CAST, parser.previous, left, right);
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
     expr = AST_NEW(AST_ASSIGNMENT, expr, right);
@@ -356,7 +357,7 @@ static AST* as(bool canAssign, AST* left) {
 }
 static AST* call(bool canAssign, AST* left) {
   AST** params = argumentList();
-  return AST_NEW(AST_CALL, left, params);
+  return AST_NEW_T(AST_CALL, parser.previous, left, params);
 }
 
 
@@ -694,7 +695,7 @@ static AST* topLevel() {
     decl = returnStatement(true);
   } else {
     // Go to the other declarations, which are allowed in deeper
-    decl = declaration();
+    return declaration();
   }
   if (parser.panicMode) synchronize();
   return AST_NEW(AST_DECL, decl);
@@ -702,6 +703,7 @@ static AST* topLevel() {
 
 static AST* declaration() {
   AST* decl = NULL;
+  Token next = parser.current;
   if (match(TOKEN_VAR)) {
     decl = varDecl();
   } else if (match(TOKEN_CONST)) {
@@ -712,7 +714,7 @@ static AST* declaration() {
     decl = statement();
   }
   if (parser.panicMode) synchronize();
-  return AST_NEW(AST_DECL, decl);
+  return AST_NEW_T(AST_DECL, next, decl);
 }
 
 AST* parse(const char* source) {
