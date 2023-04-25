@@ -139,7 +139,7 @@ static void consume(TokenType type, const char* message) {
 }
 static AST* parseVariable(const char* errorMessage) {
   consume(TOKEN_IDENTIFIER, errorMessage);
-  return AST_NEW(AST_LVALUE, copyString(parser.previous.start, parser.previous.length));
+  return AST_NEW_T(AST_LVALUE, (parser.previous), copyString(parser.previous.start, parser.previous.length));
 }
 
 static bool check(TokenType type) {
@@ -182,11 +182,12 @@ static AST* string(bool canAssign) {
 static AST* type() {
   if (match(TOKEN_TYPE_NAME)) {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
-    return AST_NEW(AST_TYPE_NAME, string);
+    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
   } else if (match(TOKEN_LEFT_PAREN)) {
     size_t len = 16;
     char* buffer = reallocate(NULL, 0, len * sizeof(char));
     size_t i = 0;
+    Token start = parser.previous;
     APPEND_STR(i, len, buffer, "(");
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
@@ -205,16 +206,17 @@ static AST* type() {
     printf("SIGNATURE: %s\n", buffer);
     STRING* str = copyString(buffer, i);
     FREE(char, buffer);
-    return AST_NEW(AST_TYPE_NAME, str);
+    return AST_NEW_T(AST_TYPE_NAME, start, str);
   } else {
     consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
     STRING* string = copyString(parser.previous.start, parser.previous.length);
-    return AST_NEW(AST_TYPE_NAME, string);
+    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
   }
 }
 
 static AST* record(bool canAssign) {
   AST** assignments = NULL;
+  Token start = parser.previous;
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
       // Becomes an assignment statement because of the coming equality sign
@@ -226,13 +228,13 @@ static AST* record(bool canAssign) {
     } while (!check(TOKEN_RIGHT_BRACE));
   }
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after a record literal.");
-  return AST_NEW(AST_INITIALIZER, assignments);
+  return AST_NEW_T(AST_INITIALIZER, start, assignments);
 }
 
 static AST* literal(bool canAssign) {
   switch (parser.previous.type) {
-    case TOKEN_FALSE: return AST_NEW(AST_LITERAL, 0);
-    case TOKEN_TRUE: return AST_NEW(AST_LITERAL, 1);
+    case TOKEN_FALSE: return AST_NEW_T(AST_LITERAL, parser.previous, 0);
+    case TOKEN_TRUE: return AST_NEW_T(AST_LITERAL, parser.previous, 1);
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
@@ -247,7 +249,7 @@ static AST* number(bool canAssign) {
     value = strtol(start, NULL, 0);
   }
   int index = CONST_TABLE_store(LIT_NUM(value));
-  return AST_NEW(AST_LITERAL, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index);
 }
 
 static AST* grouping(bool canAssign) {
@@ -258,30 +260,31 @@ static AST* grouping(bool canAssign) {
 
 static AST* binary(bool canAssign, AST* left) {
   TokenType operatorType = parser.previous.type;
+  Token opToken = parser.previous;
   ParseRule* rule = getRule(operatorType);
   AST* right = parsePrecedence((Precedence)(rule->precedence + 1));
   switch (operatorType) {
-    case TOKEN_PLUS: return AST_NEW(AST_BINARY, OP_ADD, left, right);
-    case TOKEN_MINUS: return AST_NEW(AST_BINARY, OP_SUB, left, right);
-    case TOKEN_STAR: return AST_NEW(AST_BINARY, OP_MUL, left, right);
-    case TOKEN_SLASH: return AST_NEW(AST_BINARY, OP_DIV, left, right);
-    case TOKEN_PERCENT: return AST_NEW(AST_BINARY, OP_MOD, left, right);
+    case TOKEN_PLUS: return AST_NEW_T(AST_BINARY, opToken, OP_ADD, left, right);
+    case TOKEN_MINUS: return AST_NEW_T(AST_BINARY, opToken, OP_SUB, left, right);
+    case TOKEN_STAR: return AST_NEW_T(AST_BINARY, opToken, OP_MUL, left, right);
+    case TOKEN_SLASH: return AST_NEW_T(AST_BINARY, opToken, OP_DIV, left, right);
+    case TOKEN_PERCENT: return AST_NEW_T(AST_BINARY, opToken, OP_MOD, left, right);
 
-    case TOKEN_AND: return AST_NEW(AST_BINARY, OP_BITWISE_AND, left, right);
-    case TOKEN_AND_AND: return AST_NEW(AST_BINARY, OP_AND, left, right);
-    case TOKEN_OR: return AST_NEW(AST_BINARY, OP_BITWISE_OR, left, right);
-    case TOKEN_OR_OR: return AST_NEW(AST_BINARY, OP_OR, left, right);
+    case TOKEN_AND: return AST_NEW_T(AST_BINARY, opToken, OP_BITWISE_AND, left, right);
+    case TOKEN_AND_AND: return AST_NEW_T(AST_BINARY, opToken, OP_AND, left, right);
+    case TOKEN_OR: return AST_NEW_T(AST_BINARY, opToken, OP_BITWISE_OR, left, right);
+    case TOKEN_OR_OR: return AST_NEW_T(AST_BINARY, opToken, OP_OR, left, right);
 
 
-    case TOKEN_GREATER: return AST_NEW(AST_BINARY, OP_GREATER, left, right);
-    case TOKEN_GREATER_GREATER: return AST_NEW(AST_BINARY, OP_SHIFT_RIGHT, left, right);
-    case TOKEN_LESS: return AST_NEW(AST_BINARY, OP_LESS, left, right);
-    case TOKEN_LESS_LESS: return AST_NEW(AST_BINARY, OP_SHIFT_LEFT, left, right);
+    case TOKEN_GREATER: return AST_NEW_T(AST_BINARY, opToken, OP_GREATER, left, right);
+    case TOKEN_GREATER_GREATER: return AST_NEW_T(AST_BINARY, opToken, OP_SHIFT_RIGHT, left, right);
+    case TOKEN_LESS: return AST_NEW_T(AST_BINARY, opToken, OP_LESS, left, right);
+    case TOKEN_LESS_LESS: return AST_NEW_T(AST_BINARY, opToken, OP_SHIFT_LEFT, left, right);
 
-    case TOKEN_EQUAL_EQUAL: return AST_NEW(AST_BINARY, OP_COMPARE_EQUAL, left, right);
-    case TOKEN_BANG_EQUAL: return AST_NEW(AST_BINARY, OP_NOT_EQUAL, left, right);
-    case TOKEN_GREATER_EQUAL: return AST_NEW(AST_BINARY, OP_GREATER_EQUAL, left, right);
-    case TOKEN_LESS_EQUAL: return AST_NEW(AST_BINARY, OP_LESS_EQUAL, left, right);
+    case TOKEN_EQUAL_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_COMPARE_EQUAL, left, right);
+    case TOKEN_BANG_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_NOT_EQUAL, left, right);
+    case TOKEN_GREATER_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_GREATER_EQUAL, left, right);
+    case TOKEN_LESS_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_LESS_EQUAL, left, right);
 
     default: return AST_NEW(AST_ERROR, 0);
   }

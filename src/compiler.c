@@ -35,7 +35,7 @@
 #include "eval.h"
 
 bool compile(const char* source) {
-  testScanner(source);
+  // testScanner(source);
   TYPE_TABLE_init();
   CONST_TABLE_init();
   initScanner(source);
@@ -43,9 +43,10 @@ bool compile(const char* source) {
   bool result = true;
   if (ast != NULL) {
     if (resolveTree(ast)) {
+      printf("Resolved successfully.\n");
       traverseTree(ast);
       // emitTree(ast);
-      evalTree(ast);
+      // evalTree(ast);
     } else {
       result = false;
     }

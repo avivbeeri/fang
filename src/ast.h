@@ -26,6 +26,7 @@
 #ifndef ast_h
 #define ast_h
 #include "common.h"
+#include "scanner.h"
 #include "memory.h"
 #include "value.h"
 
@@ -131,6 +132,7 @@ struct AST {
     struct AST_MAIN { AST* body; } AST_MAIN;
   } data;
   TYPE_INDEX type;
+  Token token;
   uint64_t id;
 };
 
@@ -139,5 +141,8 @@ void ast_free(AST* ptr);
 const char* getNodeTypeName(AST_TAG tag);
 #define AST_NEW(tag, ...) \
   ast_new((AST){tag, {.tag=(struct tag){__VA_ARGS__}}, 0})
+
+#define AST_NEW_T(tag, t, ...) \
+  ast_new((AST){tag, {.tag=(struct tag){__VA_ARGS__}}, 0, t, 0})
 
 #endif
