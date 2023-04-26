@@ -338,18 +338,29 @@ static AST* type() {
     arrput(components, subType);
     APPEND_STR(i, len, buffer, "%s", subType->data.AST_TYPE_NAME.typeName->chars);
   } else if (match(TOKEN_LEFT_BRACKET)) {
-    APPEND_STR(i, len, buffer, "[");
     consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
     AST* length = number(false);
     arrput(components, length);
-    APPEND_STR(i, len, buffer, "%i", AS_LIT_NUM(CONST_TABLE_get(length->data.AST_LITERAL.constantIndex)));
     consume(TOKEN_RIGHT_BRACKET, "Expect array size literal to be followed by ']'.");
-    APPEND_STR(i, len, buffer, "]");
     AST* resultType = type();
-    APPEND_STR(i, len, buffer, "%s", resultType->data.AST_TYPE_NAME.typeName->chars);
+    arrput(components, resultType);
+
+    APPEND_STR(i, len, buffer, "[%i]%s",
+        AS_LIT_NUM(CONST_TABLE_get(length->data.AST_LITERAL.constantIndex)),
+        resultType->data.AST_TYPE_NAME.typeName->chars
+    );
   } else if (match(TOKEN_LEFT_PAREN)) {
-    // Function pointer
+    AST* typeExpr = type();
+    arrput(components, typeExpr);
+
+    consume(TOKEN_RIGHT_PAREN, "Expect matching ')' in type definition.");
+
     APPEND_STR(i, len, buffer, "(");
+    APPEND_STR(i, len, buffer, "%s)", typeExpr->data.AST_TYPE_NAME.typeName->chars);
+  } else if (match(TOKEN_FN)) {
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'fn' in function pointer type declaration.");
+    // Function pointer
+    APPEND_STR(i, len, buffer, "fn (");
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         AST* paramType = type();
@@ -363,16 +374,17 @@ static AST* type() {
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
     consume(TOKEN_COLON, "Expect ':' after a function pointer type");
     AST* resultType = type();
+    arrput(components, resultType);
     APPEND_STR(i, len, buffer, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
-    printf("SIGNATURE: %s\n", buffer);
   } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
-    arrput(components, AST_NEW_T(AST_TYPE_NAME, parser.previous, string));
-    APPEND_STR(i, len, buffer, "%s", string->chars);
+    // components needs to be null
+
+    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string, NULL);
   } else {
     errorAtCurrent("Expecting a type declaration.");
+    return AST_NEW(AST_ERROR, 0);
   }
-
 
   STRING* str = NULL;
   if (i > 0) {

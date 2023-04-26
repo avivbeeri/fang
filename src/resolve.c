@@ -182,9 +182,8 @@ static bool traverse(AST* ptr) {
     case AST_TYPE_NAME:
       {
         struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-        if (data.components) {
+        if (arrlen(data.components) > 0) {
           for (int i = 0; i < arrlen(data.components); i++) {
-            //struct AST_TYPE_NAME component = data.components[i]->data.AST_TYPE_NAME;
             bool r = traverse(data.components[i]);
             if (!r) {
               return false;
@@ -193,7 +192,6 @@ static bool traverse(AST* ptr) {
         } else {
           int index = TYPE_TABLE_lookup(data.typeName);
           if (index == 0) {
-            // arrfree(fields);
             return false;
           }
         }

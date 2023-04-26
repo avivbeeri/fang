@@ -7,12 +7,14 @@
   "svc 0"
 }; */
 
+/*
 type TableEntry {
   f: string;
   h: i8;
 }
-var y: i8 = 5;
-var g: $[4](int):gh = [ 1, y, 3, 4 ];
+*/
+var y: [6](fn (i8): fn(i8): i8) = 5;
+/*
 g[5] = 5;
 var a: TableEntry = {
   y = 0;
@@ -22,6 +24,7 @@ var a: TableEntry = {
   };
   h = 6;
 };
+*/
 
 /*
 fn test(f: i8, b: i8): (string): TableEntry {
