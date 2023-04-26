@@ -7,31 +7,37 @@
   "svc 0"
 }; */
 
-
-
-
-/*
-type WordEntry { 
-  i: i16;
-}
-
-type TableEntry { 
-  b: WordEntry;
-  q: i8;
-  n: u16;
-}
-*/
-
+var g: i8[4] = [ 1, 2, 3, 4 ];
 g[5] = 5;
-// var entry: i8 = [ 1, 2, 3, 4 ];
+var a: TableEntry = {
+  f = {
+    g = 6;
+    j = "hello";
+  };
+  h = 6;
+};
+type TableEntry {
+  f: string;
+  h: i8;
+}
+
+fn test(f: i8, b: i8): (i:string): TableEntry {
+  return f+b;
+}
+
+var a: i8 = 0;
+@(a + 1) = 7;
+{
+  const b: i8 = 0;
+}
+var c: char;
+{
+  const d: i8 = 0;
+  return a;
+}
+
 /*
-
-fn test(a: i8, b: i8): int {}
-var b: i8 = 0x0;
-var m: ((): void, i16): (string, char): char;
-
 for (var a: int = 0; a < 0b1101; a = a + 1) {
   b = b + 1;
 }
-return b;
 */

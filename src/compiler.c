@@ -24,29 +24,33 @@
 */
 
 
+#include <stdio.h>
 #include "ast.h"
 #include "scanner.h"
 #include "parser.h"
 #include "type_table.h"
 #include "const_table.h"
+#include "symbol_table.h"
 #include "resolve.h"
 #include "print.h"
 #include "emit.h"
 #include "eval.h"
 
 bool compile(const char* source) {
-  testScanner(source);
+  // testScanner(source);
   TYPE_TABLE_init();
   CONST_TABLE_init();
   initScanner(source);
   AST* ast = parse(source);
   bool result = true;
   if (ast != NULL) {
+    printTree(ast);
     if (resolveTree(ast)) {
-      traverseTree(ast);
+      printf("Resolved successfully.\n");
       // emitTree(ast);
-      evalTree(ast);
+      // evalTree(ast);
     } else {
+      printf("Failed to compile program.\n");
       result = false;
     }
     ast_free(ast);
@@ -55,5 +59,7 @@ bool compile(const char* source) {
   }
   CONST_TABLE_free();
   TYPE_TABLE_free();
+  SYMBOL_TABLE_free();
+  printf("\n");
   return result;
 }

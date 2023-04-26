@@ -23,24 +23,98 @@
   SOFTWARE.
 */
 
+#include <stdio.h>
 #include "common.h"
 #include "memory.h"
 #include "symbol_table.h"
 
-SYMBOL_TABLE_ENTRY* symbolTable = NULL;
+uint32_t scopeId = 1;
+int* scopeStack = NULL;
 
-SYMBOL_TABLE_ENTRY* SYMBOL_TABLE_init() {
-  return symbolTable;
-}
+typedef struct {
+  uint32_t key;
+  uint32_t parent;
+  SYMBOL_TABLE_ENTRY* table;
+} SYMBOL_TABLE_SCOPE;
 
-int SYMBOL_TABLE_registerType(STRING* name, size_t size, size_t parent) {
-  // arrput(symbolTable, ((SYMBOL_TABLE_ENTRY){ .name = name, .byteSize = size, .parent = parent }));
-  return arrlen(symbolTable);
-}
+SYMBOL_TABLE_SCOPE* scopes = NULL;
 
-void SYMBOL_TABLE_free() {
-  for (int i = 0; i < arrlen(symbolTable); i++) {
-    STRING_free(symbolTable[i].name);
+void SYMBOL_TABLE_openScope() {
+  uint32_t parent = 0;
+  if (scopeStack != NULL) {
+    parent = scopeStack[arrlen(scopeStack) - 1];
   }
-  arrfree(symbolTable);
+  hmputs(scopes, ((SYMBOL_TABLE_SCOPE){ scopeId, parent, NULL }));
+  arrput(scopeStack, scopeId);
+  // printf("scope opens %u\n", scopeId);
+  scopeId++;
+}
+
+bool SYMBOL_TABLE_scopeHas(STRING* name) {
+  uint32_t current = scopeStack[arrlen(scopeStack) - 1];
+  while (current > 0) {
+    SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
+    if (shgeti(scope.table, name->chars) != -1) {
+      return true;
+    }
+    current = scope.parent;
+  }
+  return false;
+}
+
+void SYMBOL_TABLE_closeScope() {
+  // printf("scope close %u\n", scopeStack[arrlen(scopeStack)-1]);
+  arrdel(scopeStack, arrlen(scopeStack) - 1);
+}
+
+void SYMBOL_TABLE_init(void) {
+  SYMBOL_TABLE_openScope();
+}
+
+void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
+  // printf("putting %s\n", name->chars);
+  uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
+  SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
+  SYMBOL_TABLE_ENTRY entry = {
+    .key = name->chars,
+    .entryType = type,
+    .defined = true,
+    .typeIndex = typeIndex
+  };
+  shputs(scope.table, entry);
+  hmputs(scopes, scope);
+}
+
+void SYMBOL_TABLE_report(void) {
+  printf("SYMBOL TABLE - Report:\n");
+  for (int i = 0; i < hmlen(scopes); i++) {
+    SYMBOL_TABLE_SCOPE scope = scopes[i];
+    printf("Scope %u (parent %u):\n", scope.key, scope.parent);
+    for (int j = 0; j < hmlen(scope.table); j++) {
+      SYMBOL_TABLE_ENTRY entry = scope.table[j];
+      printf("%s - ", entry.key);
+      switch (entry.entryType) {
+        case SYMBOL_TYPE_UNKNOWN: { printf("UNKNOWN"); break; }
+        case SYMBOL_TYPE_KEYWORD: { printf("KEYWORD"); break; }
+        case SYMBOL_TYPE_FUNCTION: { printf("FUNCTION"); break; }
+        case SYMBOL_TYPE_PARAMETER: { printf("PARAMETER"); break; }
+        case SYMBOL_TYPE_VARIABLE: { printf("VARIABLE"); break; }
+        case SYMBOL_TYPE_CONSTANT: { printf("CONSTANT"); break; }
+
+      }
+      printf("\n");
+
+    }
+    printf("End Scope %u.\n\n", scope.key);
+    printf("---------------------------\n");
+  }
+}
+
+void SYMBOL_TABLE_free(void) {
+  for (int i=0; i < hmlen(scopes); i++) {
+    SYMBOL_TABLE_SCOPE scope = scopes[i];
+    shfree(scope.table);
+  }
+  hmfree(scopes);
+  arrfree(scopeStack);
 }

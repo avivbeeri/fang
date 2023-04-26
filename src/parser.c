@@ -93,11 +93,11 @@ static AST* parsePrecedence(Precedence precedence);
 
 Parser parser;
 
-static void errorAt(Token* token, const char* message) {
+void errorAt(Token* token, const char* message) {
   if (parser.panicMode) return;
 
   parser.panicMode = true;
-  fprintf(stderr, "[line %d] Error", token->line);
+  fprintf(stderr, "[line %d; pos %d] Error", token->line, token->pos);
 
   if (token->type == TOKEN_EOF) {
     fprintf(stderr, " at end");
@@ -138,9 +138,9 @@ static void consume(TokenType type, const char* message) {
 
   errorAtCurrent(message);
 }
-static AST* parseVariable(const char* errorMessage) {
+static STRING* parseVariable(const char* errorMessage) {
   consume(TOKEN_IDENTIFIER, errorMessage);
-  return AST_NEW(AST_LVALUE, copyString(parser.previous.start, parser.previous.length));
+  return copyString(parser.previous.start, parser.previous.length);
 }
 
 static bool check(TokenType type) {
@@ -157,11 +157,11 @@ static AST* variable(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start, parser.previous.length);
   if (canAssign && match(TOKEN_EQUAL)) {
-    AST* variable = AST_NEW(AST_LVALUE, string);
+    AST* variable = AST_NEW_T(AST_LVALUE, parser.previous, string);
     AST* expr = expression();
     return AST_NEW(AST_ASSIGNMENT, variable, expr);
   }
-  AST* variable = AST_NEW(AST_IDENTIFIER, string);
+  AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, string);
   return variable;
 }
 static AST* character(bool canAssign) {
@@ -169,29 +169,32 @@ static AST* character(bool canAssign) {
   Value value = CHAR(unesc(parser.previous.start + 1, parser.previous.length - 3));
   int index = CONST_TABLE_store(value);
 
-  return AST_NEW(AST_LITERAL, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index);
 }
 
 static AST* string(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
   int index = CONST_TABLE_store(STRING(string));
-  printf("Storing %s at index %i\n", string->chars, index);
-  return AST_NEW(AST_LITERAL, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index);
 }
 
 static AST* type() {
   if (match(TOKEN_TYPE_NAME)) {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
-    return AST_NEW(AST_TYPE_NAME, string);
+    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
   } else if (match(TOKEN_LEFT_PAREN)) {
+    // Function pointer
     size_t len = 16;
     char* buffer = reallocate(NULL, 0, len * sizeof(char));
     size_t i = 0;
+    AST** components = NULL;
+    Token start = parser.previous;
     APPEND_STR(i, len, buffer, "(");
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         AST* paramType = type();
+        arrput(components, paramType);
         APPEND_STR(i, len, buffer, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
         if (check(TOKEN_COMMA)) {
           APPEND_STR(i, len, buffer, ", ");
@@ -201,16 +204,17 @@ static AST* type() {
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
     consume(TOKEN_COLON, "Expect ':' after a function pointer type");
     AST* resultType = type();
+    arrput(components, resultType);
     APPEND_STR(i, len, buffer, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
 
     printf("SIGNATURE: %s\n", buffer);
     STRING* str = copyString(buffer, i);
     FREE(char, buffer);
-    return AST_NEW(AST_TYPE_NAME, str);
+    return AST_NEW_T(AST_TYPE_NAME, start, str, components);
   } else {
     consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
     STRING* string = copyString(parser.previous.start, parser.previous.length);
-    return AST_NEW(AST_TYPE_NAME, string);
+    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
   }
 }
 
@@ -241,24 +245,25 @@ static AST* subscript(bool canAssign, AST* left) {
 
 static AST* record(bool canAssign) {
   AST** assignments = NULL;
+  Token start = parser.previous;
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
       // Becomes an assignment statement because of the coming equality sign
-      AST* identifier = parseVariable("Expect field value name in record literal.");
+      STRING* name = parseVariable("Expect field value name in record literal.");
       consume(TOKEN_EQUAL, "Expect '=' after field name in record literal.");
       AST* value = expression();
       consume(TOKEN_SEMICOLON, "Expect ';' after field in record literal.");
-      arrput(assignments, AST_NEW(AST_ASSIGNMENT, identifier, value));
+      arrput(assignments, AST_NEW(AST_ASSIGNMENT, AST_NEW(AST_IDENTIFIER, name), value));
     } while (!check(TOKEN_RIGHT_BRACE));
   }
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after a record literal.");
-  return AST_NEW(AST_INITIALIZER, assignments);
+  return AST_NEW_T(AST_INITIALIZER, start, assignments);
 }
 
 static AST* literal(bool canAssign) {
   switch (parser.previous.type) {
-    case TOKEN_FALSE: return AST_NEW(AST_LITERAL, 0);
-    case TOKEN_TRUE: return AST_NEW(AST_LITERAL, 1);
+    case TOKEN_FALSE: return AST_NEW_T(AST_LITERAL, parser.previous, 0);
+    case TOKEN_TRUE: return AST_NEW_T(AST_LITERAL, parser.previous, 1);
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
@@ -273,7 +278,7 @@ static AST* number(bool canAssign) {
     value = strtol(start, NULL, 0);
   }
   int index = CONST_TABLE_store(LIT_NUM(value));
-  return AST_NEW(AST_LITERAL, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index);
 }
 
 static AST* grouping(bool canAssign) {
@@ -284,43 +289,45 @@ static AST* grouping(bool canAssign) {
 
 static AST* binary(bool canAssign, AST* left) {
   TokenType operatorType = parser.previous.type;
+  Token opToken = parser.previous;
   ParseRule* rule = getRule(operatorType);
   AST* right = parsePrecedence((Precedence)(rule->precedence + 1));
   switch (operatorType) {
-    case TOKEN_PLUS: return AST_NEW(AST_BINARY, OP_ADD, left, right);
-    case TOKEN_MINUS: return AST_NEW(AST_BINARY, OP_SUB, left, right);
-    case TOKEN_STAR: return AST_NEW(AST_BINARY, OP_MUL, left, right);
-    case TOKEN_SLASH: return AST_NEW(AST_BINARY, OP_DIV, left, right);
-    case TOKEN_PERCENT: return AST_NEW(AST_BINARY, OP_MOD, left, right);
+    case TOKEN_PLUS: return AST_NEW_T(AST_BINARY, opToken, OP_ADD, left, right);
+    case TOKEN_MINUS: return AST_NEW_T(AST_BINARY, opToken, OP_SUB, left, right);
+    case TOKEN_STAR: return AST_NEW_T(AST_BINARY, opToken, OP_MUL, left, right);
+    case TOKEN_SLASH: return AST_NEW_T(AST_BINARY, opToken, OP_DIV, left, right);
+    case TOKEN_PERCENT: return AST_NEW_T(AST_BINARY, opToken, OP_MOD, left, right);
 
-    case TOKEN_AND: return AST_NEW(AST_BINARY, OP_BITWISE_AND, left, right);
-    case TOKEN_AND_AND: return AST_NEW(AST_BINARY, OP_AND, left, right);
-    case TOKEN_OR: return AST_NEW(AST_BINARY, OP_BITWISE_OR, left, right);
-    case TOKEN_OR_OR: return AST_NEW(AST_BINARY, OP_OR, left, right);
+    case TOKEN_AND: return AST_NEW_T(AST_BINARY, opToken, OP_BITWISE_AND, left, right);
+    case TOKEN_AND_AND: return AST_NEW_T(AST_BINARY, opToken, OP_AND, left, right);
+    case TOKEN_OR: return AST_NEW_T(AST_BINARY, opToken, OP_BITWISE_OR, left, right);
+    case TOKEN_OR_OR: return AST_NEW_T(AST_BINARY, opToken, OP_OR, left, right);
 
 
-    case TOKEN_GREATER: return AST_NEW(AST_BINARY, OP_GREATER, left, right);
-    case TOKEN_GREATER_GREATER: return AST_NEW(AST_BINARY, OP_SHIFT_RIGHT, left, right);
-    case TOKEN_LESS: return AST_NEW(AST_BINARY, OP_LESS, left, right);
-    case TOKEN_LESS_LESS: return AST_NEW(AST_BINARY, OP_SHIFT_LEFT, left, right);
+    case TOKEN_GREATER: return AST_NEW_T(AST_BINARY, opToken, OP_GREATER, left, right);
+    case TOKEN_GREATER_GREATER: return AST_NEW_T(AST_BINARY, opToken, OP_SHIFT_RIGHT, left, right);
+    case TOKEN_LESS: return AST_NEW_T(AST_BINARY, opToken, OP_LESS, left, right);
+    case TOKEN_LESS_LESS: return AST_NEW_T(AST_BINARY, opToken, OP_SHIFT_LEFT, left, right);
 
-    case TOKEN_EQUAL_EQUAL: return AST_NEW(AST_BINARY, OP_COMPARE_EQUAL, left, right);
-    case TOKEN_BANG_EQUAL: return AST_NEW(AST_BINARY, OP_NOT_EQUAL, left, right);
-    case TOKEN_GREATER_EQUAL: return AST_NEW(AST_BINARY, OP_GREATER_EQUAL, left, right);
-    case TOKEN_LESS_EQUAL: return AST_NEW(AST_BINARY, OP_LESS_EQUAL, left, right);
+    case TOKEN_EQUAL_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_COMPARE_EQUAL, left, right);
+    case TOKEN_BANG_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_NOT_EQUAL, left, right);
+    case TOKEN_GREATER_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_GREATER_EQUAL, left, right);
+    case TOKEN_LESS_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_LESS_EQUAL, left, right);
 
-    default: return AST_NEW(AST_ERROR, 0);
+    default: return AST_NEW_T(AST_ERROR, parser.previous, 0);
   }
 }
 
 static AST* ref(bool canAssign) {
   TokenType operatorType = parser.previous.type;
+  Token start = parser.previous;
   AST* operand = parsePrecedence(PREC_REF);
   AST* expr = NULL;
   switch (operatorType) {
-    case TOKEN_AT: expr = AST_NEW(AST_UNARY, OP_DEREF, operand); break;
-    case TOKEN_CARET: expr = AST_NEW(AST_UNARY, OP_REF, operand); break;
-    default: expr = AST_NEW(AST_ERROR, 0); break;
+    case TOKEN_AT: expr = AST_NEW_T(AST_UNARY, start, OP_DEREF, operand); break;
+    case TOKEN_CARET: expr = AST_NEW_T(AST_UNARY, start, OP_REF, operand); break;
+    default: expr = AST_NEW_T(AST_ERROR, start, 0); break;
   }
 
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -330,13 +337,14 @@ static AST* ref(bool canAssign) {
   return expr;
 }
 static AST* unary(bool canAssign) {
+  Token start = parser.previous;
   TokenType operatorType = parser.previous.type;
   AST* operand = parsePrecedence(PREC_UNARY);
   AST* expr = NULL;
   switch (operatorType) {
-    case TOKEN_MINUS: expr = AST_NEW(AST_UNARY, OP_NEG, operand); break;
-    case TOKEN_BANG: expr = AST_NEW(AST_UNARY, OP_NOT, operand); break;
-    default: expr = AST_NEW(AST_ERROR, 0);
+    case TOKEN_MINUS: expr = AST_NEW_T(AST_UNARY, start, OP_NEG, operand); break;
+    case TOKEN_BANG: expr = AST_NEW_T(AST_UNARY, start, OP_NOT, operand); break;
+    default: expr = AST_NEW_T(AST_ERROR, start, 0);
   }
   return expr;
 }
@@ -370,7 +378,7 @@ static AST** argumentList() {
 
 static AST* as(bool canAssign, AST* left) {
   AST* right = type();
-  AST* expr = AST_NEW(AST_CAST, left, right);
+  AST* expr = AST_NEW_T(AST_CAST, parser.previous, left, right);
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
     expr = AST_NEW(AST_ASSIGNMENT, expr, right);
@@ -379,7 +387,7 @@ static AST* as(bool canAssign, AST* left) {
 }
 static AST* call(bool canAssign, AST* left) {
   AST** params = argumentList();
-  return AST_NEW(AST_CALL, left, params);
+  return AST_NEW_T(AST_CALL, parser.previous, left, params);
 }
 
 
@@ -400,7 +408,8 @@ static AST* block() {
 
 
 static AST* dot(bool canAssign, AST* left) {
-  AST* field = parseVariable("Expect property name after '.'.");
+  consume(TOKEN_STRING, "Expect property name after '.'.");
+  STRING* field = copyString(parser.previous.start, parser.previous.length);
   AST* expr = AST_NEW(AST_DOT, left, field);
 
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -410,12 +419,13 @@ static AST* dot(bool canAssign, AST* left) {
   return expr;
 }
 
+/*
 static AST* enumValueList() {
   size_t arity = 0;
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
       arity++;
-      AST* identifier = parseVariable("Expect value name");
+      * identifier = parseVariable("Expect value name");
       if (match(TOKEN_EQUAL)) {
         expression();
       }
@@ -424,11 +434,13 @@ static AST* enumValueList() {
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after function parameter list");
   return NULL;
 }
+*/
+
 static AST** fieldList() {
   AST** params = NULL;
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
-      AST* identifier = parseVariable("Expect parameter name.");
+      STRING* identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
       AST* typeName = type();
       consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
@@ -441,7 +453,7 @@ static AST** fieldList() {
 }
 
 static AST* constDecl() {
-  AST* global = parseVariable("Expect constant name.");
+  STRING* global = parseVariable("Expect constant name.");
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type();
 
@@ -453,7 +465,7 @@ static AST* constDecl() {
 }
 
 static AST* varDecl() {
-  AST* global = parseVariable("Expect variable name");
+  STRING* global = parseVariable("Expect variable name");
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type();
 
@@ -470,14 +482,14 @@ static AST* varDecl() {
 }
 
 static AST* fnDecl() {
-  AST* identifier = parseVariable("Expect function identifier");
+  STRING* identifier = parseVariable("Expect function identifier");
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
 
   AST** params = NULL;
   if (!check(TOKEN_RIGHT_PAREN)) {
     do {
       // TODO: Fix a maximum number of parameters here
-      AST* identifier = parseVariable("Expect parameter name.");
+      STRING* identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
       AST* typeName = type();
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
@@ -687,21 +699,24 @@ static AST* statement() {
   } else {
     expr = expressionStatement();
   }
-  return AST_NEW(AST_STMT, expr);
+  return expr;
 }
 
+/*
 static AST* enumDecl() {
   AST* identifier = parseVariable("Expect an enum name");
   consume(TOKEN_LEFT_BRACE, "Expect '{' before enum definition.");
   AST* fields = enumValueList();
   return NULL;
 }
+*/
+
 static AST* typeDecl() {
-  AST* identifier = parseVariable("Expect a data type name");
-  int index = TYPE_TABLE_declare(identifier->data.AST_LVALUE.identifier);
+  STRING* identifier = parseVariable("Expect a data type name");
+  int index = TYPE_TABLE_declare(identifier);
   consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
   AST** fields = fieldList();
-  return AST_NEW(AST_TYPE_DECL, index, fields);
+  return AST_NEW(AST_TYPE_DECL, identifier, index, fields);
 }
 
 static AST* topLevel() {
@@ -709,21 +724,22 @@ static AST* topLevel() {
   if (match(TOKEN_TYPE)) {
     decl = typeDecl();
   } else if (match(TOKEN_ENUM)) {
-    decl = enumDecl();
+    //decl = enumDecl();
   } else if (match(TOKEN_FN)) {
     decl = fnDecl();
   } else if (match(TOKEN_RETURN)) {
     decl = returnStatement(true);
   } else {
     // Go to the other declarations, which are allowed in deeper
-    decl = declaration();
+    return declaration();
   }
   if (parser.panicMode) synchronize();
-  return AST_NEW(AST_DECL, decl);
+  return decl;
 }
 
 static AST* declaration() {
   AST* decl = NULL;
+  Token next = parser.current;
   if (match(TOKEN_VAR)) {
     decl = varDecl();
   } else if (match(TOKEN_CONST)) {
@@ -734,7 +750,7 @@ static AST* declaration() {
     decl = statement();
   }
   if (parser.panicMode) synchronize();
-  return AST_NEW(AST_DECL, decl);
+  return decl;
 }
 
 AST* parse(const char* source) {

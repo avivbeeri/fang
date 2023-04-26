@@ -26,6 +26,7 @@
 #ifndef ast_h
 #define ast_h
 #include "common.h"
+#include "scanner.h"
 #include "memory.h"
 #include "value.h"
 
@@ -81,8 +82,6 @@ typedef enum {
   AST_WHILE,
   AST_FOR,
   AST_BLOCK,
-  AST_DECL,
-  AST_STMT,
   AST_CALL,
   AST_SUBSCRIPT,
   AST_CAST,
@@ -91,7 +90,6 @@ typedef enum {
   AST_FN,
   AST_TYPE_DECL,
   AST_PARAM,
-  AST_PARAM_LIST,
   AST_LIST,
   AST_MAIN,
 } AST_TAG;
@@ -104,10 +102,10 @@ struct AST {
     struct AST_INITIALIZER { AST** assignments; } AST_INITIALIZER;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
-    struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
+    struct AST_TYPE_NAME { STRING* typeName; AST** components; } AST_TYPE_NAME;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
-    struct AST_DOT { AST *left; AST *right; } AST_DOT;
+    struct AST_DOT { AST *left; STRING* name; } AST_DOT;
     struct AST_IF { AST* condition; AST* body; AST* elseClause; } AST_IF;
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
     struct AST_FOR { AST* initializer; AST* condition; AST* increment; AST* body; } AST_FOR;
@@ -116,23 +114,22 @@ struct AST {
     struct AST_CAST { AST* identifier; AST* type; } AST_CAST;
     struct AST_RETURN { AST* value; } AST_RETURN;
     struct AST_EXIT { AST* value; } AST_EXIT;
-    struct AST_PARAM { AST* identifier; AST* type;  } AST_PARAM;
+    struct AST_PARAM { STRING* identifier; AST* type;  } AST_PARAM;
 
-    struct AST_ASSIGNMENT { AST* identifier; AST* expr; } AST_ASSIGNMENT;
-    struct AST_VAR_DECL { AST* identifier; AST* type; } AST_VAR_DECL;
-    struct AST_VAR_INIT { AST* identifier; AST* type; AST* expr; } AST_VAR_INIT;
-    struct AST_CONST_DECL { AST* identifier; AST* type; AST* expr; } AST_CONST_DECL;
+    struct AST_ASSIGNMENT { AST* lvalue; AST* expr; } AST_ASSIGNMENT;
+    struct AST_VAR_DECL { STRING* identifier; AST* type; } AST_VAR_DECL;
+    struct AST_VAR_INIT { STRING* identifier; AST* type; AST* expr; } AST_VAR_INIT;
+    struct AST_CONST_DECL { STRING* identifier; AST* type; AST* expr; } AST_CONST_DECL;
 
-    struct AST_FN { AST* identifier; AST** params; AST* returnType; AST* body; } AST_FN;
-    struct AST_TYPE_DECL { int index; AST** fields; } AST_TYPE_DECL;
+    struct AST_FN { STRING* identifier; AST** params; AST* returnType; AST* body; } AST_FN;
+    struct AST_TYPE_DECL { STRING* name; int index; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STRING** strings; } AST_ASM;
-    struct AST_STMT { AST* node; } AST_STMT;
-    struct AST_DECL { AST* node; } AST_DECL;
     struct AST_BLOCK { AST* body; } AST_BLOCK;
     struct AST_LIST { AST** decls; } AST_LIST;
     struct AST_MAIN { AST* body; } AST_MAIN;
   } data;
   TYPE_INDEX type;
+  Token token;
   uint64_t id;
 };
 
@@ -141,5 +138,8 @@ void ast_free(AST* ptr);
 const char* getNodeTypeName(AST_TAG tag);
 #define AST_NEW(tag, ...) \
   ast_new((AST){tag, {.tag=(struct tag){__VA_ARGS__}}, 0})
+
+#define AST_NEW_T(tag, t, ...) \
+  ast_new((AST){tag, {.tag=(struct tag){__VA_ARGS__}}, 0, t, 0})
 
 #endif

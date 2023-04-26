@@ -88,7 +88,7 @@ void ast_free(AST *ptr) {
     case AST_DOT: {
       struct AST_DOT data = ast.data.AST_DOT;
       ast_free(data.left);
-      ast_free(data.right);
+      STRING_free(data.name);
       break;
     }
     case AST_WHILE: {
@@ -112,40 +112,30 @@ void ast_free(AST *ptr) {
       ast_free(data.elseClause);
       break;
     }
-    case AST_DECL: {
-      struct AST_DECL data = ast.data.AST_DECL;
-      ast_free(data.node);
-      break;
-    }
     case AST_CONST_DECL: {
       struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.type);
       ast_free(data.expr);
       break;
     }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.type);
       break;
     }
     case AST_VAR_INIT: {
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.type);
       ast_free(data.expr);
       break;
     }
     case AST_ASSIGNMENT: {
       struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-      ast_free(data.identifier);
+      ast_free(data.lvalue);
       ast_free(data.expr);
-      break;
-    }
-    case AST_STMT: {
-      struct AST_STMT data = ast.data.AST_STMT;
-      ast_free(data.node);
       break;
     }
     case AST_EXIT: {
@@ -183,7 +173,7 @@ void ast_free(AST *ptr) {
     }
     case AST_FN: {
       struct AST_FN data = ast.data.AST_FN;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.returnType);
       ast_free(data.body);
 
@@ -195,7 +185,7 @@ void ast_free(AST *ptr) {
     }
     case AST_PARAM: {
       struct AST_PARAM data = ast.data.AST_PARAM;
-      ast_free(data.identifier);
+      STRING_free(data.identifier);
       ast_free(data.type);
       break;
     }
@@ -228,15 +218,12 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_MAIN: return "MAIN";
     case AST_LIST: return "LIST";
     case AST_BLOCK: return "BLOCK";
-    case AST_PARAM_LIST: return "PARAM_LIST";
     case AST_PARAM: return "PARAM";
     case AST_FN: return "FN";
     case AST_TYPE_DECL: return "TYPE_DECL";
     case AST_CALL: return "CALL";
     case AST_RETURN: return "RETURN";
     case AST_EXIT: return "EXIT";
-    case AST_STMT: return "STMT";
-    case AST_DECL: return "DECL";
     case AST_FOR: return "FOR";
     case AST_WHILE: return "WHILE";
     case AST_IF: return "IF";

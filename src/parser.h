@@ -29,6 +29,7 @@
 #include "ast.h"
 
 AST* parse(const char* source);
+void errorAt(Token* token, const char* message);
 void testScanner(const char* source);
 
 #endif

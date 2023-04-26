@@ -167,19 +167,6 @@ static int traverse(FILE* f, AST* ptr) {
       struct AST_BLOCK data = ast.data.AST_BLOCK;
       return traverse(f, data.body);
     }
-    case AST_DECL: {
-      struct AST_DECL data = ast.data.AST_DECL;
-      int r = traverse(f, data.node);
-      //emitf("\n");
-      return r;
-      break;
-    }
-    case AST_STMT: {
-      struct AST_STMT data = ast.data.AST_STMT;
-      int r = traverse(f, data.node);
-      return r;
-      break;
-    }
     case AST_ASM: {
       struct AST_ASM data = ast.data.AST_ASM;
       for (int i = 0; i < arrlen(data.strings); i++) {

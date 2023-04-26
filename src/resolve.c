@@ -23,444 +23,328 @@
    SOFTWARE.
    */
 
+#include <stdio.h>
 #include "common.h"
+#include "parser.h"
 #include "ast.h"
-#include "environment.h"
 #include "type_table.h"
+#include "symbol_table.h"
 
-static bool resolveTopLevel(AST* ptr, Environment* context) {
+static bool resolveTopLevel(AST* ptr) {
   if (ptr == NULL) {
     return true;
   }
   AST ast = *ptr;
   switch(ast.tag) {
     case AST_ERROR:
-    {
-      return false;
-    }
+      {
+        return false;
+      }
     case AST_MAIN:
-    {
-      struct AST_MAIN data = ast.data.AST_MAIN;
-      return resolveTopLevel(data.body, context);
-    }
+      {
+        struct AST_MAIN data = ast.data.AST_MAIN;
+        return resolveTopLevel(data.body);
+      }
     case AST_LIST:
-    {
-      bool r;
-      struct AST_LIST data = ast.data.AST_LIST;
-      for (int i = 0; i < arrlen(data.decls); i++) {
-        r = resolveTopLevel(data.decls[i], context);
-        if (!r) {
-          return false;
+      {
+        bool r;
+        struct AST_LIST data = ast.data.AST_LIST;
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          r = resolveTopLevel(data.decls[i]);
+          if (!r) {
+            return false;
+          }
         }
+        return r;
       }
-      return r;
-    }
-    case AST_DECL:
-    {
-      struct AST_DECL data = ast.data.AST_DECL;
-      return resolveTopLevel(data.node, context);
-    }
     case AST_TYPE_DECL:
-    {
-      struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-      STRING* identifier = typeTable[data.index].name;
-      printf("declaration: type %s {\n", identifier->chars);
-      TYPE_TABLE_FIELD_ENTRY* fields = NULL;
+      {
+        struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
+        STRING* identifier = typeTable[data.index].name;
+        TYPE_TABLE_FIELD_ENTRY* fields = NULL;
 
-      for (int i = 0; i < arrlen(data.fields); i++) {
-        struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
-        STRING* fieldName = field.identifier->data.AST_LVALUE.identifier;
-        STRING* fieldType = field.type->data.AST_TYPE_NAME.typeName;
-        int index = TYPE_TABLE_lookup(fieldType);
-        if (index == 0) {
-          printf("type look up failed: %s %i\n", fieldType->chars, index);
-          arrfree(fields);
-          return false;
+        for (int i = 0; i < arrlen(data.fields); i++) {
+          struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
+          STRING* fieldName = field.identifier;
+          STRING* fieldType = field.type->data.AST_TYPE_NAME.typeName;
+          int index = TYPE_TABLE_lookup(fieldType);
+          if (index == 0) {
+            arrfree(fields);
+            return false;
+          }
+          arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = fieldName } ));
         }
-        printf("  %s: %s\n", fieldName->chars, fieldType->chars);
-        arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = fieldName } ));
+        TYPE_TABLE_define(data.index, 0, fields);
+        return true;
       }
-      TYPE_TABLE_define(data.index, 0, fields);
-      printf("}\n");
-      return true;
-    }
-    case AST_FN:
-    {
-      struct AST_FN data = ast.data.AST_FN;
-      STRING* identifier = data.identifier->data.AST_LVALUE.identifier;
-      printf("declaration: FN %s\n", identifier->chars);
-      return true;
-    }
     default:
-    {
-      return true;
-    }
+      {
+        return true;
+      }
   }
   return false;
 }
 
-/*
-   static Value traverse(AST* ptr, Environment* context) {
-   if (ptr == NULL) {
-   return U8(0);
-   }
-   AST ast = *ptr;
-   switch(ast.tag) {
-   case AST_ERROR:
-   {
-   return ERROR(0);
-   }
-   case AST_MAIN:
-   {
-   struct AST_MAIN data = ast.data.AST_MAIN;
-   return traverse(data.body, context);
-   }
-   case AST_RETURN:
-   {
-   struct AST_RETURN data = ast.data.AST_RETURN;
-   return traverse(data.value, context);
-   }
-   case AST_EXIT:
-   {
-   struct AST_EXIT data = ast.data.AST_EXIT;
-   return traverse(data.value, context);
-   }
-   case AST_BLOCK:
-   {
-   struct AST_BLOCK data = ast.data.AST_BLOCK;
-   Environment env = beginScope(context);
-   return traverse(data.body, &env);
-   endScope(&env);
-   }
-   case AST_LIST:
-   {
-   Value r;
-   struct AST_LIST data = ast.data.AST_LIST;
-   for (int i = 0; i < arrlen(data.decls); i++) {
-   r = traverse(data.decls[i], context);
-   if (IS_ERROR(r)) {
-   return r;
-   }
-   }
-   return r;
-   }
-   case AST_DECL:
-   {
-   struct AST_DECL data = ast.data.AST_DECL;
-   return traverse(data.node, context);
-   }
-   case AST_STMT:
-   {
-   struct AST_STMT data = ast.data.AST_STMT;
-   return traverse(data.node, context);
-   }
-   case AST_ASM:
-   {
-   return U8(0);
-   }
-   case AST_LITERAL:
-   {
-   struct AST_LITERAL data = ast.data.AST_LITERAL;
-   return CONST_TABLE_get(data.constantIndex); // data.value;
-   }
-   case AST_LVALUE:
-   {
-   struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-   STRING* identifier = data.identifier;
-   return STRING(identifier);
-   }
-   case AST_IDENTIFIER:
-{
-  struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-  STRING* identifier = data.identifier;
-  return getSymbol(context, identifier->chars);
-}
-case AST_UNARY:
-{
-  struct AST_UNARY data = ast.data.AST_UNARY;
-  Value value = traverse(data.expr, context);
-  if (IS_ERROR(value)) {
-    return value;
+static bool traverse(AST* ptr) {
+  if (ptr == NULL) {
+    return true;
   }
-  switch(data.op) {
-    case OP_NEG:
+  AST ast = *ptr;
+  switch(ast.tag) {
+    case AST_ERROR:
       {
-        if (IS_NUMERICAL(value)) {
-          return getNumericalValue(-AS_NUMBER(value));
-        }
+        return false;
       }
-    case OP_NOT:
+    case AST_MAIN:
       {
-        return BOOL_VAL(!isTruthy(value));
+        struct AST_MAIN data = ast.data.AST_MAIN;
+        return traverse(data.body);
       }
-      //case OP_REF: str = "$"; break;
-      //case OP_DEREF: str = "@"; break;
+    case AST_RETURN:
+      {
+        struct AST_RETURN data = ast.data.AST_RETURN;
+        return traverse(data.value);
+      }
+    case AST_EXIT:
+      {
+        struct AST_EXIT data = ast.data.AST_EXIT;
+        return traverse(data.value);
+      }
+    case AST_BLOCK:
+      {
+        struct AST_BLOCK data = ast.data.AST_BLOCK;
+        SYMBOL_TABLE_openScope();
+        bool r = traverse(data.body);
+        SYMBOL_TABLE_closeScope();
+        return r;
+      }
+    case AST_LIST:
+      {
+        bool r;
+        struct AST_LIST data = ast.data.AST_LIST;
+        int* deferred = NULL;
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          // Hoist FN resolution until after the main code
+          // for type-check reasons
+          if (data.decls[i]->tag == AST_FN) {
+            arrput(deferred, i);
+            continue;
+          }
+          r = traverse(data.decls[i]);
+          if (!r) {
+            arrfree(deferred);
+            return false;
+          }
+        }
+
+        for (int i = 0; i < arrlen(deferred); i++) {
+          r = traverse(data.decls[deferred[i]]);
+          if (!r) {
+            printf("fail\n");
+            arrfree(deferred);
+            return false;
+          }
+        }
+        arrfree(deferred);
+        return r;
+      }
+    case AST_VAR_INIT:
+      {
+        struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
+        STRING* identifier = data.identifier;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
+        return true;
+      }
+    case AST_VAR_DECL:
+      {
+        struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
+        STRING* identifier = data.identifier;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
+        return true;
+      }
+    case AST_CONST_DECL:
+      {
+        struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+        STRING* identifier = data.identifier;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, 0);
+        return true;
+      }
+    case AST_ASSIGNMENT:
+      {
+        struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
+        bool ident = traverse(data.lvalue);
+        bool expr = traverse(data.expr);
+        return ident && expr;
+      }
+    case AST_ASM:
+      {
+        return true;
+      }
+    case AST_TYPE_NAME:
+      {
+        struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
+        if (data.components) {
+          for (int i = 0; i < arrlen(data.components); i++) {
+            //struct AST_TYPE_NAME component = data.components[i]->data.AST_TYPE_NAME;
+            bool r = traverse(data.components[i]);
+            if (!r) {
+              return false;
+            }
+          }
+        } else {
+          int index = TYPE_TABLE_lookup(data.typeName);
+          if (index == 0) {
+            // arrfree(fields);
+            return false;
+          }
+        }
+        return true;
+      }
+    case AST_FN:
+      {
+        struct AST_FN data = ast.data.AST_FN;
+        STRING* identifier = data.identifier;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_FUNCTION, 0);
+        bool r = traverse(data.returnType);
+        if (!r) {
+          return false;
+        }
+        SYMBOL_TABLE_openScope();
+        for (int i = 0; i < arrlen(data.params); i++) {
+          struct AST_PARAM param = data.params[i]->data.AST_PARAM;
+          STRING* paramName = param.identifier;
+          STRING* paramType = param.type->data.AST_TYPE_NAME.typeName;
+          int index = TYPE_TABLE_lookup(paramType);
+          if (index == 0) {
+            // arrfree(fields);
+            return false;
+          }
+          SYMBOL_TABLE_put(paramName, SYMBOL_TYPE_PARAMETER, 0);
+          // arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = fieldName } ));
+        }
+        // TODO: Store params in type table
+        r = traverse(data.body);
+        SYMBOL_TABLE_closeScope();
+        return r;
+      }
+    case AST_IDENTIFIER:
+      {
+        struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+        STRING* identifier = data.identifier;
+        bool result = SYMBOL_TABLE_scopeHas(identifier);
+        if (!result) {
+          errorAt(&ast.token, "Identifier was not found.");
+        }
+
+        return result;
+      }
+    case AST_LVALUE:
+      {
+        struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+        STRING* identifier = data.identifier;
+        return SYMBOL_TABLE_scopeHas(identifier);
+      }
+    case AST_UNARY:
+      {
+        struct AST_UNARY data = ast.data.AST_UNARY;
+        return traverse(data.expr);
+      }
+    case AST_BINARY:
+      {
+        struct AST_BINARY data = ast.data.AST_BINARY;
+        return traverse(data.left) && traverse(data.right);
+      }
+    case AST_IF:
+      {
+        struct AST_IF data = ast.data.AST_IF;
+        bool r = traverse(data.condition);
+        if (!r) {
+          return false;
+        }
+        r = traverse(data.body);
+        if (!r) {
+          return false;
+        }
+        if (data.elseClause != NULL) {
+          r = traverse(data.elseClause);
+          if (!r) {
+            return false;
+          }
+        }
+        return true;
+      }
+    case AST_WHILE:
+      {
+        struct AST_WHILE data = ast.data.AST_WHILE;
+        bool r = traverse(data.condition);
+        if (!r) {
+          return false;
+        }
+        r = traverse(data.body);
+        if (!r) {
+          return false;
+        }
+        return true;
+      }
+    case AST_FOR:
+      {
+        struct AST_FOR data = ast.data.AST_FOR;
+        SYMBOL_TABLE_openScope();
+        bool r = traverse(data.initializer);
+        if (!r) {
+          return false;
+        }
+        r = traverse(data.condition);
+        if (!r) {
+          return false;
+        }
+        r = traverse(data.body);
+        if (!r) {
+          return false;
+        }
+        r = traverse(data.increment);
+        if (!r) {
+          return false;
+        }
+        SYMBOL_TABLE_closeScope();
+        return true;
+      }
+    case AST_DOT:
+      {
+        struct AST_DOT data = ast.data.AST_DOT;
+        bool r = traverse(data.left);
+        // Need to pass type upwards to validate field name
+        if (!r) {
+          return false;
+        }
+        // TODO: check right for existance of field
+        return false;
+      }
+    case AST_CALL:
+      {
+        struct AST_CALL data = ast.data.AST_CALL;
+        bool r = traverse(data.identifier);
+        // Call should contain it's arguments
+        for (int i = 0; i < arrlen(data.arguments); i++) {
+          r = traverse(data.arguments[i]);
+          if (!r) {
+            return false;
+          }
+        }
+        return true;
+      }
+    default:
+      {
+        return true;
+      }
   }
-  return ERROR(0);
-}
-case AST_BINARY:
-{
-  struct AST_BINARY data = ast.data.AST_BINARY;
-  Value left = traverse(data.left, context);
-  Value right = traverse(data.right, context);
-  if (IS_ERROR(left)) {
-    return left;
-  }
-  if (IS_ERROR(right)) {
-    return right;
-  }
-  if (data.left->type != data.right->type) {
-    printf("%s vs %s\n", getNodeTypeName(data.left->tag), getNodeTypeName(data.right->tag));
-    return ERROR(0);
-  }
-  switch(data.op) {
-    case OP_ADD:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) + AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_SUB:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) - AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_MUL:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) * AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_DIV:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) / AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_MOD:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) % AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_GREATER:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return BOOL_VAL(AS_NUMBER(left) > AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_LESS:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return BOOL_VAL(AS_NUMBER(left) < AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_GREATER_EQUAL:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return BOOL_VAL(AS_NUMBER(left) >= AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_LESS_EQUAL:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return BOOL_VAL(AS_NUMBER(left) <= AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_COMPARE_EQUAL:
-      {
-        return BOOL_VAL(isEqual(left, right));
-      };
-    case OP_NOT_EQUAL:
-      {
-        return BOOL_VAL(!isEqual(left, right));
-      };
-    case OP_OR:
-      {
-        return BOOL_VAL(isTruthy(left) || isTruthy(right));
-      };
-    case OP_AND:
-      {
-        return BOOL_VAL(isTruthy(left) && isTruthy(right));
-      };
-    case OP_SHIFT_LEFT:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) << AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_SHIFT_RIGHT:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) >> AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_BITWISE_OR:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) | AS_NUMBER(right));
-        }
-        break;
-      };
-    case OP_BITWISE_AND:
-      {
-        if (IS_NUMERICAL(left) && IS_NUMERICAL(right)) {
-          return getTypedNumberValue(left.type, AS_NUMBER(left) & AS_NUMBER(right));
-        }
-        break;
-      };
-      return ERROR(0);
-  }
-  break;
-}
-case AST_CONST_DECL:
-{
-  struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-  Value identifier = traverse(data.identifier, context);
-  Value type = traverse(data.type, context);
-  Value expr = traverse(data.expr, context);
-  bool success = define(context, AS_STRING(identifier)->chars, expr, true);
-  return success ? EMPTY() : ERROR(1);
-}
-case AST_VAR_DECL:
-{
-  struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-  Value identifier = traverse(data.identifier, context);
-  Value type = traverse(data.type, context);
-  define(context, AS_STRING(identifier)->chars, EMPTY(), false);
-  return EMPTY();
+  return false;
 }
 
-case AST_VAR_INIT:
-{
-  struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-  Value identifier = traverse(data.identifier, context);
-  Value type = traverse(data.type, context);
-  Value expr = traverse(data.expr, context);
-  define(context, AS_STRING(identifier)->chars, expr, false);
-  return expr;
-}
-case AST_ASSIGNMENT:
-{
-  struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-  Value identifier = traverse(data.identifier, context);
-  Value expr = traverse(data.expr, context);
-  bool success = assign(context, AS_STRING(identifier)->chars, expr);
-  return success ? expr : ERROR(1);
-}
-case AST_IF:
-{
-  struct AST_IF data = ast.data.AST_IF;
-  Value condition = traverse(data.condition, context);
-  Value value = EMPTY();
-  Environment env = beginScope(context);
-  if (isTruthy(condition)) {
-    value = traverse(data.body, &env);
-  } else if (data.elseClause != NULL) {
-    value = traverse(data.elseClause, &env);
-  }
-  endScope(&env);
-  return value;
-}
-case AST_WHILE:
-{
-  struct AST_WHILE data = ast.data.AST_WHILE;
-  Value condition = traverse(data.condition, context);
-  Value value = EMPTY();
-  while (isTruthy(condition)) {
-    Environment env = beginScope(context);
-    value = traverse(data.body, &env);
-    endScope(&env);
-
-    condition = traverse(data.condition, context);
-  }
-  return value;
-}
-case AST_FOR:
-{
-  struct AST_FOR data = ast.data.AST_FOR;
-  Value value = EMPTY();
-  Environment forEnv = beginScope(context);
-  Value initializer = traverse(data.initializer, &forEnv);
-  Value condition = traverse(data.condition, &forEnv);
-  while (isTruthy(condition)) {
-    Environment env = beginScope(&forEnv);
-    value = traverse(data.body, &env);
-    endScope(&env);
-    Value increment = traverse(data.increment, &forEnv);
-    condition = traverse(data.condition, &forEnv);
-  }
-  endScope(&forEnv);
-
-  return value;
-}
-case AST_CALL:
-{
-  struct AST_CALL data = ast.data.AST_CALL;
-  Value identifier = traverse(data.identifier, context);
-  // Call should contain it's arguments
-
-
-  // traverse(data.params, context);
-  break;
-}
-   case AST_TYPE_DECL:
-   {
-   struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-   traverse(r, context);
-   traverse(s, context);
-   break;
-   }
-   case AST_FN:
-   {
-   struct AST_FN data = ast.data.AST_FN;
-   traverse(r, context);
-   traverse(t, context);
-   traverse(e, context);
-   traverse(y, context);
-   break;
-   }
-   case AST_PARAM:
-   {
-   struct AST_PARAM data = ast.data.AST_PARAM;
-   traverse(r, context);
-   traverse(e, context);
-   break;
-   }
-   case AST_DOT:
-   {
-   struct AST_DOT data = ast.data.AST_DOT;
-   char* str = ".";
-   traverse(t, context);
-
-   traverse(t, context);
-   break;
-   }
-default:
-{
-  return EMPTY();
-}
-}
-return ERROR(0);
-}
-
-*/
 
 bool resolveTree(AST* ptr) {
-  Environment context = { NULL, NULL };
-  bool success = resolveTopLevel(ptr, &context);
+  SYMBOL_TABLE_init();
+  bool success = resolveTopLevel(ptr);
   if (!success) {
     return false;
   }
@@ -468,7 +352,10 @@ bool resolveTree(AST* ptr) {
   if (!success) {
     return false;
   }
+  success &= traverse(ptr);
+  SYMBOL_TABLE_closeScope();
   TYPE_TABLE_report();
+  SYMBOL_TABLE_report();
   return success;
 }
 

@@ -26,6 +26,6 @@
 #define traverse_h
 #include "ast.h"
 
-void traverseTree(AST* ptr);
+void printTree(AST* ptr);
 
 #endif

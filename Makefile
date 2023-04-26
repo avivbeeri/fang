@@ -9,7 +9,7 @@ OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
 .phony: clean
 
 
-fcc: $(OBJECTS)
+fgcc: $(OBJECTS)
 	$(CC) $^ $(CFLAGS) -o $@ -fsanitize=address
 
 test: file.o
@@ -20,12 +20,12 @@ test: file.o
         -arch arm64
 file.o: file.S
 	as -o file.o file.S
-file.S: fcc test.fg
-	./fcc 
+file.S: fgcc test.fg
+	./fgcc 
 
 $(OBJ)/%.o: $(SRC)/%.c
 	$(CC) -I$(SRC) -c $< $(CFLAGS) -o $@
 
 clean:
 	rm obj/*.o
-	rm fcc
+	rm fgcc
