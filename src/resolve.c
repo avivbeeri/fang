@@ -47,7 +47,7 @@ static bool resolveTopLevel(AST* ptr) {
       }
     case AST_LIST:
       {
-        bool r;
+        bool r = true;
         struct AST_LIST data = ast.data.AST_LIST;
         for (int i = 0; i < arrlen(data.decls); i++) {
           r = resolveTopLevel(data.decls[i]);
@@ -75,6 +75,12 @@ static bool resolveTopLevel(AST* ptr) {
           arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = fieldName } ));
         }
         TYPE_TABLE_define(data.index, 0, fields);
+        return true;
+      }
+    case AST_FN:
+      {
+        struct AST_FN data = ast.data.AST_FN;
+        SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, 9);
         return true;
       }
     default:
@@ -120,7 +126,7 @@ static bool traverse(AST* ptr) {
       }
     case AST_LIST:
       {
-        bool r;
+        bool r = true;
         struct AST_LIST data = ast.data.AST_LIST;
         int* deferred = NULL;
         for (int i = 0; i < arrlen(data.decls); i++) {
@@ -201,6 +207,7 @@ static bool traverse(AST* ptr) {
       {
         struct AST_FN data = ast.data.AST_FN;
         STRING* identifier = data.identifier;
+        // Define symbol with parameter types
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_FUNCTION, 0);
         bool r = traverse(data.returnType);
         if (!r) {
@@ -231,6 +238,7 @@ static bool traverse(AST* ptr) {
         bool result = SYMBOL_TABLE_scopeHas(identifier);
         if (!result) {
           errorAt(&ast.token, "Identifier was not found.");
+          return false;
         }
 
         return result;
@@ -332,6 +340,9 @@ static bool traverse(AST* ptr) {
       {
         struct AST_CALL data = ast.data.AST_CALL;
         bool r = traverse(data.identifier);
+        if (!r) {
+          return false;
+        }
         // Call should contain it's arguments
         for (int i = 0; i < arrlen(data.arguments); i++) {
           r = traverse(data.arguments[i]);
