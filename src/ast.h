@@ -94,12 +94,18 @@ typedef enum {
   AST_MAIN,
 } AST_TAG;
 
+typedef enum {
+  INIT_TYPE_NONE,
+  INIT_TYPE_RECORD,
+  INIT_TYPE_ARRAY,
+} INIT_TYPE;
+
 struct AST {
   AST_TAG tag;
   union {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_LITERAL { int constantIndex; } AST_LITERAL;
-    struct AST_INITIALIZER { AST** assignments; } AST_INITIALIZER;
+    struct AST_INITIALIZER { AST** assignments; INIT_TYPE initType; } AST_INITIALIZER;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
     struct AST_TYPE_NAME { STRING* typeName; AST** components; } AST_TYPE_NAME;
@@ -110,11 +116,11 @@ struct AST {
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
     struct AST_FOR { AST* initializer; AST* condition; AST* increment; AST* body; } AST_FOR;
     struct AST_CALL { AST* identifier; AST** arguments; } AST_CALL;
-    struct AST_SUBSCRIPT { AST* identifier; AST* index; } AST_SUBSCRIPT;
+    struct AST_SUBSCRIPT { AST* left; AST* index; } AST_SUBSCRIPT;
     struct AST_CAST { AST* identifier; AST* type; } AST_CAST;
     struct AST_RETURN { AST* value; } AST_RETURN;
     struct AST_EXIT { AST* value; } AST_EXIT;
-    struct AST_PARAM { STRING* identifier; AST* type;  } AST_PARAM;
+    struct AST_PARAM { STRING* identifier; AST* value;  } AST_PARAM;
 
     struct AST_ASSIGNMENT { AST* lvalue; AST* expr; } AST_ASSIGNMENT;
     struct AST_VAR_DECL { STRING* identifier; AST* type; } AST_VAR_DECL;

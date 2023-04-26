@@ -141,13 +141,24 @@ static void traverse(AST* ptr, int level) {
     case AST_INITIALIZER: {
       struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
       printf("%*s", level * 2, "");
-      printf("{\n");
-      for (int i = 0; i < arrlen(data.assignments); i++) {
-        printf("%*s", (level+1) * 2, "");
-        traverse(data.assignments[i], level + 1);
-        printf(";\n");
+      if (data.initType == INIT_TYPE_RECORD) {
+        printf("{\n");
+        for (int i = 0; i < arrlen(data.assignments); i++) {
+          printf("%*s", (level+1) * 2, "");
+          traverse(data.assignments[i], level + 1);
+          printf(";\n");
+        }
+        printf("%*s}", (level+1) * 2, "");
+      } else if (data.initType == INIT_TYPE_ARRAY) {
+        printf("[ ");
+        for (int i = 0; i < arrlen(data.assignments); i++) {
+          traverse(data.assignments[i], 0);
+          if (i < arrlen(data.assignments) - 1) {
+            printf(", ");
+          }
+        }
+        printf(" ]");
       }
-      printf("%*s}", (level+1) * 2, "");
       break;
     }
     case AST_FN: {
@@ -215,7 +226,7 @@ static void traverse(AST* ptr, int level) {
       struct AST_PARAM data = ast.data.AST_PARAM;
       printf("%s", data.identifier->chars);
       printf(": ");
-      traverse(data.type, 0);
+      traverse(data.value, 0);
       break;
     }
     case AST_LIST: {
@@ -268,6 +279,14 @@ static void traverse(AST* ptr, int level) {
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
       printf("%s", data.identifier->chars);
+      break;
+    }
+    case AST_SUBSCRIPT: {
+      struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+      traverse(data.left, 0);
+      printf("[");
+      traverse(data.index, 0);
+      printf("]");
       break;
     }
     case AST_UNARY: {

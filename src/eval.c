@@ -276,8 +276,8 @@ static Value traverse(AST* ptr, Environment* context) {
 
     case AST_SUBSCRIPT: {
       struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+      Value identifier = traverse(data.left, context);
       Value index = traverse(data.index, context);
-      Value identifier = traverse(data.identifier, context);
       // TODO: index using identifier
       return identifier;
     }

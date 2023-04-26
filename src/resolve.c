@@ -66,7 +66,7 @@ static bool resolveTopLevel(AST* ptr) {
         for (int i = 0; i < arrlen(data.fields); i++) {
           struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
           STRING* fieldName = field.identifier;
-          STRING* fieldType = field.type->data.AST_TYPE_NAME.typeName;
+          STRING* fieldType = field.value->data.AST_TYPE_NAME.typeName;
           int index = TYPE_TABLE_lookup(fieldType);
           if (index == 0) {
             arrfree(fields);
@@ -140,7 +140,6 @@ static bool traverse(AST* ptr) {
         for (int i = 0; i < arrlen(deferred); i++) {
           r = traverse(data.decls[deferred[i]]);
           if (!r) {
-            printf("fail\n");
             arrfree(deferred);
             return false;
           }
@@ -153,21 +152,21 @@ static bool traverse(AST* ptr) {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
         STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
-        return true;
+        return traverse(data.type) && traverse(data.expr);
       }
     case AST_VAR_DECL:
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
-        return true;
+        return traverse(data.type);
       }
     case AST_CONST_DECL:
       {
         struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
         STRING* identifier = data.identifier;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, 0);
-        return true;
+        return traverse(data.type) && traverse(data.expr);
       }
     case AST_ASSIGNMENT:
       {
@@ -213,7 +212,7 @@ static bool traverse(AST* ptr) {
         for (int i = 0; i < arrlen(data.params); i++) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
           STRING* paramName = param.identifier;
-          STRING* paramType = param.type->data.AST_TYPE_NAME.typeName;
+          STRING* paramType = param.value->data.AST_TYPE_NAME.typeName;
           int index = TYPE_TABLE_lookup(paramType);
           if (index == 0) {
             // arrfree(fields);
@@ -237,6 +236,17 @@ static bool traverse(AST* ptr) {
         }
 
         return result;
+      }
+    case AST_INITIALIZER:
+      {
+        struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
+        for (int i = 0; i < arrlen(data.assignments); i++) {
+          bool r = traverse(data.assignments[i]);
+          if (!r) {
+            return false;
+          }
+        }
+        return true;
       }
     case AST_LVALUE:
       {

@@ -179,56 +179,16 @@ static AST* string(bool canAssign) {
   return AST_NEW_T(AST_LITERAL, parser.previous, index);
 }
 
-static AST* type() {
-  if (match(TOKEN_TYPE_NAME)) {
-    STRING* string = copyString(parser.previous.start, parser.previous.length);
-    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
-  } else if (match(TOKEN_LEFT_PAREN)) {
-    // Function pointer
-    size_t len = 16;
-    char* buffer = reallocate(NULL, 0, len * sizeof(char));
-    size_t i = 0;
-    AST** components = NULL;
-    Token start = parser.previous;
-    APPEND_STR(i, len, buffer, "(");
-    if (!check(TOKEN_RIGHT_PAREN)) {
-      do {
-        AST* paramType = type();
-        arrput(components, paramType);
-        APPEND_STR(i, len, buffer, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
-        if (check(TOKEN_COMMA)) {
-          APPEND_STR(i, len, buffer, ", ");
-        }
-      } while (match(TOKEN_COMMA));
-    }
-    consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
-    consume(TOKEN_COLON, "Expect ':' after a function pointer type");
-    AST* resultType = type();
-    arrput(components, resultType);
-    APPEND_STR(i, len, buffer, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
-
-    printf("SIGNATURE: %s\n", buffer);
-    STRING* str = copyString(buffer, i);
-    FREE(char, buffer);
-    return AST_NEW_T(AST_TYPE_NAME, start, str, components);
-  } else {
-    consume(TOKEN_IDENTIFIER, "Expect a type after identifier");
-    STRING* string = copyString(parser.previous.start, parser.previous.length);
-    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
-  }
-}
-
 static AST* array(bool canAssign) {
   AST** values = NULL;
   if (!check(TOKEN_RIGHT_BRACKET)) {
     do {
-      // Becomes an assignment statement because of the coming equality sign
-      AST* value = parsePrecedence(PREC_SUBSCRIPT);
+      AST* value = parsePrecedence(PREC_OR);
       arrput(values, value);
     } while (match(TOKEN_COMMA));
   }
   consume(TOKEN_RIGHT_BRACKET, "Expect ']' after a record literal.");
-  return AST_NEW(AST_INITIALIZER, values);
+  return AST_NEW(AST_INITIALIZER, values, INIT_TYPE_ARRAY);
 }
 
 static AST* subscript(bool canAssign, AST* left) {
@@ -253,11 +213,11 @@ static AST* record(bool canAssign) {
       consume(TOKEN_EQUAL, "Expect '=' after field name in record literal.");
       AST* value = expression();
       consume(TOKEN_SEMICOLON, "Expect ';' after field in record literal.");
-      arrput(assignments, AST_NEW(AST_ASSIGNMENT, AST_NEW(AST_IDENTIFIER, name), value));
+      arrput(assignments, AST_NEW(AST_PARAM, name, value));
     } while (!check(TOKEN_RIGHT_BRACE));
   }
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after a record literal.");
-  return AST_NEW_T(AST_INITIALIZER, start, assignments);
+  return AST_NEW_T(AST_INITIALIZER, start, assignments, INIT_TYPE_RECORD);
 }
 
 static AST* literal(bool canAssign) {
@@ -326,7 +286,7 @@ static AST* ref(bool canAssign) {
   AST* expr = NULL;
   switch (operatorType) {
     case TOKEN_AT: expr = AST_NEW_T(AST_UNARY, start, OP_DEREF, operand); break;
-    case TOKEN_CARET: expr = AST_NEW_T(AST_UNARY, start, OP_REF, operand); break;
+    case TOKEN_DOLLAR: expr = AST_NEW_T(AST_UNARY, start, OP_REF, operand); break;
     default: expr = AST_NEW_T(AST_ERROR, start, 0); break;
   }
 
@@ -363,6 +323,68 @@ static AST* asmDecl() {
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after keyword 'asm'.");
   consume(TOKEN_SEMICOLON, "Expect ';' after asm declaration.");
   return AST_NEW(AST_ASM, output);
+}
+
+static AST* type() {
+  AST** components = NULL;
+  Token start = parser.current;
+  size_t len = 16;
+  char* buffer = reallocate(NULL, 0, len * sizeof(char));
+  size_t i = 0;
+
+  bool typeFound = false;
+
+  if (match(TOKEN_DOLLAR)) {
+    typeFound = true;
+    APPEND_STR(i, len, buffer, "$");
+    AST* subType = type();
+    arrput(components, subType);
+    APPEND_STR(i, len, buffer, "%s", subType->data.AST_TYPE_NAME.typeName->chars);
+  } else if (match(TOKEN_LEFT_PAREN)) {
+    typeFound = true;
+    // Function pointer
+    APPEND_STR(i, len, buffer, "(");
+    if (!check(TOKEN_RIGHT_PAREN)) {
+      do {
+        AST* paramType = type();
+        arrput(components, paramType);
+        APPEND_STR(i, len, buffer, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
+        if (check(TOKEN_COMMA)) {
+          APPEND_STR(i, len, buffer, ", ");
+        }
+      } while (match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
+    consume(TOKEN_COLON, "Expect ':' after a function pointer type");
+    AST* resultType = type();
+    APPEND_STR(i, len, buffer, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
+    printf("SIGNATURE: %s\n", buffer);
+  } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
+    typeFound = true;
+
+    STRING* string = copyString(parser.previous.start, parser.previous.length);
+    arrput(components, AST_NEW_T(AST_TYPE_NAME, parser.previous, string));
+    APPEND_STR(i, len, buffer, "%s", string->chars);
+  } else {
+    errorAtCurrent("Expecting a type declaration.");
+  }
+
+  while (typeFound && match(TOKEN_CARET)) {
+    APPEND_STR(i, len, buffer, " ^ ");
+    consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
+    AST* length = number(false);
+    arrput(components, length);
+    APPEND_STR(i, len, buffer, "%i", AS_LIT_NUM(CONST_TABLE_get(length->data.AST_LITERAL.constantIndex)));
+  }
+
+  STRING* str = NULL;
+  if (i > 0) {
+    str = copyString(buffer, i);
+  } else {
+    str = copyString(start.start, start.length);
+  }
+  FREE(char, buffer);
+  return AST_NEW_T(AST_TYPE_NAME, start, str, components);
 }
 
 static AST** argumentList() {
@@ -534,7 +556,7 @@ ParseRule rules[] = {
   [TOKEN_DOT]             = {NULL,     dot,    PREC_CALL},
   [TOKEN_AS]              = {NULL,     as,     PREC_AS},
   [TOKEN_AT]              = {ref,    NULL,   PREC_REF},
-  [TOKEN_CARET]          = {ref,    NULL,   PREC_REF},
+  [TOKEN_DOLLAR]          = {ref,    NULL,   PREC_REF},
   [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
 

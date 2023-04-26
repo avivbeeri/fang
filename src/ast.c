@@ -186,7 +186,7 @@ void ast_free(AST *ptr) {
     case AST_PARAM: {
       struct AST_PARAM data = ast.data.AST_PARAM;
       STRING_free(data.identifier);
-      ast_free(data.type);
+      ast_free(data.value);
       break;
     }
     case AST_BLOCK: {

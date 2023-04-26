@@ -7,21 +7,24 @@
   "svc 0"
 }; */
 
-var g: i8[4] = [ 1, 2, 3, 4 ];
+type TableEntry {
+  f: string;
+  h: i8;
+}
+var y: i8 = 5;
+var g: i8 ^ 5 ^ 7 = [ 1, y, 3, 4 ];
 g[5] = 5;
 var a: TableEntry = {
+  y = 0;
   f = {
     g = 6;
     j = "hello";
   };
   h = 6;
 };
-type TableEntry {
-  f: string;
-  h: i8;
-}
 
-fn test(f: i8, b: i8): (i:string): TableEntry {
+/*
+fn test(f: i8, b: i8): (string): TableEntry {
   return f+b;
 }
 
@@ -40,4 +43,5 @@ var c: char;
 for (var a: int = 0; a < 0b1101; a = a + 1) {
   b = b + 1;
 }
+*/
 */

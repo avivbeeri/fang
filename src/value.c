@@ -135,6 +135,7 @@ bool isTruthy(Value value) {
     case VAL_I16: return AS_I16(value) != 0;
     case VAL_U16: return AS_U16(value) != 0;
     case VAL_PTR: return AS_PTR(value) != 0;
+    case VAL_LIT_NUM: return AS_LIT_NUM(value) != 0;
     case VAL_STRING: return (AS_STRING(value)->length) > 0;
     case VAL_RECORD: return true;
     case VAL_UNDEF: return false;

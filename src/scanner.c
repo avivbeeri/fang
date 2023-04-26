@@ -373,6 +373,7 @@ Token scanToken() {
     case '/': return makeToken(TOKEN_SLASH);
     case '*': return makeToken(TOKEN_STAR);
     case '^': return makeToken(TOKEN_CARET);
+    case '$': return makeToken(TOKEN_DOLLAR);
     case '~': return makeToken(TOKEN_TILDE);
     case '@': return makeToken(TOKEN_AT);
     case '%': return makeToken(TOKEN_PERCENT);
@@ -415,14 +416,14 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_DOT: return "DOT";
     case TOKEN_AT: return "AT";
     case TOKEN_DOLLAR: return "DOLLAR";
+    case TOKEN_CARET: return "CARET";
+    case TOKEN_TILDE: return "TILDE";
     case TOKEN_MINUS: return "MINUS";
     case TOKEN_PLUS: return "PLUS";
     case TOKEN_STAR: return "STAR";
     case TOKEN_SLASH: return "SLASH";
     case TOKEN_PERCENT: return "PERCENT";
     case TOKEN_SEMICOLON: return "SEMICOLON";
-    case TOKEN_CARET: return "CARET";
-    case TOKEN_TILDE: return "TILDE";
     case TOKEN_BANG: return "BANG";
     case TOKEN_BANG_EQUAL: return "BANG_EQUAL";
     case TOKEN_EQUAL: return "EQUAL";
