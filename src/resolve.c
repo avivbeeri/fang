@@ -27,17 +27,25 @@
 #include "common.h"
 #include "parser.h"
 #include "ast.h"
+#include "print.h"
 #include "const_table.h"
 #include "type_table.h"
 #include "symbol_table.h"
 
 
+#define BOOL_INDEX 2
 #define NUMERICAL_INDEX 9
+static bool isLiteral(int type) {
+  return type == NUMERICAL_INDEX;
+}
+static bool isNumeric(int type) {
+  return type <= NUMERICAL_INDEX && type >= 2;
+}
 static int valueToType(Value value) {
   switch (value.type) {
     case VAL_ERROR: return 0;
     case VAL_UNDEF: return 1; // void
-    case VAL_BOOL: return 2;
+    case VAL_BOOL: return BOOL_INDEX;
     case VAL_CHAR: return 3;
     case VAL_U8: return 4;
     case VAL_I8: return 5;
@@ -183,8 +191,7 @@ static bool traverse(AST* ptr) {
         int leftType = data.type->type;
         int rightType = data.expr->type;
 
-        bool result = r && (leftType == rightType || (leftType <= NUMERICAL_INDEX && rightType == NUMERICAL_INDEX));
-
+        bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
         return result;
       }
@@ -205,7 +212,7 @@ static bool traverse(AST* ptr) {
         int leftType = data.type->type;
         int rightType = data.expr->type;
 
-        bool result = r && (leftType == rightType || (leftType <= NUMERICAL_INDEX && rightType == NUMERICAL_INDEX));
+        bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
 
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
         return result;
@@ -221,12 +228,20 @@ static bool traverse(AST* ptr) {
         ptr->type = data.lvalue->type;
         int leftType = data.lvalue->type;
         int rightType = data.expr->type;
-        return leftType == rightType || (leftType <= NUMERICAL_INDEX && rightType == NUMERICAL_INDEX);
+        return leftType == rightType || (isNumeric(leftType) && isLiteral(rightType));
       }
     case AST_ASM:
       {
         ptr->type = 1;
         return true;
+      }
+    case AST_CAST:
+      {
+        struct AST_CAST data = ast.data.AST_CAST;
+        bool r = traverse(data.identifier) && traverse(data.type);
+        printf("%i\n", data.type->type);
+        ptr->type = data.type->type;
+        return r;
       }
     case AST_TYPE_NAME:
       {
@@ -328,7 +343,7 @@ static bool traverse(AST* ptr) {
             }
           case OP_NOT:
             {
-              ptr->type = 2; // to bool
+              ptr->type = BOOL_INDEX; // to bool
             }
         }
         return r;
@@ -354,21 +369,20 @@ static bool traverse(AST* ptr) {
           case OP_DIV:
           case OP_MUL:
             {
-              if (leftType > NUMERICAL_INDEX || rightType > NUMERICAL_INDEX || leftType == 0 || rightType == 0) {
+              if (!isNumeric(leftType) || !isNumeric(rightType)) {
                 compatible = false;
               }
 
-              if (leftType != 1 && leftType == rightType) {
+              if (isNumeric(leftType) && leftType == rightType) {
                 ptr->type = leftType;
               }
-              if (leftType != NUMERICAL_INDEX && rightType == NUMERICAL_INDEX ) {
+              if (isNumeric(leftType) && isLiteral(rightType)) {
                 ptr->type = leftType;
-
               }
-              if (leftType == NUMERICAL_INDEX && rightType != NUMERICAL_INDEX ) {
+              if (isLiteral(leftType) && isNumeric(rightType)) {
                 ptr->type = rightType;
               }
-              if (leftType == NUMERICAL_INDEX && rightType == NUMERICAL_INDEX) {
+              if (isLiteral(leftType) && isLiteral(rightType)) {
                 // should compute largest type to fit both values
                 // Hopefully, constant-folding removes this node
                 ptr->type = NUMERICAL_INDEX;
@@ -384,11 +398,16 @@ static bool traverse(AST* ptr) {
           case OP_BITWISE_OR:
             {
               // Allow numerical types
-              if (leftType <= NUMERICAL_INDEX && rightType <= NUMERICAL_INDEX) {
+              if (leftType == rightType) {
                 ptr->type = leftType;
+              } else if (isNumeric(leftType) && isLiteral(rightType)) {
+                ptr->type = leftType;
+              } else if (isLiteral(leftType) && isNumeric(rightType)) {
+                ptr->type = rightType;
               } else {
                 compatible = false;
               }
+              break;
             }
 
           // Logical ops, return a bool
@@ -397,6 +416,7 @@ static bool traverse(AST* ptr) {
           case OP_COMPARE_EQUAL:
           case OP_NOT_EQUAL:
             {
+              // TODO: Do we allow comparing different types?
               ptr->type = 1;
               break;
             }
@@ -405,8 +425,14 @@ static bool traverse(AST* ptr) {
           case OP_GREATER:
           case OP_LESS:
             {
-              if (leftType != 1 && leftType == rightType) {
-                ptr->type = 1;
+              if (isNumeric(leftType) && leftType == rightType) {
+                ptr->type = BOOL_INDEX;
+              } else if (isNumeric(leftType) && isLiteral(rightType)) {
+                ptr->type = BOOL_INDEX;
+              } else if (isLiteral(leftType) && isNumeric(rightType)) {
+                ptr->type = BOOL_INDEX;
+              } else if (isLiteral(leftType) && isLiteral(rightType)) {
+                ptr->type = BOOL_INDEX;
               } else {
                 compatible = false;
               }

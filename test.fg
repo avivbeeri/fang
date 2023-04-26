@@ -3,7 +3,7 @@ fn test(): i8 {}
 test();
 const s: string = "";
 var x: bool = true;
-x = !!s;
+x = 7 > ("hi");
 
 
 // printf text
