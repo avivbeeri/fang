@@ -56,6 +56,7 @@ void SYMBOL_TABLE_closeScope();
 void SYMBOL_TABLE_report();
 void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 bool SYMBOL_TABLE_scopeHas(STRING* name);
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(STRING* name);
 void SYMBOL_TABLE_free(void);
 
 #endif

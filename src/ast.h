@@ -32,7 +32,7 @@
 
 
 typedef struct AST AST; // Forward reference
-typedef int TYPE_INDEX;
+typedef int32_t TYPE_INDEX;
 
 typedef enum AST_OP {
   OP_ADD,

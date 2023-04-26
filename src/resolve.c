@@ -27,8 +27,30 @@
 #include "common.h"
 #include "parser.h"
 #include "ast.h"
+#include "const_table.h"
 #include "type_table.h"
 #include "symbol_table.h"
+
+
+#define NUMERICAL_INDEX 9
+static int valueToType(Value value) {
+  switch (value.type) {
+    case VAL_ERROR: return 0;
+    case VAL_UNDEF: return 1; // void
+    case VAL_BOOL: return 2;
+    case VAL_CHAR: return 3;
+    case VAL_U8: return 4;
+    case VAL_I8: return 5;
+    case VAL_U16: return 6;
+    case VAL_I16: return 7;
+    case VAL_LIT_NUM: return NUMERICAL_INDEX;
+    case VAL_PTR: return 9;
+    case VAL_STRING: return 10;
+    case VAL_RECORD: return 0;
+    // Open to implicit num casting
+  }
+  return 0;
+}
 
 static bool resolveTopLevel(AST* ptr) {
   if (ptr == NULL) {
@@ -157,15 +179,23 @@ static bool traverse(AST* ptr) {
       {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
         STRING* identifier = data.identifier;
-        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
-        return traverse(data.type) && traverse(data.expr);
+        bool r = traverse(data.type) && traverse(data.expr);
+        int leftType = data.type->type;
+        int rightType = data.expr->type;
+
+        bool result = r && (leftType == rightType || (leftType <= NUMERICAL_INDEX && rightType == NUMERICAL_INDEX));
+
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
+        return result;
       }
     case AST_VAR_DECL:
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         STRING* identifier = data.identifier;
-        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, 0);
-        return traverse(data.type);
+        bool r = traverse(data.type);
+        int typeIndex = data.type->type;
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, typeIndex);
+        return r;
       }
     case AST_CONST_DECL:
       {
@@ -179,10 +209,15 @@ static bool traverse(AST* ptr) {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         bool ident = traverse(data.lvalue);
         bool expr = traverse(data.expr);
-        return ident && expr;
+        if (!(ident && expr)) {
+          return false;
+        }
+        ptr->type = data.lvalue->type;
+        return data.lvalue->type == data.expr->type;
       }
     case AST_ASM:
       {
+        ptr->type = 1;
         return true;
       }
     case AST_TYPE_NAME:
@@ -197,6 +232,7 @@ static bool traverse(AST* ptr) {
           }
         } else {
           int index = TYPE_TABLE_lookup(data.typeName);
+          ptr->type = index;
           if (index == 0) {
             return false;
           }
@@ -231,6 +267,13 @@ static bool traverse(AST* ptr) {
         SYMBOL_TABLE_closeScope();
         return r;
       }
+    case AST_LITERAL:
+      {
+        struct AST_LITERAL data = ast.data.AST_LITERAL;
+        Value value = CONST_TABLE_get(data.constantIndex);
+        ptr->type = valueToType(value);
+        return true;
+      }
     case AST_IDENTIFIER:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
@@ -240,7 +283,10 @@ static bool traverse(AST* ptr) {
           errorAt(&ast.token, "Identifier was not found.");
           return false;
         }
-
+        SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_get(identifier);
+        if (entry.defined) {
+          ptr->type = entry.typeIndex;
+        }
         return result;
       }
     case AST_INITIALIZER:
@@ -252,23 +298,115 @@ static bool traverse(AST* ptr) {
             return false;
           }
         }
+        // We need an identifier stack here
+        // ptr->type = SYMBOL_TABLE_get(identifier).typeIndex;
         return true;
       }
     case AST_LVALUE:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         STRING* identifier = data.identifier;
+        ptr->type = SYMBOL_TABLE_get(identifier).typeIndex;
         return SYMBOL_TABLE_scopeHas(identifier);
       }
     case AST_UNARY:
       {
         struct AST_UNARY data = ast.data.AST_UNARY;
-        return traverse(data.expr);
+        bool r = traverse(data.expr);
+        switch (data.op) {
+          case OP_NEG:
+            {
+              ptr->type = data.expr->type;
+            }
+          case OP_NOT:
+            {
+              ptr->type = 2; // to bool
+            }
+        }
+        return r;
       }
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;
-        return traverse(data.left) && traverse(data.right);
+        bool r = traverse(data.left) && traverse(data.right);
+        if (!r) {
+          return false;
+        }
+
+        int leftType = data.left->type;
+        int rightType = data.right->type;
+        bool compatible = true;
+
+
+        switch (data.op) {
+          // Arithmetic-only operators
+          case OP_ADD:
+          case OP_SUB:
+          case OP_MOD:
+          case OP_DIV:
+          case OP_MUL:
+            {
+              if (leftType > NUMERICAL_INDEX || rightType > NUMERICAL_INDEX || leftType == 0 || rightType == 0) {
+                compatible = false;
+              }
+
+              if (leftType != 1 && leftType == rightType) {
+                ptr->type = leftType;
+              }
+              if (leftType != NUMERICAL_INDEX && rightType == NUMERICAL_INDEX ) {
+                ptr->type = leftType;
+
+              }
+              if (leftType == NUMERICAL_INDEX && rightType != NUMERICAL_INDEX ) {
+                ptr->type = rightType;
+              }
+              if (leftType == NUMERICAL_INDEX && rightType == NUMERICAL_INDEX) {
+                // should compute largest type to fit both values
+                // Hopefully, constant-folding removes this node
+                ptr->type = NUMERICAL_INDEX;
+              }
+              break;
+            }
+
+          // Numerical ops
+          case OP_SHIFT_LEFT:
+          case OP_SHIFT_RIGHT:
+          case OP_BITWISE_XOR:
+          case OP_BITWISE_AND:
+          case OP_BITWISE_OR:
+            {
+              // Allow numerical types
+              if (leftType <= NUMERICAL_INDEX && rightType <= NUMERICAL_INDEX) {
+                ptr->type = leftType;
+              } else {
+                compatible = false;
+              }
+            }
+
+          // Logical ops, return a bool
+          case OP_OR:
+          case OP_AND:
+          case OP_COMPARE_EQUAL:
+          case OP_NOT_EQUAL:
+            {
+              ptr->type = 1;
+              break;
+            }
+          case OP_GREATER_EQUAL:
+          case OP_LESS_EQUAL:
+          case OP_GREATER:
+          case OP_LESS:
+            {
+              if (leftType != 1 && leftType == rightType) {
+                ptr->type = 1;
+              } else {
+                compatible = false;
+              }
+              break;
+            }
+        }
+
+        return compatible;
       }
     case AST_IF:
       {
@@ -343,12 +481,19 @@ static bool traverse(AST* ptr) {
         if (!r) {
           return false;
         }
+        // resolve data.identifier to string
+        STRING* leftName = NULL;
+        if (false && SYMBOL_TABLE_get(leftName).typeIndex != 11) {
+          return false;
+        }
+
         // Call should contain it's arguments
         for (int i = 0; i < arrlen(data.arguments); i++) {
           r = traverse(data.arguments[i]);
           if (!r) {
             return false;
           }
+          // TODO: check arg type node against expected type of param
         }
         return true;
       }

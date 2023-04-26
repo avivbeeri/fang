@@ -1,28 +1,15 @@
-/* asm {
-  "mov X0, #1"
-  "adr X1, const_0 + 1"
-  "adr X2, const_0"
-  "ldrb W2,[X2, 0]"
-  "mov X16, #4"
-  "svc 0"
-}; */
 
 fn test(): i8 {}
 test();
-// var y: ^[6]^(fn (i8): fn(i8): i8) = 5;
-/*
-type TableEntry {
-  f: string;
-  h: i8;
-}
+var x: bool = 5;
 
-g[5] = 5;
-var a: TableEntry = {
-  y = 0;
-  f = {
-    g = 6;
-    j = "hello";
-  };
-  h = 6;
-};
-*/
+
+// printf text
+/* asm {
+"mov X0, #1"
+"adr X1, const_0 + 1"
+"adr X2, const_0"
+"ldrb W2,[X2, 0]"
+"mov X16, #4"
+"svc 0"
+}; */
