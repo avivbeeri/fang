@@ -66,11 +66,11 @@ typedef enum {
   PREC_AND,         // &&
   PREC_EQUALITY,    // == !=
   PREC_COMPARISON,  // < > <= >=
-  PREC_BITWISE,     // << >> ~ ^
+  PREC_BITWISE,     // << >> ~
   PREC_TERM,        // + -
   PREC_FACTOR,      // * / %
   PREC_UNARY,       // ! -
-  PREC_REF,         // @ $
+  PREC_REF,         // @ ^
   PREC_CALL,        // . ()
   PREC_SUBSCRIPT,   // []
   PREC_AS,          // as
@@ -286,7 +286,7 @@ static AST* ref(bool canAssign) {
   AST* expr = NULL;
   switch (operatorType) {
     case TOKEN_AT: expr = AST_NEW_T(AST_UNARY, start, OP_DEREF, operand); break;
-    case TOKEN_DOLLAR: expr = AST_NEW_T(AST_UNARY, start, OP_REF, operand); break;
+    case TOKEN_CARET: expr = AST_NEW_T(AST_UNARY, start, OP_REF, operand); break;
     default: expr = AST_NEW_T(AST_ERROR, start, 0); break;
   }
 
@@ -332,8 +332,8 @@ static AST* type() {
   char* buffer = reallocate(NULL, 0, len * sizeof(char));
   size_t i = 0;
 
-  if (match(TOKEN_DOLLAR)) {
-    APPEND_STR(i, len, buffer, "$");
+  if (match(TOKEN_CARET)) {
+    APPEND_STR(i, len, buffer, "^");
     AST* subType = type();
     arrput(components, subType);
     APPEND_STR(i, len, buffer, "%s", subType->data.AST_TYPE_NAME.typeName->chars);
@@ -565,7 +565,7 @@ ParseRule rules[] = {
   [TOKEN_DOT]             = {NULL,     dot,    PREC_CALL},
   [TOKEN_AS]              = {NULL,     as,     PREC_AS},
   [TOKEN_AT]              = {ref,    NULL,   PREC_REF},
-  [TOKEN_DOLLAR]          = {ref,    NULL,   PREC_REF},
+  [TOKEN_CARET]           = {ref,    NULL,   PREC_REF},
   [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
 

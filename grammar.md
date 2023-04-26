@@ -24,7 +24,7 @@ Equality Operators: == != >= <= > <
 Unimplemented but planned: 
 // Arrays
 // Data type method sugar?
-[ ] ^ ::
+cons ::
 
 ## Keywords
 import, const, var, ext, asm, type, fn, void, 
@@ -88,7 +88,7 @@ literal    -> "true" | "false" | "this" | NUMBER | STRING;
 
 or_list -> logic_or ( "," logic_or )* ( "," )? ;
 
-type       -> ( "$" ) ("[" NUMBER "]") type | typename;
+type       -> ( "^" ) ("[" NUMBER "]") type | typename;
 typename   -> "void" | "bool" | "ptr" | "i8" | "ut8" 
             | "i16" | "u16" | "char" | "string" | IDENTIFIER; 
 function   -> IDENTIFIER "(" parameters? ")" ":" type block ;

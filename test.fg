@@ -13,7 +13,7 @@ type TableEntry {
   h: i8;
 }
 */
-var y: [6](fn (i8): fn(i8): i8) = 5;
+var y: ^[6]^(fn (i8): fn(i8): i8) = 5;
 /*
 g[5] = 5;
 var a: TableEntry = {
