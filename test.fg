@@ -12,7 +12,7 @@ type TableEntry {
   h: i8;
 }
 var y: i8 = 5;
-var g: i8 ^ 5 ^ 7 = [ 1, y, 3, 4 ];
+var g: $[4](int):gh = [ 1, y, 3, 4 ];
 g[5] = 5;
 var a: TableEntry = {
   y = 0;

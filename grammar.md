@@ -88,7 +88,7 @@ literal    -> "true" | "false" | "this" | NUMBER | STRING;
 
 or_list -> logic_or ( "," logic_or )* ( "," )? ;
 
-type       -> ( "$" ) type ("^" NUMBER)* | typename;
+type       -> ( "$" ) ("[" NUMBER "]") type | typename;
 typename   -> "void" | "bool" | "ptr" | "i8" | "ut8" 
             | "i16" | "u16" | "char" | "string" | IDENTIFIER; 
 function   -> IDENTIFIER "(" parameters? ")" ":" type block ;

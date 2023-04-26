@@ -332,16 +332,22 @@ static AST* type() {
   char* buffer = reallocate(NULL, 0, len * sizeof(char));
   size_t i = 0;
 
-  bool typeFound = false;
-
   if (match(TOKEN_DOLLAR)) {
-    typeFound = true;
     APPEND_STR(i, len, buffer, "$");
     AST* subType = type();
     arrput(components, subType);
     APPEND_STR(i, len, buffer, "%s", subType->data.AST_TYPE_NAME.typeName->chars);
+  } else if (match(TOKEN_LEFT_BRACKET)) {
+    APPEND_STR(i, len, buffer, "[");
+    consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
+    AST* length = number(false);
+    arrput(components, length);
+    APPEND_STR(i, len, buffer, "%i", AS_LIT_NUM(CONST_TABLE_get(length->data.AST_LITERAL.constantIndex)));
+    consume(TOKEN_RIGHT_BRACKET, "Expect array size literal to be followed by ']'.");
+    APPEND_STR(i, len, buffer, "]");
+    AST* resultType = type();
+    APPEND_STR(i, len, buffer, "%s", resultType->data.AST_TYPE_NAME.typeName->chars);
   } else if (match(TOKEN_LEFT_PAREN)) {
-    typeFound = true;
     // Function pointer
     APPEND_STR(i, len, buffer, "(");
     if (!check(TOKEN_RIGHT_PAREN)) {
@@ -360,8 +366,6 @@ static AST* type() {
     APPEND_STR(i, len, buffer, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
     printf("SIGNATURE: %s\n", buffer);
   } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
-    typeFound = true;
-
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     arrput(components, AST_NEW_T(AST_TYPE_NAME, parser.previous, string));
     APPEND_STR(i, len, buffer, "%s", string->chars);
@@ -369,13 +373,6 @@ static AST* type() {
     errorAtCurrent("Expecting a type declaration.");
   }
 
-  while (typeFound && match(TOKEN_CARET)) {
-    APPEND_STR(i, len, buffer, " ^ ");
-    consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
-    AST* length = number(false);
-    arrput(components, length);
-    APPEND_STR(i, len, buffer, "%i", AS_LIT_NUM(CONST_TABLE_get(length->data.AST_LITERAL.constantIndex)));
-  }
 
   STRING* str = NULL;
   if (i > 0) {
