@@ -201,8 +201,14 @@ static bool traverse(AST* ptr) {
       {
         struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
         STRING* identifier = data.identifier;
-        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, 0);
-        return traverse(data.type) && traverse(data.expr);
+        bool r = traverse(data.type) && traverse(data.expr);
+        int leftType = data.type->type;
+        int rightType = data.expr->type;
+
+        bool result = r && (leftType == rightType || (leftType <= NUMERICAL_INDEX && rightType == NUMERICAL_INDEX));
+
+        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
+        return result;
       }
     case AST_ASSIGNMENT:
       {
@@ -213,7 +219,9 @@ static bool traverse(AST* ptr) {
           return false;
         }
         ptr->type = data.lvalue->type;
-        return data.lvalue->type == data.expr->type;
+        int leftType = data.lvalue->type;
+        int rightType = data.expr->type;
+        return leftType == rightType || (leftType <= NUMERICAL_INDEX && rightType == NUMERICAL_INDEX);
       }
     case AST_ASM:
       {
@@ -472,6 +480,7 @@ static bool traverse(AST* ptr) {
           return false;
         }
         // TODO: check right for existance of field
+        // TODO: left side needs to be a record
         return false;
       }
     case AST_CALL:

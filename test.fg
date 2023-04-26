@@ -1,7 +1,9 @@
 
 fn test(): i8 {}
 test();
-var x: bool = 5;
+const s: string = "";
+var x: bool = true;
+x = !!s;
 
 
 // printf text
