@@ -254,6 +254,38 @@ static void traverse(AST* ptr, int level) {
       printValue(value);
       break;
     }
+    case AST_TYPE_FN:
+      {
+        struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
+        printf("fn (");
+        for (int i = 0; i < arrlen(data.params); i++) {
+          traverse(data.params[i], 0);
+          if (i < arrlen(data.params) - 1) {
+            printf(", ");
+          }
+        }
+        printf("): ");
+        return traverse(data.returnType, 0);
+      }
+    case AST_TYPE_ARRAY:
+      {
+        struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
+        printf("[");
+        traverse(data.length, 0);
+        printf("]");
+        return traverse(data.subType, 0);
+      }
+    case AST_TYPE_PTR:
+      {
+        struct AST_TYPE_PTR data = ast.data.AST_TYPE_PTR;
+        printf("^");
+        return traverse(data.subType, 0);
+      }
+    case AST_TYPE:
+      {
+        struct AST_TYPE data = ast.data.AST_TYPE;
+        return traverse(data.type, 0);
+      }
     case AST_TYPE_NAME: {
       struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
       printf("%s", data.typeName->chars);

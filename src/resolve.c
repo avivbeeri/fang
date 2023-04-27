@@ -93,6 +93,7 @@ static bool resolveFn(AST* ptr) {
   return r;
 }
 static bool resolveType(AST* ptr) {
+  /*
   if (ptr != NULL && ptr->tag != AST_TYPE_NAME) {
     return false;
   }
@@ -109,6 +110,8 @@ static bool resolveType(AST* ptr) {
   }
   TYPE_TABLE_declare(data.typeName);
   return r;
+  */
+  return false;
 }
 
 static bool resolveTopLevel(AST* ptr) {
@@ -314,6 +317,7 @@ static bool traverse(AST* ptr) {
       {
         struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
         resolveType(ptr);
+        /*
         if (arrlen(data.components) > 0) {
           for (int i = 0; i < arrlen(data.components); i++) {
             bool r = traverse(data.components[i]);
@@ -333,6 +337,7 @@ static bool traverse(AST* ptr) {
             return false;
           }
         }
+        */
         return true;
       }
     case AST_FN:

@@ -70,6 +70,7 @@ typedef struct {
   Precedence precedence;
 } ParseRule;
 
+static AST* parseType();
 static AST* expression();
 static AST* declaration();
 static AST* statement();
@@ -310,6 +311,59 @@ static AST* asmDecl() {
   return AST_NEW(AST_ASM, output);
 }
 
+static AST* typeFn() {
+  AST** components = NULL;
+  Token start = parser.current;
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'fn' in function pointer type declaration.");
+  // Function pointer
+  if (!check(TOKEN_RIGHT_PAREN)) {
+    do {
+      AST* paramType = parseType();
+      arrput(components, paramType);
+    } while (match(TOKEN_COMMA));
+  }
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
+  consume(TOKEN_COLON, "Expect ':' after a function pointer type");
+  AST* returnType = parseType();
+  return AST_NEW_T(AST_TYPE_FN, start, components, returnType);
+}
+
+static AST* typePtr() {
+  Token start = parser.previous;
+  AST* subType = parseType();
+  return AST_NEW_T(AST_TYPE_PTR, start, subType);
+}
+
+static AST* typeArray() {
+  Token start = parser.previous;
+  consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
+  AST* length = number(false);
+  consume(TOKEN_RIGHT_BRACKET, "Expect array size literal to be followed by ']'.");
+  AST* resultType = parseType();
+  return AST_NEW_T(AST_TYPE_ARRAY, start, length, resultType);
+}
+
+static AST* parseType() {
+  if (match(TOKEN_CARET)) {
+    return typePtr();
+  } else if (match(TOKEN_LEFT_BRACKET)) {
+    return typeArray();
+  } else if (match(TOKEN_LEFT_PAREN)) {
+    AST* subType = parseType();
+    consume(TOKEN_RIGHT_PAREN, "Expect matching ')' in type definition.");
+    return subType;
+  } else if (match(TOKEN_FN)) {
+    return typeFn();
+  } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
+    STRING* string = copyString(parser.previous.start, parser.previous.length);
+    // components needs to be null
+    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
+  } else {
+    errorAtCurrent("Expecting a type declaration.");
+  }
+  return AST_NEW(AST_ERROR, 0);
+}
+
 static AST* type() {
   AST** components = NULL;
   Token start = parser.current;
@@ -317,68 +371,13 @@ static AST* type() {
   char* buffer = ALLOC_STR(len);
   size_t i = 0;
 
-  if (match(TOKEN_CARET)) {
-    APPEND_STR(buffer, len, i, "^");
-    AST* subType = type();
-    arrput(components, subType);
-    APPEND_STR(buffer, len, i, "(%s)", subType->data.AST_TYPE_NAME.typeName->chars);
-  } else if (match(TOKEN_LEFT_BRACKET)) {
-    consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
-    AST* length = number(false);
-    arrput(components, length);
-    consume(TOKEN_RIGHT_BRACKET, "Expect array size literal to be followed by ']'.");
-    AST* resultType = type();
-    arrput(components, resultType);
+  AST* expr = NULL;
 
-    APPEND_STR(buffer, len, i, "[%i]%s",
-        AS_LIT_NUM(CONST_TABLE_get(length->data.AST_LITERAL.constantIndex)),
-        resultType->data.AST_TYPE_NAME.typeName->chars
-    );
-  } else if (match(TOKEN_LEFT_PAREN)) {
-    AST* typeExpr = type();
-    arrput(components, typeExpr);
-
-    consume(TOKEN_RIGHT_PAREN, "Expect matching ')' in type definition.");
-
-    APPEND_STR(buffer, len, i, "(");
-    APPEND_STR(buffer, len, i, "%s)", typeExpr->data.AST_TYPE_NAME.typeName->chars);
-  } else if (match(TOKEN_FN)) {
-    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'fn' in function pointer type declaration.");
-    // Function pointer
-    APPEND_STR(buffer, len, i, "fn (");
-    if (!check(TOKEN_RIGHT_PAREN)) {
-      do {
-        AST* paramType = type();
-        arrput(components, paramType);
-        APPEND_STR(buffer, len, i, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
-        if (check(TOKEN_COMMA)) {
-          APPEND_STR(buffer, len, i, ", ");
-        }
-      } while (match(TOKEN_COMMA));
-    }
-    consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
-    consume(TOKEN_COLON, "Expect ':' after a function pointer type");
-    AST* resultType = type();
-    arrput(components, resultType);
-    APPEND_STR(buffer, len, i, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
-  } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
-    STRING* string = copyString(parser.previous.start, parser.previous.length);
-    // components needs to be null
-
-    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string, NULL);
-  } else {
-    errorAtCurrent("Expecting a type declaration.");
-    return AST_NEW(AST_ERROR, 0);
+  expr = parseType();
+  if (expr == NULL) {
+    expr = AST_NEW(AST_ERROR, 0);
   }
-
-  STRING* str = NULL;
-  if (i > 0) {
-    str = copyString(buffer, i);
-  } else {
-    str = copyString(start.start, start.length);
-  }
-  FREE(char, buffer);
-  return AST_NEW_T(AST_TYPE_NAME, start, str, components);
+  return AST_NEW_T(AST_TYPE, start, expr);
 }
 
 static AST** argumentList() {

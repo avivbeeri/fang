@@ -70,7 +70,11 @@ typedef enum {
   AST_INITIALIZER,
   AST_IDENTIFIER,
   AST_LVALUE,
+  AST_TYPE,
   AST_TYPE_NAME,
+  AST_TYPE_FN,
+  AST_TYPE_ARRAY,
+  AST_TYPE_PTR,
   AST_UNARY,
   AST_BINARY,
   AST_DOT,
@@ -108,7 +112,13 @@ struct AST {
     struct AST_INITIALIZER { AST** assignments; INIT_TYPE initType; } AST_INITIALIZER;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
     struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
-    struct AST_TYPE_NAME { STRING* typeName; AST** components; } AST_TYPE_NAME;
+
+    struct AST_TYPE { AST* type; } AST_TYPE;
+    struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
+    struct AST_TYPE_ARRAY { AST* length; AST* subType; } AST_TYPE_ARRAY;
+    struct AST_TYPE_FN { AST** params; AST* returnType; } AST_TYPE_FN;
+    struct AST_TYPE_PTR { AST* subType; } AST_TYPE_PTR;
+
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
     struct AST_DOT { AST *left; STRING* name; } AST_DOT;
