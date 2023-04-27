@@ -240,6 +240,10 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_LITERAL: return "LITERAL";
     case AST_ASM: return "ASM";
     case AST_CAST: return "CAST";
+    case AST_TYPE: return "TYPE";
+    case AST_TYPE_FN: return "TYPE_FN";
+    case AST_TYPE_PTR: return "TYPE_PTR";
+    case AST_TYPE_ARRAY: return "TYPE_ARRAY";
   }
   return "UNKNOWN";
 }

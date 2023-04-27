@@ -137,7 +137,7 @@ struct AST {
     struct AST_VAR_INIT { STRING* identifier; AST* type; AST* expr; } AST_VAR_INIT;
     struct AST_CONST_DECL { STRING* identifier; AST* type; AST* expr; } AST_CONST_DECL;
 
-    struct AST_FN { STRING* identifier; AST** params; AST* returnType; AST* body; int typeIndex; } AST_FN;
+    struct AST_FN { STRING* identifier; AST** params; AST* returnType; AST* body; AST* fnType; int typeIndex; } AST_FN;
     struct AST_TYPE_DECL { STRING* name; int index; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STRING** strings; } AST_ASM;
     struct AST_BLOCK { AST* body; } AST_BLOCK;

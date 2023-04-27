@@ -497,14 +497,11 @@ static AST* varDecl() {
 }
 
 static AST* fnDecl() {
-  size_t i = 0;
-  size_t len = 4;
-  char* buffer = ALLOC_STR(len);
-  APPEND_STR(buffer, len, i, "fn (");
   STRING* identifier = parseVariable("Expect function identifier");
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
 
   AST** params = NULL;
+  AST** paramTypes = NULL;
   if (!check(TOKEN_RIGHT_PAREN)) {
     do {
       // TODO: Fix a maximum number of parameters here
@@ -513,20 +510,16 @@ static AST* fnDecl() {
       AST* typeName = type();
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
       arrput(params, param);
-      APPEND_STR(buffer, len, i, "%s", typeName->data.AST_TYPE_NAME.typeName->chars);
-      if (check(TOKEN_COMMA)) {
-        APPEND_STR(buffer, len, i, ", ");
-      }
+      arrput(paramTypes, typeName);
     } while (match(TOKEN_COMMA));
   }
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   consume(TOKEN_COLON,"Expect ':' after function parameter list.");
   AST* returnType = type();
-  APPEND_STR(buffer, len, i, "): %s", returnType->data.AST_TYPE_NAME.typeName->chars);
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
 
-  int index = TYPE_TABLE_declare(copyString(buffer, i));
-  return AST_NEW(AST_FN, identifier, params, returnType, block(), index);
+  AST* fnType = AST_NEW(AST_TYPE_FN, paramTypes, returnType);
+  return AST_NEW(AST_FN, identifier, params, returnType, block(), fnType);
 }
 
 ParseRule rules[] = {

@@ -39,8 +39,8 @@ struct { uint32_t key; STRING* value; }* nodeIdents = NULL;
 #define I8_INDEX 4
 #define U16_INDEX 5
 #define I16_INDEX 6
-#define FN_INDEX 9
 #define NUMERICAL_INDEX 7
+#define FN_INDEX 9
 static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
 }
@@ -71,37 +71,25 @@ static int valueToType(Value value) {
 }
 
 static bool traverse(AST* ptr);
-static bool resolveFn(AST* ptr) {
-  if (ptr != NULL && ptr->tag != AST_FN) {
-    return false;
-  }
-  AST ast = *ptr;
-  struct AST_FN data = ast.data.AST_FN;
-  TYPE_TABLE_FIELD_ENTRY* entries = NULL;
-  // Define symbol with parameter types
-  bool r = true;
-  for (int i = 0; i < arrlen(data.params); i++) {
-    struct AST_PARAM param = data.params[i]->data.AST_PARAM;
-    r &= traverse(data.params[i]);
-    uint32_t index = data.params[i]->type;
-    arrput(entries, ((TYPE_TABLE_FIELD_ENTRY){ NULL, index }));
-  }
-  r &= traverse(data.returnType);
-  arrput(entries, ((TYPE_TABLE_FIELD_ENTRY){ NULL, data.returnType->type }));
-  TYPE_TABLE_defineCallable(data.typeIndex, FN_INDEX, entries, data.returnType->type);
-
-  return r;
-}
 static int resolveType(AST* ptr) {
   if (ptr == NULL) {
     return 0;
   }
   AST ast = *ptr;
   switch (ast.tag) {
+    case AST_TYPE:
+      {
+        struct AST_TYPE data = ast.data.AST_TYPE;
+        int i = resolveType(data.type);
+        ptr->type = i;
+        return i;
+      }
     case AST_TYPE_NAME:
       {
         struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-        return TYPE_TABLE_lookup(data.typeName);
+        int i = TYPE_TABLE_lookup(data.typeName);
+        ptr->type = i;
+        return i;
       }
     case AST_TYPE_PTR:
       {
@@ -118,32 +106,56 @@ static int resolveType(AST* ptr) {
     case AST_TYPE_FN:
       {
         struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
-        int subType = resolveType(data.returnType);
-        return subType;
+        TYPE_TABLE_FIELD_ENTRY* entries = NULL;
+        // generate the fn type string here
+        size_t len = 4;
+        size_t i = 0;
+        char* buffer = ALLOC_STR(len);
+        APPEND_STR(buffer, len, i, "fn (");
+        for (int i = 0; i < arrlen(data.params); i++) {
+          int index = resolveType(data.params[i]);
+          APPEND_STR(buffer, len, i, "%s", typeTable[index].name->chars);
+          arrput(entries, ((TYPE_TABLE_FIELD_ENTRY){ NULL, index }));
+          if (i < arrlen(data.params) - 1) {
+            APPEND_STR(buffer, len, i, ", ");
+          }
+        }
+        APPEND_STR(buffer, len, i, "): ");
+        int returnType = resolveType(data.returnType);
+        APPEND_STR(buffer, len, i, "%s", typeTable[returnType].name->chars);
+
+        STRING* typeName = copyString(buffer, i);
+        FREE(char, buffer);
+        ptr->type = TYPE_TABLE_declare(typeName);
+        TYPE_TABLE_defineCallable(ptr->type, FN_INDEX, entries, returnType);
+        return ptr->type;
       }
     case AST_TYPE_ARRAY:
       {
+        // Arrays are basically just pointers with some runtime allocation
+        // semantics
         struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
+        if (!isNumeric(resolveType(data.length))) {
+          return 0;
+        }
         int subType = resolveType(data.subType);
+        STRING* name = typeTable[subType].name;
+        STRING* typeName = STRING_prepend(name, "^");
+        ptr->type = TYPE_TABLE_registerType(typeName, 2, subType, NULL);
         return subType;
       }
   }
-
-  /*
-  struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-  TYPE_TABLE_FIELD_ENTRY* entries = NULL;
-  // Define symbol with parameter types
-  bool r = true;
-  for (int i = 0; i < arrlen(data.components); i++) {
-    struct AST_PARAM param = data.components[i]->data.AST_PARAM;
-    r &= traverse(data.components[i]);
-    uint32_t index = data.components[i]->type;
-    arrput(entries, ((TYPE_TABLE_FIELD_ENTRY){ NULL, index }));
-  }
-  TYPE_TABLE_declare(data.typeName);
-  return r;
-  */
   return 0;
+}
+static bool resolveFn(AST* ptr) {
+  if (ptr != NULL && ptr->tag != AST_FN) {
+    return false;
+  }
+  AST ast = *ptr;
+  struct AST_FN data = ast.data.AST_FN;
+  ptr->type = resolveType(data.fnType);
+
+  return ptr->type;
 }
 
 static bool resolveTopLevel(AST* ptr) {
@@ -171,6 +183,7 @@ static bool resolveTopLevel(AST* ptr) {
             // FN pointer type resolution needs to occur after other types
             // are resolved.
             arrput(deferred, i);
+            continue;
           }
           r = resolveTopLevel(data.decls[i]);
           if (!r) {
@@ -212,7 +225,7 @@ static bool resolveTopLevel(AST* ptr) {
     case AST_FN:
       {
         struct AST_FN data = ast.data.AST_FN;
-        SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, data.typeIndex);
+        SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, ast.type);
         return true;
       }
     default:
@@ -266,7 +279,7 @@ static bool traverse(AST* ptr) {
           // for type-check reasons
           if (data.decls[i]->tag == AST_FN) {
             arrput(deferred, i);
-            continue;
+            // TODO: figure out if we need a continue here
           }
           r = traverse(data.decls[i]);
           if (!r) {
@@ -289,9 +302,13 @@ static bool traverse(AST* ptr) {
       {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
         STRING* identifier = data.identifier;
-        bool r = traverse(data.type) && traverse(data.expr);
-        int leftType = data.type->type;
-        int rightType = data.expr->type;
+        bool r = traverse(data.expr);
+        r &= traverse(data.type);
+        if (!r) {
+          return false;
+        }
+        int leftType = data.expr->type;
+        int rightType = data.type->type;
 
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
@@ -324,6 +341,7 @@ static bool traverse(AST* ptr) {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         bool ident = traverse(data.lvalue);
         bool expr = traverse(data.expr);
+
         if (!(ident && expr)) {
           return false;
         }
@@ -341,7 +359,6 @@ static bool traverse(AST* ptr) {
       {
         struct AST_CAST data = ast.data.AST_CAST;
         bool r = traverse(data.identifier) && traverse(data.type);
-        printf("%i\n", data.type->type);
         ptr->type = data.type->type;
         return r;
       }
@@ -350,28 +367,6 @@ static bool traverse(AST* ptr) {
         struct AST_TYPE data = ast.data.AST_TYPE;
         ptr->type = resolveType(data.type);
         return ptr->type != 0;
-        /*
-        if (arrlen(data.components) > 0) {
-          for (int i = 0; i < arrlen(data.components); i++) {
-            bool r = traverse(data.components[i]);
-            if (!r) {
-              return false;
-            }
-            int index = TYPE_TABLE_lookup(data.components[i]->data.AST_TYPE_NAME.typeName);
-            ptr->type = index;
-            if (index == 0) {
-              return false;
-            }
-          }
-        } else {
-          int index = TYPE_TABLE_lookup(data.typeName);
-          ptr->type = index;
-          if (index == 0) {
-            return false;
-          }
-        }
-        */
-        return true;
       }
     case AST_FN:
       {
@@ -627,7 +622,6 @@ static bool traverse(AST* ptr) {
         // resolve data.identifier to string
         uint32_t leftType = data.identifier->type;
         if (typeTable[leftType].parent != FN_INDEX) {
-          printf("%i vs %zu\n", leftType, typeTable[leftType].parent);
           return false;
         }
 
@@ -662,11 +656,8 @@ bool resolveTree(AST* ptr) {
   if (!success) {
     return false;
   }
-  success &= TYPE_TABLE_calculateSizes();
-  if (!success) {
-    return false;
-  }
   success &= traverse(ptr);
+  success &= TYPE_TABLE_calculateSizes();
   SYMBOL_TABLE_closeScope();
   TYPE_TABLE_report();
   SYMBOL_TABLE_report();

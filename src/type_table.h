@@ -42,9 +42,13 @@ typedef struct TYPE_TABLE_ENTRY {
   STRING* name;
   enum TYPE_TABLE_ENTRY_STATUS status;
   bool primitive;
+  // Pointers and arrays have "parents" (really the pointed type)
   size_t parent;
   size_t byteSize;
+  // Functions have a return type
   int returnType;
+  // length of array types go here
+  size_t elementCount;
   TYPE_TABLE_FIELD_ENTRY* fields;
 } TYPE_TABLE_ENTRY;
 

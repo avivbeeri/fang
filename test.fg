@@ -1,9 +1,10 @@
-var p: fn (): i8;
+var p: fn (): ^i8;
 var x: ^i8 = p();
-
+/*
 fn main(): bool {
-  x = 0;
+//  x = 0 as ^i8;
 }
+*/
 
 /*
 // const s: string = "words";
