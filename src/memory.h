@@ -36,6 +36,23 @@
 
 #define FREE(type, pointer) reallocate(pointer, sizeof(type), 0)
 
+#define ALLOC_STR(len) reallocate(NULL, 0, len * sizeof(char));
+#define APPEND_STR(buffer, len, i, format, ...) do { \
+  size_t writeLen = 0; \
+  do { \
+    if (writeLen >= (len - i)) { \
+      size_t oldLen = len; \
+      len *= 2; \
+      buffer = reallocate(buffer, oldLen, len * sizeof(char)); \
+    } \
+    writeLen = snprintf(buffer + i, fmax(len - i, 0), format, ##__VA_ARGS__); \
+    if (writeLen < 0) { \
+      exit(1); \
+    } \
+  } while (writeLen >= (len - i)); \
+  i += writeLen; \
+} while(0);
+
 typedef struct {
   size_t length;
   char* chars;

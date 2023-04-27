@@ -69,17 +69,21 @@ void SYMBOL_TABLE_init(void) {
   SYMBOL_TABLE_openScope();
 }
 
-void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
+void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, uint32_t* paramTypes) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
   SYMBOL_TABLE_ENTRY entry = {
     .key = name->chars,
     .entryType = type,
     .defined = true,
-    .typeIndex = typeIndex
+    .typeIndex = typeIndex,
+    .params = NULL
   };
   shputs(scope.table, entry);
   hmputs(scopes, scope);
+}
+void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
+  SYMBOL_TABLE_putFn(name, type, typeIndex, NULL);
 }
 
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(STRING* name) {
@@ -123,6 +127,7 @@ void SYMBOL_TABLE_report(void) {
 void SYMBOL_TABLE_free(void) {
   for (int i=0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
+    // TODO: free the param list in each scope entry
     shfree(scope.table);
   }
   hmfree(scopes);

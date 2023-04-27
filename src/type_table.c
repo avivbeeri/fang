@@ -77,19 +77,19 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   sh_new_arena(aliasTable);
   shdefault(aliasTable, 0);
   shput(aliasTable, "uint8", 3);
+  shput(aliasTable, "char", 3);
   shput(aliasTable, "int8", 4);
   shput(aliasTable, "uint16", 5);
+  shput(aliasTable, "ptr", 5);
   shput(aliasTable, "int16", 6);
 
   TYPE_TABLE_register(NULL, 0, 0, NULL);
   TYPE_TABLE_register(createString("void"), 0, 0, NULL);
   TYPE_TABLE_register(createString("bool"), 1, 0, NULL);
-  TYPE_TABLE_register(createString("char"), 1, 0, NULL);
   TYPE_TABLE_register(createString("u8"), 1, 0, NULL);
   TYPE_TABLE_register(createString("i8"), 1, 0, NULL);
   TYPE_TABLE_register(createString("u16"), 2, 0, NULL);
   TYPE_TABLE_register(createString("i16"), 2, 0, NULL);
-  TYPE_TABLE_register(createString("ptr"), 2, 0, NULL);
   TYPE_TABLE_register(createString("literal"), 0, 0, NULL);
   TYPE_TABLE_register(createString("string"), 2, 0, NULL);
   TYPE_TABLE_register(createString("fn"), 2, 0, NULL);

@@ -35,21 +35,6 @@
 #include "const_table.h"
 
 
-#define APPEND_STR(i, len, buffer, format, ...) do { \
-  size_t writeLen = 0; \
-  do { \
-    if (writeLen >= (len - i)) { \
-      size_t oldLen = len; \
-      len *= 2; \
-      buffer = reallocate(buffer, oldLen, len * sizeof(char)); \
-    } \
-    writeLen = snprintf(buffer + i, fmax(len - i, 0), format, ##__VA_ARGS__); \
-    if (writeLen < 0) { \
-      exit(1); \
-    } \
-  } while (writeLen >= (len - i)); \
-  i += writeLen; \
-} while(0);
 
 typedef struct {
   Token current;
@@ -329,14 +314,14 @@ static AST* type() {
   AST** components = NULL;
   Token start = parser.current;
   size_t len = 16;
-  char* buffer = reallocate(NULL, 0, len * sizeof(char));
+  char* buffer = ALLOC_STR(len);
   size_t i = 0;
 
   if (match(TOKEN_CARET)) {
-    APPEND_STR(i, len, buffer, "^");
+    APPEND_STR(buffer, len, i, "^");
     AST* subType = type();
     arrput(components, subType);
-    APPEND_STR(i, len, buffer, "%s", subType->data.AST_TYPE_NAME.typeName->chars);
+    APPEND_STR(buffer, len, i, "%s", subType->data.AST_TYPE_NAME.typeName->chars);
   } else if (match(TOKEN_LEFT_BRACKET)) {
     consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
     AST* length = number(false);
@@ -345,7 +330,7 @@ static AST* type() {
     AST* resultType = type();
     arrput(components, resultType);
 
-    APPEND_STR(i, len, buffer, "[%i]%s",
+    APPEND_STR(buffer, len, i, "[%i]%s",
         AS_LIT_NUM(CONST_TABLE_get(length->data.AST_LITERAL.constantIndex)),
         resultType->data.AST_TYPE_NAME.typeName->chars
     );
@@ -355,19 +340,19 @@ static AST* type() {
 
     consume(TOKEN_RIGHT_PAREN, "Expect matching ')' in type definition.");
 
-    APPEND_STR(i, len, buffer, "(");
-    APPEND_STR(i, len, buffer, "%s)", typeExpr->data.AST_TYPE_NAME.typeName->chars);
+    APPEND_STR(buffer, len, i, "(");
+    APPEND_STR(buffer, len, i, "%s)", typeExpr->data.AST_TYPE_NAME.typeName->chars);
   } else if (match(TOKEN_FN)) {
     consume(TOKEN_LEFT_PAREN, "Expect '(' after 'fn' in function pointer type declaration.");
     // Function pointer
-    APPEND_STR(i, len, buffer, "fn (");
+    APPEND_STR(buffer, len, i, "fn (");
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         AST* paramType = type();
         arrput(components, paramType);
-        APPEND_STR(i, len, buffer, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
+        APPEND_STR(buffer, len, i, "%s", paramType->data.AST_TYPE_NAME.typeName->chars);
         if (check(TOKEN_COMMA)) {
-          APPEND_STR(i, len, buffer, ", ");
+          APPEND_STR(buffer, len, i, ", ");
         }
       } while (match(TOKEN_COMMA));
     }
@@ -375,7 +360,7 @@ static AST* type() {
     consume(TOKEN_COLON, "Expect ':' after a function pointer type");
     AST* resultType = type();
     arrput(components, resultType);
-    APPEND_STR(i, len, buffer, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
+    APPEND_STR(buffer, len, i, "): %s", resultType->data.AST_TYPE_NAME.typeName->chars);
   } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     // components needs to be null
@@ -513,6 +498,10 @@ static AST* varDecl() {
 }
 
 static AST* fnDecl() {
+  size_t i = 0;
+  size_t len = 4;
+  char* buffer = ALLOC_STR(len);
+  APPEND_STR(buffer, len, i, "fn (");
   STRING* identifier = parseVariable("Expect function identifier");
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
 
@@ -525,13 +514,20 @@ static AST* fnDecl() {
       AST* typeName = type();
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
       arrput(params, param);
+      APPEND_STR(buffer, len, i, "%s", typeName->data.AST_TYPE_NAME.typeName->chars);
+      if (check(TOKEN_COMMA)) {
+        APPEND_STR(buffer, len, i, ", ");
+      }
     } while (match(TOKEN_COMMA));
   }
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   consume(TOKEN_COLON,"Expect ':' after function parameter list.");
   AST* returnType = type();
+  APPEND_STR(buffer, len, i, "): %s", returnType->data.AST_TYPE_NAME.typeName->chars);
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
-  return AST_NEW(AST_FN, identifier, params, returnType, block());
+
+  int index = TYPE_TABLE_declare(copyString(buffer, i));
+  return AST_NEW(AST_FN, identifier, params, returnType, block(), index);
 }
 
 ParseRule rules[] = {

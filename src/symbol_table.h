@@ -44,6 +44,7 @@ typedef struct SYMBOL_TABLE_ENTRY {
   uint32_t pointer;
   uint32_t array;
   uint32_t scopeIndex;
+  uint32_t* params;
 } SYMBOL_TABLE_ENTRY;
 
 // 0 - LANGUAGE
@@ -54,6 +55,7 @@ void SYMBOL_TABLE_init(void);
 void SYMBOL_TABLE_openScope();
 void SYMBOL_TABLE_closeScope();
 void SYMBOL_TABLE_report();
+void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, uint32_t* params);
 void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 bool SYMBOL_TABLE_scopeHas(STRING* name);
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(STRING* name);

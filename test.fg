@@ -1,9 +1,14 @@
+const y: i8 = 6;
+// const s: string = "words";
+fn main(): bool {
+  var x: bool = test();
+}
+var x: i8;
 
-fn test(): i8 {}
-test();
-const s: string = "";
-var x: bool = true;
-x = 7 > ("hi");
+fn test(): bool {
+// x is actually not defined if this is called
+  x + 5;
+}
 
 
 // printf text
