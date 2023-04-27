@@ -44,6 +44,10 @@ int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) 
 }
 
 int TYPE_TABLE_declare(STRING* name) {
+  int index = TYPE_TABLE_lookup(name);
+  if (index != 0) {
+    return index;
+  }
   shput(aliasTable, name->chars, arrlen(typeTable));
   arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .status = STATUS_DECLARED, .fields = NULL, .byteSize = 0, .parent = 0 }));
   return arrlen(typeTable) - 1;
@@ -106,27 +110,31 @@ static TYPE_TABLE_RESULT TYPE_TABLE_calculateTypeSize(int typeIndex, TYPE_VISIT_
   hmput(visitSet, typeIndex, true);
 
   size_t total = 0;
-  for (int j = 0; j < arrlen(entry->fields); j++) {
-    TYPE_TABLE_FIELD_ENTRY field = entry->fields[j];
-    if (hmgeti(visitSet, field.typeIndex) != -1) {
-      printf("Types cannot be recursively defined.\n");
-      return (TYPE_TABLE_RESULT){ 0, true };
-    }
+  if (entry->parent == 0) {
+    for (int j = 0; j < arrlen(entry->fields); j++) {
+      TYPE_TABLE_FIELD_ENTRY field = entry->fields[j];
+      if (hmgeti(visitSet, field.typeIndex) != -1) {
+        printf("Types cannot be recursively defined.\n");
+        return (TYPE_TABLE_RESULT){ 0, true };
+      }
 
-    TYPE_TABLE_ENTRY fieldType = typeTable[field.typeIndex];
-    if (fieldType.primitive) {
-      total += fieldType.byteSize;
-    } else {
-      if (fieldType.status == STATUS_COMPLETE) {
+      TYPE_TABLE_ENTRY fieldType = typeTable[field.typeIndex];
+      if (fieldType.primitive) {
         total += fieldType.byteSize;
       } else {
-        TYPE_TABLE_RESULT result = TYPE_TABLE_calculateTypeSize(field.typeIndex, visitSet);
-        if (result.error) {
-          return result;
+        if (fieldType.status == STATUS_COMPLETE) {
+          total += fieldType.byteSize;
+        } else {
+          TYPE_TABLE_RESULT result = TYPE_TABLE_calculateTypeSize(field.typeIndex, visitSet);
+          if (result.error) {
+            return result;
+          }
+          total += result.size;
         }
-        total += result.size;
       }
     }
+  } else {
+    total += typeTable[entry->parent].byteSize;
   }
   entry->byteSize = total;
   entry->status = STATUS_COMPLETE;

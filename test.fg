@@ -1,15 +1,13 @@
-const y: i8 = 6;
+var p: fn (): i8;
+var x: i8 = p();
+
+/*
 // const s: string = "words";
+fn test(): i8 {}
 fn main(): bool {
-  var x: bool = test();
+  var x: i8 = p();
 }
-var x: i8;
-
-fn test(): bool {
-// x is actually not defined if this is called
-  x + 5;
-}
-
+*/
 
 // printf text
 /* asm {

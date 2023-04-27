@@ -321,7 +321,7 @@ static AST* type() {
     APPEND_STR(buffer, len, i, "^");
     AST* subType = type();
     arrput(components, subType);
-    APPEND_STR(buffer, len, i, "%s", subType->data.AST_TYPE_NAME.typeName->chars);
+    APPEND_STR(buffer, len, i, "(%s)", subType->data.AST_TYPE_NAME.typeName->chars);
   } else if (match(TOKEN_LEFT_BRACKET)) {
     consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
     AST* length = number(false);

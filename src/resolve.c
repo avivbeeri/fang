@@ -92,6 +92,24 @@ static bool resolveFn(AST* ptr) {
 
   return r;
 }
+static bool resolveType(AST* ptr) {
+  if (ptr != NULL && ptr->tag != AST_TYPE_NAME) {
+    return false;
+  }
+  AST ast = *ptr;
+  struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
+  TYPE_TABLE_FIELD_ENTRY* entries = NULL;
+  // Define symbol with parameter types
+  bool r = true;
+  for (int i = 0; i < arrlen(data.components); i++) {
+    struct AST_PARAM param = data.components[i]->data.AST_PARAM;
+    r &= traverse(data.components[i]);
+    uint32_t index = data.components[i]->type;
+    arrput(entries, ((TYPE_TABLE_FIELD_ENTRY){ NULL, index }));
+  }
+  TYPE_TABLE_declare(data.typeName);
+  return r;
+}
 
 static bool resolveTopLevel(AST* ptr) {
   if (ptr == NULL) {
@@ -295,10 +313,16 @@ static bool traverse(AST* ptr) {
     case AST_TYPE_NAME:
       {
         struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
+        resolveType(ptr);
         if (arrlen(data.components) > 0) {
           for (int i = 0; i < arrlen(data.components); i++) {
             bool r = traverse(data.components[i]);
             if (!r) {
+              return false;
+            }
+            int index = TYPE_TABLE_lookup(data.components[i]->data.AST_TYPE_NAME.typeName);
+            ptr->type = index;
+            if (index == 0) {
               return false;
             }
           }

@@ -67,7 +67,7 @@ void ast_free(AST *ptr) {
     }
     case AST_TYPE_NAME: {
       struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-      STRING_free(data.typeName);
+      // STRING_free(data.typeName);
       break;
     }
     case AST_LITERAL: {
