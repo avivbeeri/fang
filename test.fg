@@ -1,10 +1,13 @@
 var p: fn (): i8;
 var x: i8 = p();
 
+fn main(): bool {
+  x = 0;
+}
+
 /*
 // const s: string = "words";
 fn test(): i8 {}
-fn main(): bool {
   var x: i8 = p();
 }
 */

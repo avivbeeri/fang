@@ -753,12 +753,20 @@ static AST* topLevel() {
     //decl = enumDecl();
   } else if (match(TOKEN_FN)) {
     decl = fnDecl();
-  } else if (match(TOKEN_RETURN)) {
-    decl = returnStatement(true);
+  } else if (match(TOKEN_VAR)) {
+    decl = varDecl();
+  } else if (match(TOKEN_CONST)) {
+    decl = constDecl();
+  } else if (match(TOKEN_ASM)) {
+    decl = asmDecl();
   } else {
-    // Go to the other declarations, which are allowed in deeper
-    return declaration();
+    decl = AST_NEW(AST_ERROR, 0);
+    advance();
+    error("Could not find a declaration at the top level.");
   }
+    /*
+  } else {
+    */
   if (parser.panicMode) synchronize();
   return decl;
 }
@@ -795,14 +803,20 @@ AST* parse(const char* source) {
     if (decl == NULL) {
       continue;
     }
+    if (decl->tag == AST_ERROR) {
+      break;
+    }
+    if (decl)
     arrput(declList, decl);
   }
 
+  /*
   if (!parser.exitEmit) {
     // Append a "return 0" for exiting safely
     AST* node = AST_NEW(AST_EXIT, AST_NEW(AST_LITERAL, 2));
     arrput(declList, node);
   }
+  */
   list = AST_NEW(AST_LIST, declList);
 
   consume(TOKEN_EOF, "Expect end of expression.");
