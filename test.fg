@@ -1,8 +1,10 @@
 var p: fn (): ^i8;
 var x: ^i8 = p();
+var arr: [5]i8;
+
 var y: i8;
 fn main(): bool {
-  y = @x;
+  y = arr[2];
 }
 
 /*

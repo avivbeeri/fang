@@ -135,14 +135,16 @@ static int resolveType(AST* ptr) {
         // Arrays are basically just pointers with some runtime allocation
         // semantics
         struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
-        if (!isNumeric(resolveType(data.length))) {
+        traverse(data.length);
+        int lenType = data.length->type;
+        if (!isNumeric(lenType)) {
           return 0;
         }
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
         ptr->type = TYPE_TABLE_registerType(typeName, 2, subType, NULL);
-        return subType;
+        return ptr->type;
       }
   }
   return 0;
@@ -279,7 +281,7 @@ static bool traverse(AST* ptr) {
           // for type-check reasons
           if (data.decls[i]->tag == AST_FN) {
             arrput(deferred, i);
-            // TODO: figure out if we need a continue here
+            continue;
           }
           r = traverse(data.decls[i]);
           if (!r) {
@@ -375,6 +377,7 @@ static bool traverse(AST* ptr) {
         uint32_t* paramList = NULL;
         // Define symbol with parameter types
         bool r = true;
+
         SYMBOL_TABLE_openScope();
         for (int i = 0; i < arrlen(data.params); i++) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
@@ -632,6 +635,19 @@ static bool traverse(AST* ptr) {
         // TODO: check right for existance of field
         // TODO: left side needs to be a record
         return true;
+      }
+    case AST_SUBSCRIPT:
+      {
+        struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+        bool r = traverse(data.left);
+        r &= traverse(data.index);
+        if (!r || !isNumeric(data.index->type)) {
+          return false;
+        }
+
+        int arrType = data.left->type;
+        ptr->type = typeTable[arrType].parent;
+        return ptr->type != 0;
       }
     case AST_CALL:
       {
