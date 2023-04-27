@@ -450,6 +450,16 @@ static bool traverse(AST* ptr) {
               ptr->type = BOOL_INDEX; // to bool
               break;
             }
+          case OP_DEREF:
+            {
+              // TODO: check tha what we are reffing is not a literal
+              int subType = data.expr->type;
+              ptr->type = typeTable[subType].parent;
+              if (ptr->type == 0) {
+                return false;
+              }
+              break;
+            }
           case OP_REF:
             {
               // TODO: check tha what we are reffing is not a literal
