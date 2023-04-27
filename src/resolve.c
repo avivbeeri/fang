@@ -443,10 +443,21 @@ static bool traverse(AST* ptr) {
           case OP_NEG:
             {
               ptr->type = data.expr->type;
+              break;
             }
           case OP_NOT:
             {
               ptr->type = BOOL_INDEX; // to bool
+              break;
+            }
+          case OP_REF:
+            {
+              // TODO: check tha what we are reffing is not a literal
+              int subType = data.expr->type;
+              STRING* name = typeTable[subType].name;
+              STRING* typeName = STRING_prepend(name, "^");
+              ptr->type = TYPE_TABLE_registerType(typeName, 2, subType, NULL);
+              break;
             }
         }
         return r;
