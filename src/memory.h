@@ -26,6 +26,8 @@
 #ifndef memory_h
 #define memory_h
 
+#include <stdio.h>
+#include <math.h>
 #include "common.h"
 
 #define GROW_CAPACITY(capacity) \
@@ -61,6 +63,7 @@ typedef struct {
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
 char unesc(const char* str, size_t length);
 bool STRING_equality(STRING* left, STRING* right);
+STRING* STRING_prepend(STRING* str, const char* prepend);
 STRING* copyString(const char* chars, size_t length);
 STRING* createString(const char* chars);
 void STRING_free(STRING* str);

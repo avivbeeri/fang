@@ -44,6 +44,7 @@ typedef struct TYPE_TABLE_ENTRY {
   bool primitive;
   size_t parent;
   size_t byteSize;
+  int returnType;
   TYPE_TABLE_FIELD_ENTRY* fields;
 } TYPE_TABLE_ENTRY;
 
@@ -51,8 +52,10 @@ extern TYPE_TABLE_ENTRY* typeTable;
 
 TYPE_TABLE_ENTRY* TYPE_TABLE_init(void);
 int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
+int TYPE_TABLE_defineCallable(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, int returnType);
 int TYPE_TABLE_declare(STRING* name);
-int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent);
+int TYPE_TABLE_registerPrimitive(STRING* name, size_t size);
+int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
 void TYPE_TABLE_free(void);
 bool TYPE_TABLE_calculateSizes();
 int TYPE_TABLE_lookup(STRING* name);

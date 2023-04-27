@@ -35,6 +35,14 @@ TYPE_TABLE_ENTRY* typeTable = NULL;
 struct { char *key; int value; }* aliasTable = NULL;
 
 
+int TYPE_TABLE_defineCallable(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, int returnType) {
+  typeTable[index].status = STATUS_DEFINED;
+  typeTable[index].parent = parent;
+  typeTable[index].fields = fields;
+  typeTable[index].returnType = returnType;
+
+  return index;
+}
 int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
   typeTable[index].status = STATUS_DEFINED;
   typeTable[index].parent = parent;
@@ -53,17 +61,32 @@ int TYPE_TABLE_declare(STRING* name) {
   return arrlen(typeTable) - 1;
 }
 
-int TYPE_TABLE_register(STRING* name, size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
+int TYPE_TABLE_registerPrimitive(STRING* name, size_t size) {
   if (name != NULL) {
     shput(aliasTable, name->chars, arrlen(typeTable));
   }
   arrput(typeTable, ((TYPE_TABLE_ENTRY){
         .name = name,
+        .primitive = true,
+        .byteSize = size,
+        .parent = 0,
+        .fields = NULL,
+        .status = STATUS_COMPLETE
+  }));
+  return arrlen(typeTable) - 1;
+}
+
+int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
+  if (name != NULL) {
+    shput(aliasTable, name->chars, arrlen(typeTable));
+  }
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){
+        .name = name,
+        .primitive = false,
         .byteSize = size,
         .parent = parent,
-        .status = STATUS_COMPLETE,
         .fields = fields,
-        .primitive = true
+        .status = STATUS_COMPLETE
   }));
   return arrlen(typeTable) - 1;
 }
@@ -87,16 +110,16 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   shput(aliasTable, "ptr", 5);
   shput(aliasTable, "int16", 6);
 
-  TYPE_TABLE_register(NULL, 0, 0, NULL);
-  TYPE_TABLE_register(createString("void"), 0, 0, NULL);
-  TYPE_TABLE_register(createString("bool"), 1, 0, NULL);
-  TYPE_TABLE_register(createString("u8"), 1, 0, NULL);
-  TYPE_TABLE_register(createString("i8"), 1, 0, NULL);
-  TYPE_TABLE_register(createString("u16"), 2, 0, NULL);
-  TYPE_TABLE_register(createString("i16"), 2, 0, NULL);
-  TYPE_TABLE_register(createString("literal"), 0, 0, NULL);
-  TYPE_TABLE_register(createString("string"), 2, 0, NULL);
-  TYPE_TABLE_register(createString("fn"), 2, 0, NULL);
+  TYPE_TABLE_registerPrimitive(NULL, 0);
+  TYPE_TABLE_registerPrimitive(createString("void"), 0);
+  TYPE_TABLE_registerPrimitive(createString("bool"), 1);
+  TYPE_TABLE_registerPrimitive(createString("u8"), 1);
+  TYPE_TABLE_registerPrimitive(createString("i8"), 1);
+  TYPE_TABLE_registerPrimitive(createString("u16"), 2);
+  TYPE_TABLE_registerPrimitive(createString("i16"), 2);
+  TYPE_TABLE_registerPrimitive(createString("literal"), 0);
+  TYPE_TABLE_registerPrimitive(createString("string"), 2);
+  TYPE_TABLE_registerPrimitive(createString("fn"), 2);
 
   return typeTable;
 }

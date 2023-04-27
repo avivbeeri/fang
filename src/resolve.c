@@ -88,16 +88,48 @@ static bool resolveFn(AST* ptr) {
   }
   r &= traverse(data.returnType);
   arrput(entries, ((TYPE_TABLE_FIELD_ENTRY){ NULL, data.returnType->type }));
-  TYPE_TABLE_define(data.typeIndex, FN_INDEX, entries);
+  TYPE_TABLE_defineCallable(data.typeIndex, FN_INDEX, entries, data.returnType->type);
 
   return r;
 }
-static bool resolveType(AST* ptr) {
-  /*
-  if (ptr != NULL && ptr->tag != AST_TYPE_NAME) {
-    return false;
+static int resolveType(AST* ptr) {
+  if (ptr == NULL) {
+    return 0;
   }
   AST ast = *ptr;
+  switch (ast.tag) {
+    case AST_TYPE_NAME:
+      {
+        struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
+        return TYPE_TABLE_lookup(data.typeName);
+      }
+    case AST_TYPE_PTR:
+      {
+        struct AST_TYPE_PTR data = ast.data.AST_TYPE_PTR;
+        int subType = resolveType(data.subType);
+        // Get type name from typetable
+        // prepend ^
+        // store in type table and record index
+        STRING* name = typeTable[subType].name;
+        STRING* typeName = STRING_prepend(name, "^");
+        ptr->type = TYPE_TABLE_registerType(typeName, 2, subType, NULL);
+        return ptr->type;
+      }
+    case AST_TYPE_FN:
+      {
+        struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
+        int subType = resolveType(data.returnType);
+        return subType;
+      }
+    case AST_TYPE_ARRAY:
+      {
+        struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
+        int subType = resolveType(data.subType);
+        return subType;
+      }
+  }
+
+  /*
   struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
   TYPE_TABLE_FIELD_ENTRY* entries = NULL;
   // Define symbol with parameter types
@@ -111,7 +143,7 @@ static bool resolveType(AST* ptr) {
   TYPE_TABLE_declare(data.typeName);
   return r;
   */
-  return false;
+  return 0;
 }
 
 static bool resolveTopLevel(AST* ptr) {
@@ -313,10 +345,11 @@ static bool traverse(AST* ptr) {
         ptr->type = data.type->type;
         return r;
       }
-    case AST_TYPE_NAME:
+    case AST_TYPE:
       {
-        struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-        resolveType(ptr);
+        struct AST_TYPE data = ast.data.AST_TYPE;
+        ptr->type = resolveType(data.type);
+        return ptr->type != 0;
         /*
         if (arrlen(data.components) > 0) {
           for (int i = 0; i < arrlen(data.components); i++) {
@@ -611,8 +644,7 @@ static bool traverse(AST* ptr) {
           }
           // TODO: check arg type node against expected type of param
         }
-        size_t fieldCount = arrlen(typeTable[leftType].fields);
-        ptr->type = typeTable[leftType].fields[fieldCount - 1].typeIndex;
+        ptr->type = typeTable[leftType].returnType;
         return true;
       }
     default:

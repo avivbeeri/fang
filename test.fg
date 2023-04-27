@@ -1,5 +1,5 @@
 var p: fn (): i8;
-var x: i8 = p();
+var x: ^i8 = p();
 
 fn main(): bool {
   x = 0;

@@ -121,3 +121,13 @@ void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
   if (result == NULL) exit(1);
   return result;
 }
+
+STRING* STRING_prepend(STRING* str, const char* prepend) {
+  size_t len = 4;
+  size_t i = 0;
+  char* buffer = ALLOC_STR(len);
+  APPEND_STR(buffer, len, i, "%s%s", prepend, str->chars);
+  STRING* newStr = copyString(buffer, i);
+  FREE(char, buffer);
+  return newStr;
+}
