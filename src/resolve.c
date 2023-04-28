@@ -383,7 +383,7 @@ static bool traverse(AST* ptr) {
         struct AST_CAST data = ast.data.AST_CAST;
         bool r = traverse(data.expr) && traverse(data.type);
         ptr->type = data.type->type;
-        return r && isCompatible(data.expr->type, data.type->type);
+        return r;
       }
     case AST_TYPE:
       {
@@ -449,21 +449,24 @@ static bool traverse(AST* ptr) {
       {
         struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
         printf("%i\n", PEEK());
-        if ((data.initType == INIT_TYPE_RECORD && typeTable[PEEK()].entryType != ENTRY_TYPE_RECORD)
-            || (data.initType == INIT_TYPE_ARRAY && typeTable[PEEK()].entryType != ENTRY_TYPE_ARRAY)) {
+        TYPE_TABLE_ENTRY entry = typeTable[PEEK()];
+        if ((data.initType == INIT_TYPE_RECORD && entry.entryType != ENTRY_TYPE_RECORD)
+            || (data.initType == INIT_TYPE_ARRAY && entry.entryType != ENTRY_TYPE_ARRAY)) {
           return false;
         }
-
         ptr->type = PEEK();
-        /*
-        int childType = 0;
         for (int i = 0; i < arrlen(data.assignments); i++) {
           bool r = traverse(data.assignments[i]);
           if (!r) {
             return false;
           }
+          if (entry.entryType == ENTRY_TYPE_ARRAY && !isCompatible(data.assignments[i]->type, entry.parent)) {
+            return false;
+          }
+          if (entry.entryType == ENTRY_TYPE_RECORD) {
+            // compute type matches to assignments
+          }
         }
-        */
         return true;
       }
     case AST_LVALUE:
