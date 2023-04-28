@@ -9,14 +9,16 @@ type Entry {
 }
 type SubEntry {
   alive: bool;  
+  run: fn (): bool;
 }
 
 var y: Entry;
 fn main(): void {
-  y.sub.alive = test(true);
+  y.sub.alive = y.sub.run();
 }
-fn test(i: bool): bool {
-  return i as u8;
+fn do(): bool {}
+fn test(i: bool): fn (): bool {
+  return do;
 }
 
 /*

@@ -120,24 +120,25 @@ static int resolveType(AST* ptr) {
         struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
         TYPE_TABLE_FIELD_ENTRY* entries = NULL;
         // generate the fn type string here
-        size_t len = 4;
-        size_t i = 0;
-        char* buffer = ALLOC_STR(len);
-        APPEND_STR(buffer, len, i, "fn (");
+        size_t bufLen = 1;
+        size_t strLen = 0;
+        char* buffer = ALLOC_STR(bufLen);
+        APPEND_STR(buffer, bufLen, strLen, "fn (");
         for (int i = 0; i < arrlen(data.params); i++) {
           int index = resolveType(data.params[i]);
-          APPEND_STR(buffer, len, i, "%s", typeTable[index].name->chars);
+          APPEND_STR(buffer, bufLen, strLen, "%s", typeTable[index].name->chars);
           arrput(entries, ((TYPE_TABLE_FIELD_ENTRY){ NULL, index }));
           if (i < arrlen(data.params) - 1) {
-            APPEND_STR(buffer, len, i, ", ");
+            APPEND_STR(buffer, bufLen, strLen, ", ");
           }
         }
-        APPEND_STR(buffer, len, i, "): ");
+        APPEND_STR(buffer, bufLen, strLen, "): ");
         int returnType = resolveType(data.returnType);
-        APPEND_STR(buffer, len, i, "%s", typeTable[returnType].name->chars);
+        APPEND_STR(buffer, bufLen, strLen, "%s", typeTable[returnType].name->chars);
 
-        STRING* typeName = copyString(buffer, i);
+        STRING* typeName = copyString(buffer, strLen);
         FREE(char, buffer);
+        printf("%s\n", typeName->chars);
         ptr->type = TYPE_TABLE_declare(typeName);
         TYPE_TABLE_defineCallable(ptr->type, FN_INDEX, entries, returnType);
         return ptr->type;

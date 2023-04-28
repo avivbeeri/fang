@@ -364,12 +364,7 @@ static AST* parseType() {
 }
 
 static AST* type() {
-  AST** components = NULL;
   Token start = parser.current;
-  size_t len = 16;
-  char* buffer = ALLOC_STR(len);
-  size_t i = 0;
-
   AST* expr = NULL;
 
   expr = parseType();
