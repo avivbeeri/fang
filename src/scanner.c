@@ -100,6 +100,7 @@ static Token errorToken(const char* message) {
   token.start = message;
   token.length = (int)strlen(message);
   token.line = scanner.line;
+  token.pos = scanner.pos;
   return token;
 }
 

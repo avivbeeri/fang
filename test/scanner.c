@@ -128,3 +128,21 @@ Test(scanner, makeToken) {
   cr_expect(token.length == 2);
   cr_expect(token.pos == 3);
 }
+
+Test(scanner, errorToken) {
+  const char* source = "abcdef";
+  initScanner(source);
+  advance();
+  scanner.start = scanner.current;
+  advance();
+  advance();
+
+  char* message = "an error occurred";
+  Token token = errorToken(message);
+
+  cr_expect(token.type == TOKEN_ERROR);
+  cr_expect(token.start == message);
+  cr_expect(token.length == 17);
+  cr_expect(token.line == 1);
+  cr_expect(token.pos == 3);
+}
