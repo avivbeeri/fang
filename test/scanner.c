@@ -146,3 +146,20 @@ Test(scanner, errorToken) {
   cr_expect(token.line == 1);
   cr_expect(token.pos == 3);
 }
+
+Test(scanner, skipWhitespace) {
+  const char* source = " \r\ta\nb//test\n/*comment*/c";
+  initScanner(source);
+
+  cr_expect(scanner.line == 1);
+  skipWhitespace();
+  cr_expect(*(scanner.current) == 'a');
+  scanner.current++;
+  skipWhitespace();
+  cr_expect(scanner.line == 2);
+  cr_expect(*(scanner.current) == 'b');
+  scanner.current++;
+  skipWhitespace();
+  cr_expect(scanner.line == 3);
+  cr_expect(*(scanner.current) == 'c');
+}
