@@ -22,14 +22,11 @@ Bitwise operators: ~ | & << >>
 Boolean operators: (unary) ! && ||
 Equality Operators: == != >= <= > <
 
-Unimplemented but planned: 
-// Arrays
-// Data type method sugar?
-cons ::
-
 ## Keywords
-import, const, var, ext, asm, type, fn, void, 
-return, false, true, while, for, if, else, this, as
+const, var, asm, type, fn, void, return, 
+false, true, while, for, if, else, as
+
+Reserved for future use: import, ext, enum
 
 ## Grammar
 
@@ -87,7 +84,7 @@ subscript  -> casted ( "[" logic_or "]" )*;
 casted     -> reference ( "as" type )* ; 
 reference  -> ("@" | "$")? primary ;
 primary    -> literal | IDENTIFIER | "(" expression ")" | "[" list_display? "]";
-literal    -> "true" | "false" | "this" | NUMBER | STRING;  
+literal    -> "true" | "false" | NUMBER | STRING;  
 
 or_list -> logic_or ( "," logic_or )* ( "," )? ;
 

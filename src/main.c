@@ -58,7 +58,7 @@ static char* readFile(const char* path) {
 }
 
 int main(int argc, const char* argv[]) {
-  char* path = "test.fg";
+  char* path = "example.fg";
   if (argc > 1) {
     path = (char*)argv[1];
   }

@@ -2,7 +2,8 @@ fgcc
 obj
 *.S
 **/*.o
-test
+example
+test/bin/*
 
 *.swp
 
