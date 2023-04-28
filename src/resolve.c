@@ -393,12 +393,9 @@ static bool traverse(AST* ptr) {
           uint32_t index = typeTable[ast.type].fields[i].typeIndex;
           SYMBOL_TABLE_put(paramName, SYMBOL_TYPE_PARAMETER, index);
         }
-        // TODO: Store params in type table
-        // TODO: push return type onto stack
         PUSH(typeTable[ast.type].returnType);
         r &= traverse(data.body);
         POP();
-        // pop from stack
         SYMBOL_TABLE_closeScope();
         return r;
       }
@@ -591,7 +588,6 @@ static bool traverse(AST* ptr) {
           case OP_COMPARE_EQUAL:
           case OP_NOT_EQUAL:
             {
-              // TODO: Do we allow comparing different types?
               if (isNumeric(leftType) && leftType == rightType) {
                 ptr->type = BOOL_INDEX;
               } else {
@@ -721,20 +717,17 @@ static bool traverse(AST* ptr) {
         struct AST_CALL data = ast.data.AST_CALL;
         bool r = traverse(data.identifier);
         if (!r) {
-          printf("trip1\n");
           return false;
         }
         // resolve data.identifier to string
         uint32_t leftType = data.identifier->type;
         TYPE_TABLE_ENTRY fnType = typeTable[leftType];
         if (fnType.parent != FN_INDEX) {
-          printf("trip2\n");
           return false;
         }
 
         // Call should contain it's arguments
         if (arrlen(fnType.fields) != arrlen(data.arguments)) {
-          printf("trip3\n");
           return false;
         }
 
@@ -744,13 +737,10 @@ static bool traverse(AST* ptr) {
             return false;
           }
           if (fnType.fields[i].typeIndex != data.arguments[i]->type) {
-            printf("trip4\n");
             return false;
           }
-          // TODO: check arg type node against expected type of param
         }
         ptr->type = typeTable[leftType].returnType;
-          printf("trip5\n");
         return true;
       }
     default:
