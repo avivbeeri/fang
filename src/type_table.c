@@ -73,17 +73,16 @@ int TYPE_TABLE_declare(STRING* name) {
 }
 
 int TYPE_TABLE_registerPrimitive(STRING* name, size_t size) {
-  if (name == NULL) {
+  if (name != NULL) {
+    int i = shget(aliasTable, name->chars);
+    if (i > 0) {
+      return i;
+    }
+    shput(aliasTable, name->chars, arrlen(typeTable));
+  } else if (arrlen(typeTable) > 1) {
     return 0;
   }
-  int i = shget(aliasTable, name->chars);
-  if (i > 0) {
-    return i;
-  }
 
-  if (name != NULL) {
-    shput(aliasTable, name->chars, arrlen(typeTable));
-  }
   arrput(typeTable, ((TYPE_TABLE_ENTRY){
         .name = name,
         .entryType = ENTRY_TYPE_PRIMITIVE,
@@ -199,7 +198,6 @@ bool TYPE_TABLE_calculateSizes() {
 }
 
 int TYPE_TABLE_lookup(STRING* name) {
-  // We skip type 0 because 0 is the not-exist option.
   if (name == NULL || name->chars == NULL) {
     return 0;
   }

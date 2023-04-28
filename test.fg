@@ -3,21 +3,17 @@ var p: fn (): ^i8;
 var x: ^i8 = p();
 var arr: [5]i8;
 */
-type SubEntry {
-  id: i8;
-}
+
 type Entry {
   sub: SubEntry;
 }
+type SubEntry {
+  alive: bool;  
+}
+
 var y: Entry;
 fn main(): void {
-  y = {
-    sub = {
-/*
-      id = 4;
-*/
-    };
-  };
+  y.sub.alive = false;
 }
 
 /*

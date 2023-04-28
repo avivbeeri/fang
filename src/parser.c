@@ -423,7 +423,7 @@ static AST* block() {
 
 
 static AST* dot(bool canAssign, AST* left) {
-  consume(TOKEN_STRING, "Expect property name after '.'.");
+  consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
   STRING* field = copyString(parser.previous.start, parser.previous.length);
   AST* expr = AST_NEW(AST_DOT, left, field);
 
@@ -732,7 +732,7 @@ static AST* enumDecl() {
 
 static AST* typeDecl() {
   STRING* identifier = parseVariable("Expect a data type name");
-//   int index = TYPE_TABLE_declare(identifier);
+  int index = TYPE_TABLE_declare(identifier);
   consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
   AST** fields = fieldList();
   return AST_NEW(AST_TYPE_DECL, identifier, fields);

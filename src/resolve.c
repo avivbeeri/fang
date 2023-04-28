@@ -49,7 +49,7 @@ static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
 }
 static bool isNumeric(int type) {
-  return type <= NUMERICAL_INDEX && type >= 2;
+  return type <= NUMERICAL_INDEX && type > BOOL_INDEX;
 }
 
 static bool isCompatible(int type1, int type2) {
@@ -608,7 +608,7 @@ static bool traverse(AST* ptr) {
           case OP_NOT_EQUAL:
             {
               // TODO: Do we allow comparing different types?
-              ptr->type = 1;
+              ptr->type = BOOL_INDEX;
               break;
             }
           case OP_GREATER_EQUAL:
@@ -692,10 +692,30 @@ static bool traverse(AST* ptr) {
       {
         struct AST_DOT data = ast.data.AST_DOT;
         bool r = traverse(data.left);
-        // Need to pass type upwards to validate field name
         if (!r) {
           return false;
         }
+        // Need to pass type upwards to validate field name
+        TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
+        if (entry.entryType != ENTRY_TYPE_RECORD) {
+          return false;
+        }
+        STRING* name = data.name;
+        int fieldIndex = 0;
+        bool found = false;
+        for (; fieldIndex < arrlen(entry.fields); fieldIndex++) {
+          if (STRING_equality(name, entry.fields[fieldIndex].name)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          return false;
+        }
+        ptr->type = entry.fields[fieldIndex].typeIndex;
+
+
+        //
         // TODO: check right for existance of field
         // TODO: left side needs to be a record
         return true;
