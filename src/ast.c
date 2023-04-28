@@ -150,7 +150,7 @@ void ast_free(AST *ptr) {
     }
     case AST_CAST: {
       struct AST_CAST data = ast.data.AST_CAST;
-      ast_free(data.identifier);
+      ast_free(data.expr);
       ast_free(data.type);
       break;
     }

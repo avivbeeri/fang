@@ -38,10 +38,19 @@ typedef struct TYPE_TABLE_FIELD_ENTRY {
   int typeIndex;
 } TYPE_TABLE_FIELD_ENTRY;
 
+enum TYPE_TABLE_ENTRY_TYPE {
+  ENTRY_TYPE_UNKNOWN,
+  ENTRY_TYPE_PRIMITIVE,
+  ENTRY_TYPE_POINTER,
+  ENTRY_TYPE_FUNCTION,
+  ENTRY_TYPE_RECORD,
+  ENTRY_TYPE_ARRAY
+};
+
 typedef struct TYPE_TABLE_ENTRY {
   STRING* name;
   enum TYPE_TABLE_ENTRY_STATUS status;
-  bool primitive;
+  enum TYPE_TABLE_ENTRY_TYPE entryType;
   // Pointers and arrays have "parents" (really the pointed type)
   size_t parent;
   size_t byteSize;
@@ -55,11 +64,11 @@ typedef struct TYPE_TABLE_ENTRY {
 extern TYPE_TABLE_ENTRY* typeTable;
 
 TYPE_TABLE_ENTRY* TYPE_TABLE_init(void);
-int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
+int TYPE_TABLE_define(int index, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
 int TYPE_TABLE_defineCallable(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, int returnType);
 int TYPE_TABLE_declare(STRING* name);
 int TYPE_TABLE_registerPrimitive(STRING* name, size_t size);
-int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
+int TYPE_TABLE_registerType(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType,  size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
 void TYPE_TABLE_free(void);
 bool TYPE_TABLE_calculateSizes();
 int TYPE_TABLE_lookup(STRING* name);

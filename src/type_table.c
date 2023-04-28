@@ -40,6 +40,7 @@ int TYPE_TABLE_defineCallable(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* 
     return 0;
   }
   typeTable[index].status = STATUS_DEFINED;
+  typeTable[index].entryType = ENTRY_TYPE_FUNCTION;
   typeTable[index].byteSize = 2;
   typeTable[index].parent = parent;
   typeTable[index].fields = fields;
@@ -47,11 +48,12 @@ int TYPE_TABLE_defineCallable(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* 
 
   return index;
 }
-int TYPE_TABLE_define(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
+int TYPE_TABLE_define(int index, enum TYPE_TABLE_ENTRY_TYPE entryType,  size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
   if (index > arrlen(typeTable) - 1) {
     return 0;
   }
 
+  typeTable[index].entryType = entryType;
   typeTable[index].status = STATUS_DEFINED;
   typeTable[index].parent = parent;
   typeTable[index].fields = fields;
@@ -66,8 +68,7 @@ int TYPE_TABLE_declare(STRING* name) {
   }
 
   shput(aliasTable, name->chars, arrlen(typeTable));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .status = STATUS_DECLARED, .fields = NULL, .byteSize = 0, .parent = 0 }));
-  printf("new type: %li\n", arrlen(typeTable) - 1);
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .status = STATUS_DECLARED, .fields = NULL, .byteSize = 0, .parent = 0, .entryType = ENTRY_TYPE_UNKNOWN }));
   return arrlen(typeTable) - 1;
 }
 
@@ -85,17 +86,16 @@ int TYPE_TABLE_registerPrimitive(STRING* name, size_t size) {
   }
   arrput(typeTable, ((TYPE_TABLE_ENTRY){
         .name = name,
-        .primitive = true,
+        .entryType = ENTRY_TYPE_PRIMITIVE,
         .byteSize = size,
         .parent = 0,
         .fields = NULL,
         .status = STATUS_COMPLETE
   }));
-  printf("primitive type: %li\n", arrlen(typeTable) - 1);
   return arrlen(typeTable) - 1;
 }
 
-int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
+int TYPE_TABLE_registerType(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType,  size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
   int i = shget(aliasTable, name->chars);
   if (i > 0) {
     return i;
@@ -105,13 +105,12 @@ int TYPE_TABLE_registerType(STRING* name, size_t size, size_t parent, TYPE_TABLE
   }
   arrput(typeTable, ((TYPE_TABLE_ENTRY){
         .name = name,
-        .primitive = false,
+        .entryType = entryType,
         .byteSize = size,
         .parent = parent,
         .fields = fields,
         .status = STATUS_COMPLETE
   }));
-  printf("new type: %li\n", arrlen(typeTable) - 1);
   return arrlen(typeTable) - 1;
 }
 
@@ -151,7 +150,7 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
 
 static TYPE_TABLE_RESULT TYPE_TABLE_calculateTypeSize(int typeIndex, TYPE_VISIT_SET* visitSet) {
   TYPE_TABLE_ENTRY* entry = typeTable + typeIndex;
-  if (entry->primitive || entry->status == STATUS_COMPLETE) {
+  if (entry->entryType == ENTRY_TYPE_PRIMITIVE || entry->status == STATUS_COMPLETE) {
     return (TYPE_TABLE_RESULT){ entry->byteSize, false };
   }
   hmput(visitSet, typeIndex, true);
@@ -166,7 +165,7 @@ static TYPE_TABLE_RESULT TYPE_TABLE_calculateTypeSize(int typeIndex, TYPE_VISIT_
       }
 
       TYPE_TABLE_ENTRY fieldType = typeTable[field.typeIndex];
-      if (fieldType.primitive) {
+      if (fieldType.entryType == ENTRY_TYPE_PRIMITIVE) {
         total += fieldType.byteSize;
       } else {
         if (fieldType.status == STATUS_COMPLETE) {
@@ -205,7 +204,6 @@ int TYPE_TABLE_lookup(STRING* name) {
     return 0;
   }
   int index = shget(aliasTable, name->chars);
-  printf("%i\n", index);
   return index;
 }
 

@@ -33,6 +33,10 @@
 #include "symbol_table.h"
 
 struct { uint32_t key; STRING* value; }* nodeIdents = NULL;
+uint32_t* typeStack = NULL;
+#define PUSH(type) do { arrput(typeStack, type); } while (false)
+#define POP() do { arrdel(typeStack, arrlen(typeStack) - 1); } while (false)
+#define PEEK() (arrlen(typeStack) == 0 ? 0 : typeStack[arrlen(typeStack) - 1])
 
 #define BOOL_INDEX 2
 #define U8_INDEX 3
@@ -47,6 +51,14 @@ static bool isLiteral(int type) {
 static bool isNumeric(int type) {
   return type <= NUMERICAL_INDEX && type >= 2;
 }
+
+static bool isCompatible(int type1, int type2) {
+  return type1 == type2
+    || (isNumeric(type1) && isLiteral(type2))
+    || (isLiteral(type1) && isNumeric(type2))
+    || (isLiteral(type1) && isLiteral(type2));
+}
+
 static int valueToType(Value value) {
   switch (value.type) {
     case VAL_ERROR: return 0;
@@ -100,7 +112,7 @@ static int resolveType(AST* ptr) {
         // store in type table and record index
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
-        ptr->type = TYPE_TABLE_registerType(typeName, 2, subType, NULL);
+        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
         return ptr->type;
       }
     case AST_TYPE_FN:
@@ -143,7 +155,7 @@ static int resolveType(AST* ptr) {
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
-        ptr->type = TYPE_TABLE_registerType(typeName, 2, subType, NULL);
+        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, 2, subType, NULL);
         return ptr->type;
       }
   }
@@ -207,21 +219,23 @@ static bool resolveTopLevel(AST* ptr) {
     case AST_TYPE_DECL:
       {
         struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-        STRING* identifier = typeTable[data.index].name;
+        STRING* identifier = data.name;
+        int index = TYPE_TABLE_declare(identifier);
         TYPE_TABLE_FIELD_ENTRY* fields = NULL;
+        // should we resolve type fields before main verification?
 
         for (int i = 0; i < arrlen(data.fields); i++) {
           struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
-          STRING* fieldName = field.identifier;
-          STRING* fieldType = field.value->data.AST_TYPE_NAME.typeName;
-          int index = TYPE_TABLE_lookup(fieldType);
+          traverse(field.value);
+          int index = field.value->type;
           if (index == 0) {
             arrfree(fields);
+            printf("bail %s\n", field.identifier->chars);
             return false;
           }
-          arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = fieldName } ));
+          arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = field.identifier } ));
         }
-        TYPE_TABLE_define(data.index, 0, fields);
+        TYPE_TABLE_define(index, ENTRY_TYPE_RECORD, 0, fields);
         return true;
       }
     case AST_FN:
@@ -304,13 +318,15 @@ static bool traverse(AST* ptr) {
       {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
         STRING* identifier = data.identifier;
-        bool r = traverse(data.expr);
-        r &= traverse(data.type);
+        bool r  = traverse(data.type);
+        int leftType = data.type->type;
+        PUSH(leftType);
+        r &= traverse(data.expr);
+        POP();
+        int rightType = data.expr->type;
         if (!r) {
           return false;
         }
-        int leftType = data.expr->type;
-        int rightType = data.type->type;
 
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
@@ -329,9 +345,12 @@ static bool traverse(AST* ptr) {
       {
         struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
         STRING* identifier = data.identifier;
-        bool r = traverse(data.type) && traverse(data.expr);
+        bool r = traverse(data.type);
         int leftType = data.type->type;
+        PUSH(leftType);
+        r &= traverse(data.expr);
         int rightType = data.expr->type;
+        POP();
 
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
 
@@ -342,15 +361,17 @@ static bool traverse(AST* ptr) {
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         bool ident = traverse(data.lvalue);
+        int leftType = data.lvalue->type;
+        PUSH(leftType);
         bool expr = traverse(data.expr);
+        POP();
+        int rightType = data.expr->type;
 
         if (!(ident && expr)) {
           return false;
         }
         ptr->type = data.lvalue->type;
-        int leftType = data.lvalue->type;
-        int rightType = data.expr->type;
-        return leftType == rightType || (isNumeric(leftType) && isLiteral(rightType));
+        return isCompatible(leftType, rightType);
       }
     case AST_ASM:
       {
@@ -360,9 +381,9 @@ static bool traverse(AST* ptr) {
     case AST_CAST:
       {
         struct AST_CAST data = ast.data.AST_CAST;
-        bool r = traverse(data.identifier) && traverse(data.type);
+        bool r = traverse(data.expr) && traverse(data.type);
         ptr->type = data.type->type;
-        return r;
+        return r && isCompatible(data.expr->type, data.type->type);
       }
     case AST_TYPE:
       {
@@ -387,7 +408,9 @@ static bool traverse(AST* ptr) {
           SYMBOL_TABLE_put(paramName, SYMBOL_TYPE_PARAMETER, 0);
         }
         // TODO: Store params in type table
+        // TODO: push return type onto stack
         r &= traverse(data.body);
+        // pop from stack
         SYMBOL_TABLE_closeScope();
         arrput(paramList, data.returnType->type);
         if (!r) {
@@ -401,6 +424,10 @@ static bool traverse(AST* ptr) {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
         Value value = CONST_TABLE_get(data.constantIndex);
         ptr->type = valueToType(value);
+        if (isCompatible(PEEK(), ptr->type)) {
+          printf("compatible\n");
+          ptr->type = PEEK();
+        }
         return true;
       }
     case AST_IDENTIFIER:
@@ -421,14 +448,22 @@ static bool traverse(AST* ptr) {
     case AST_INITIALIZER:
       {
         struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
+        printf("%i\n", PEEK());
+        if ((data.initType == INIT_TYPE_RECORD && typeTable[PEEK()].entryType != ENTRY_TYPE_RECORD)
+            || (data.initType == INIT_TYPE_ARRAY && typeTable[PEEK()].entryType != ENTRY_TYPE_ARRAY)) {
+          return false;
+        }
+
+        ptr->type = PEEK();
+        /*
+        int childType = 0;
         for (int i = 0; i < arrlen(data.assignments); i++) {
           bool r = traverse(data.assignments[i]);
           if (!r) {
             return false;
           }
         }
-        // We need an identifier stack here
-        // ptr->type = SYMBOL_TABLE_get(identifier).typeIndex;
+        */
         return true;
       }
     case AST_LVALUE:
@@ -469,7 +504,7 @@ static bool traverse(AST* ptr) {
               int subType = data.expr->type;
               STRING* name = typeTable[subType].name;
               STRING* typeName = STRING_prepend(name, "^");
-              ptr->type = TYPE_TABLE_registerType(typeName, 2, subType, NULL);
+              ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
               break;
             }
         }
@@ -478,13 +513,15 @@ static bool traverse(AST* ptr) {
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;
-        bool r = traverse(data.left) && traverse(data.right);
+        bool r = traverse(data.left);
+        int leftType = data.left->type;
+        PUSH(leftType);
+        r &= traverse(data.right);
+        POP();
+        int rightType = data.right->type;
         if (!r) {
           return false;
         }
-
-        int leftType = data.left->type;
-        int rightType = data.right->type;
         bool compatible = true;
 
 
@@ -662,12 +699,11 @@ static bool traverse(AST* ptr) {
           return false;
         }
 
-        /*
         // Call should contain it's arguments
-        if (arrlen(entry.params) != arrlen(data.arguments)) {
+        if (arrlen(typeTable[leftType].fields) != arrlen(data.arguments)) {
           return false;
         }
-        */
+
         for (int i = 0; i < arrlen(data.arguments); i++) {
           r = traverse(data.arguments[i]);
           if (!r) {
