@@ -230,7 +230,6 @@ static bool resolveTopLevel(AST* ptr) {
           int index = field.value->type;
           if (index == 0) {
             arrfree(fields);
-            printf("bail %s\n", field.identifier->chars);
             return false;
           }
           arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = field.identifier } ));
@@ -425,7 +424,6 @@ static bool traverse(AST* ptr) {
         Value value = CONST_TABLE_get(data.constantIndex);
         ptr->type = valueToType(value);
         if (isCompatible(PEEK(), ptr->type)) {
-          printf("compatible\n");
           ptr->type = PEEK();
         }
         return true;
@@ -448,26 +446,52 @@ static bool traverse(AST* ptr) {
     case AST_INITIALIZER:
       {
         struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
-        printf("%i\n", PEEK());
         TYPE_TABLE_ENTRY entry = typeTable[PEEK()];
         if ((data.initType == INIT_TYPE_RECORD && entry.entryType != ENTRY_TYPE_RECORD)
             || (data.initType == INIT_TYPE_ARRAY && entry.entryType != ENTRY_TYPE_ARRAY)) {
           return false;
         }
         ptr->type = PEEK();
+        bool r = true;
         for (int i = 0; i < arrlen(data.assignments); i++) {
-          bool r = traverse(data.assignments[i]);
-          if (!r) {
-            return false;
-          }
-          if (entry.entryType == ENTRY_TYPE_ARRAY && !isCompatible(data.assignments[i]->type, entry.parent)) {
-            return false;
+          if (entry.entryType == ENTRY_TYPE_ARRAY) {
+            r = traverse(data.assignments[i]);
+            if (!r) {
+              return false;
+            }
+
+            if (!isCompatible(data.assignments[i]->type, entry.parent)) {
+              return false;
+            }
           }
           if (entry.entryType == ENTRY_TYPE_RECORD) {
-            // compute type matches to assignments
+            struct AST_PARAM field = data.assignments[i]->data.AST_PARAM;
+            STRING* name = field.identifier;
+            int fieldIndex = 0;
+            bool found = false;
+            for (; fieldIndex < arrlen(entry.fields); fieldIndex++) {
+              if (STRING_equality(name, entry.fields[fieldIndex].name)) {
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              r = false;
+              break;
+            }
+            PUSH(entry.fields[fieldIndex].typeIndex);
+            r &= traverse(field.value);
+            POP();
+            if (!r) {
+              return false;
+            }
+            r &= isCompatible(entry.fields[fieldIndex].typeIndex, field.value->type);
+            if (!r) {
+              return false;
+            }
           }
         }
-        return true;
+        return r;
       }
     case AST_LVALUE:
       {
