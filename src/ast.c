@@ -138,11 +138,6 @@ void ast_free(AST *ptr) {
       ast_free(data.expr);
       break;
     }
-    case AST_EXIT: {
-      struct AST_EXIT data = ast.data.AST_EXIT;
-      ast_free(data.value);
-      break;
-    }
     case AST_RETURN: {
       struct AST_RETURN data = ast.data.AST_RETURN;
       ast_free(data.value);
@@ -223,7 +218,6 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_TYPE_DECL: return "TYPE_DECL";
     case AST_CALL: return "CALL";
     case AST_RETURN: return "RETURN";
-    case AST_EXIT: return "EXIT";
     case AST_FOR: return "FOR";
     case AST_WHILE: return "WHILE";
     case AST_IF: return "IF";

@@ -13,7 +13,10 @@ type SubEntry {
 
 var y: Entry;
 fn main(): void {
-  y.sub.alive = false;
+  y.sub.alive = test(true);
+}
+fn test(i: bool): bool {
+  return i as u8;
 }
 
 /*

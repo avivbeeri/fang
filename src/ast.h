@@ -90,7 +90,6 @@ typedef enum {
   AST_SUBSCRIPT,
   AST_CAST,
   AST_RETURN,
-  AST_EXIT,
   AST_FN,
   AST_TYPE_DECL,
   AST_PARAM,
@@ -129,7 +128,6 @@ struct AST {
     struct AST_SUBSCRIPT { AST* left; AST* index; } AST_SUBSCRIPT;
     struct AST_CAST { AST* expr; AST* type; } AST_CAST;
     struct AST_RETURN { AST* value; } AST_RETURN;
-    struct AST_EXIT { AST* value; } AST_EXIT;
     struct AST_PARAM { STRING* identifier; AST* value;  } AST_PARAM;
 
     struct AST_ASSIGNMENT { AST* lvalue; AST* expr; } AST_ASSIGNMENT;

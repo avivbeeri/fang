@@ -41,7 +41,6 @@ typedef struct {
   Token previous;
   bool hadError;
   bool panicMode;
-  bool exitEmit;
 } Parser;
 
 typedef enum {
@@ -687,7 +686,7 @@ static AST* forStatement() {
   return AST_NEW(AST_FOR, initializer, condition, increment, body);
 }
 
-static AST* returnStatement(bool topLevel) {
+static AST* returnStatement() {
   AST* expr = NULL;
   if (match(TOKEN_SEMICOLON)) {
     // No return value
@@ -695,12 +694,7 @@ static AST* returnStatement(bool topLevel) {
     expr = expression();
     consume(TOKEN_SEMICOLON, "Expect ';' after return value.");
   }
-  parser.exitEmit = parser.exitEmit || topLevel;
-  if (topLevel) {
-    return AST_NEW(AST_EXIT, expr);
-  } else {
-    return AST_NEW(AST_RETURN, expr);
-  }
+  return AST_NEW(AST_RETURN, expr);
 }
 
 static AST* statement() {
@@ -712,7 +706,7 @@ static AST* statement() {
   } else if (match(TOKEN_FOR)) {
     expr = forStatement();
   } else if (match(TOKEN_RETURN)) {
-    expr = returnStatement(false);
+    expr = returnStatement();
   } else if (match(TOKEN_WHILE)) {
     expr = whileStatement();
   } else {
@@ -783,7 +777,6 @@ static AST* declaration() {
 AST* parse(const char* source) {
   parser.hadError = false;
   parser.panicMode = false;
-  parser.exitEmit = false;
 
   advance();
   AST* list = NULL;
@@ -803,13 +796,6 @@ AST* parse(const char* source) {
     arrput(declList, decl);
   }
 
-  /*
-  if (!parser.exitEmit) {
-    // Append a "return 0" for exiting safely
-    AST* node = AST_NEW(AST_EXIT, AST_NEW(AST_LITERAL, 2));
-    arrput(declList, node);
-  }
-  */
   list = AST_NEW(AST_LIST, declList);
 
   consume(TOKEN_EOF, "Expect end of expression.");

@@ -145,14 +145,9 @@ static int traverse(FILE* f, AST* ptr) {
       struct AST_MAIN data = ast.data.AST_MAIN;
       genPreamble();
       traverse(f, data.body);
-      return 0;
-      break;
-    }
-    case AST_EXIT: {
-      struct AST_EXIT data = ast.data.AST_EXIT;
-      int r = traverse(f, data.value);
+      int r = genLoad(0);
       genExit(r);
-      return r;
+      return 0;
       break;
     }
     case AST_LIST: {

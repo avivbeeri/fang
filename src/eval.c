@@ -49,10 +49,6 @@ static Value traverse(AST* ptr, Environment* context) {
       struct AST_RETURN data = ast.data.AST_RETURN;
       return traverse(data.value, context);
     }
-    case AST_EXIT: {
-      struct AST_EXIT data = ast.data.AST_EXIT;
-      return traverse(data.value, context);
-    }
     case AST_BLOCK: {
       struct AST_BLOCK data = ast.data.AST_BLOCK;
       Environment env = beginScope(context);
