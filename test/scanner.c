@@ -148,7 +148,7 @@ Test(scanner, errorToken) {
 }
 
 Test(scanner, skipWhitespace) {
-  const char* source = " \r\ta\nb//test\n/*comment*/c";
+  const char* source = " \r\ta\nb//test\n/*comment*/c/*\n*/d";
   initScanner(source);
 
   cr_expect(scanner.line == 1);
@@ -162,4 +162,17 @@ Test(scanner, skipWhitespace) {
   skipWhitespace();
   cr_expect(scanner.line == 3);
   cr_expect(*(scanner.current) == 'c');
+  scanner.current++;
+  skipWhitespace();
+  skipWhitespace();
+  cr_expect(scanner.line == 4);
+  cr_expect(scanner.pos == 3);
+  cr_expect(*(scanner.current) == 'd');
+}
+
+Test(scanner, checkTypeKeyword) {
+  const char* source = "void";
+  initScanner(source);
+  scanner.current += 4;
+  cr_expect(checkTypeKeyword() == TOKEN_TYPE_NAME);
 }
