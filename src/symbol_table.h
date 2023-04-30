@@ -41,9 +41,8 @@ typedef struct SYMBOL_TABLE_ENTRY {
   SYMBOL_TYPE entryType;
   int typeIndex;
   bool defined;
-  uint32_t pointer;
-  uint32_t array;
   uint32_t scopeIndex;
+  uint32_t ordinal;
   uint32_t* params;
 } SYMBOL_TABLE_ENTRY;
 

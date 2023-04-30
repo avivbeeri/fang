@@ -23,43 +23,28 @@
   SOFTWARE.
 */
 
+#ifndef platform_h
+#define platform_h
 
 #include <stdio.h>
-#include "ast.h"
-#include "scanner.h"
-#include "parser.h"
-#include "type_table.h"
-#include "const_table.h"
-#include "symbol_table.h"
-#include "resolve.h"
-#include "print.h"
-#include "emit.h"
-#include "eval.h"
+#include "memory.h"
+#include "value.h"
 
-bool compile(const char* source) {
-  // testScanner(source);
-  TYPE_TABLE_init();
-  CONST_TABLE_init();
-  initScanner(source);
-  AST* ast = parse(source);
-  bool result = true;
-  if (ast != NULL) {
-    printTree(ast);
-    if (resolveTree(ast)) {
-      printf("Resolved successfully.\n");
-      emitTree(ast);
-      // evalTree(ast);
-    } else {
-      printf("Failed to compile program.\n");
-      result = false;
-    }
-    ast_free(ast);
-  } else {
-    result = false;
-  }
-  CONST_TABLE_free();
-  TYPE_TABLE_free();
-  SYMBOL_TABLE_free();
-  printf("\n");
-  return result;
-}
+typedef struct {
+  const char* key;
+  void (*init)();
+  void (*complete)();
+  void (*genPreamble)(FILE* f);
+  void (*genFunction)(FILE* f, STRING* name);
+  void (*genReturn)(FILE* f, int);
+  int (*genLoad)(FILE* f, int);
+  void (*genSimpleExit)(FILE* f);
+  void (*genExit)(FILE* f, int);
+  void (*genRaw)(FILE* f, const char*);
+} PLATFORM;
+
+void PLATFORM_init();
+void PLATFORM_shutdown();
+PLATFORM PLATFORM_get(const char* name);
+
+#endif

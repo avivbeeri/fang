@@ -77,6 +77,8 @@ void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, uint
     .entryType = type,
     .defined = true,
     .typeIndex = typeIndex,
+    .scopeIndex = scopeIndex,
+    .ordinal = shlen(scope.table),
     .params = NULL
   };
   shputs(scope.table, entry);
