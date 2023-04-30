@@ -145,6 +145,7 @@ struct AST {
   TYPE_INDEX type;
   Token token;
   uint64_t id;
+  uint32_t scopeIndex;
 };
 
 AST* ast_new(AST ast);

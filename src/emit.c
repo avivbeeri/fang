@@ -97,6 +97,13 @@ static int traverse(FILE* f, AST* ptr) {
         p.genReturn(f, r);
         return r;
       }
+    case AST_IDENTIFIER:
+      {
+        struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        int r = p.genIdentifier(f, symbol);
+        return r;
+      }
     case AST_LITERAL:
       {
         struct AST_LITERAL data = ast.data.AST_LITERAL;

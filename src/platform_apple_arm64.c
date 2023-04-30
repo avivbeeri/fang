@@ -1,5 +1,6 @@
 #include "common.h"
 #include "platform.h"
+#include "type_table.h"
 #include "symbol_table.h"
 #include "const_table.h"
 
@@ -35,34 +36,40 @@ static int allocateRegister() {
 }
 
 static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
-  static char* buffer[128];
-  switch (entry->entryType) {
-    case SYMBOL_TYPE_PARAMETER:
-    case SYMBOL_TYPE_VARIABLE:
-      {
-        break;
+  static char buffer[128];
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
+  if (entry.entryType == SYMBOL_TYPE_CONSTANT || scope.parent == 0) {
+    snprintf(buffer, sizeof(buffer), "%s", entry.key);
+    return entry.key;
+  } else {
+    // local
+    // calculate offset
+    uint32_t offset = 0;
+    for (int i = 0; i < shlen(scope.table); i++) {
+      SYMBOL_TABLE_ENTRY other = scope.table[i];
+      if (other.defined && other.ordinal < entry.ordinal) {
+        offset += typeTable[other.typeIndex].byteSize;
       }
-    case SYMBOL_TYPE_CONSTANT:
-      {
-        break;
-      }
-
+    }
+    snprintf(buffer, sizeof(buffer), "[baseptr, #%i]", offset);
+    return buffer;
   }
-
-  snprintf(buffer, sizeof(buffer), "[baseptr, #%i]", entry->ordinal);
-  return buffer;
 }
 
+/*
 static int labelCreate() {
   return labelId++;
 }
+*/
 
 
-const const char* labelPrint(int i) {
-  static char* buffer[128];
+/*
+const char* labelPrint(int i) {
+  static char buffer[128];
   snprintf(buffer, sizeof(buffer), "L%i", i);
   return buffer;
 }
+*/
 
 void init(void) {
   freeAllRegisters();
@@ -77,6 +84,12 @@ static int genLoad(FILE* f, int i) {
   // return the register index
   int r = allocateRegister();
   emitf("mov %s, #%i\n", regList[r], i);
+  return r;
+}
+
+static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
+  int r = allocateRegister();
+  emitf("mov %s, %s\n", regList[r], symbol(entry));
   return r;
 }
 
@@ -189,6 +202,7 @@ PLATFORM platform_apple_arm64 = {
   .genFunction = genFunction,
   .genReturn = genReturn,
   .genLoad = genLoad,
+  .genIdentifier = genIdentifier,
   .genRaw = genRaw
 };
 

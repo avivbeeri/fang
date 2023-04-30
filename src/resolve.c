@@ -419,10 +419,11 @@ static bool traverse(AST* ptr) {
           errorAt(&ast.token, "Identifier was not found.");
           return false;
         }
-        SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_get(identifier);
+        SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_getCurrent(identifier);
         if (entry.defined) {
           ptr->type = entry.typeIndex;
         }
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return result;
       }
     case AST_INITIALIZER:
@@ -474,13 +475,6 @@ static bool traverse(AST* ptr) {
           }
         }
         return r;
-      }
-    case AST_LVALUE:
-      {
-        struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-        STRING* identifier = data.identifier;
-        ptr->type = SYMBOL_TABLE_get(identifier).typeIndex;
-        return SYMBOL_TABLE_scopeHas(identifier);
       }
     case AST_UNARY:
       {

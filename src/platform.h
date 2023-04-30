@@ -28,6 +28,7 @@
 
 #include <stdio.h>
 #include "memory.h"
+#include "symbol_table.h"
 #include "value.h"
 
 typedef struct {
@@ -38,6 +39,7 @@ typedef struct {
   void (*genFunction)(FILE* f, STRING* name);
   void (*genReturn)(FILE* f, int);
   int (*genLoad)(FILE* f, int);
+  int (*genIdentifier)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   void (*genSimpleExit)(FILE* f);
   void (*genExit)(FILE* f, int);
   void (*genRaw)(FILE* f, const char*);

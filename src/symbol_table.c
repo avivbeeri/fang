@@ -31,12 +31,6 @@
 uint32_t scopeId = 1;
 int* scopeStack = NULL;
 
-typedef struct {
-  uint32_t key;
-  uint32_t parent;
-  SYMBOL_TABLE_ENTRY* table;
-} SYMBOL_TABLE_SCOPE;
-
 SYMBOL_TABLE_SCOPE* scopes = NULL;
 
 void SYMBOL_TABLE_openScope() {
@@ -65,6 +59,13 @@ void SYMBOL_TABLE_closeScope() {
   arrdel(scopeStack, arrlen(scopeStack) - 1);
 }
 
+uint32_t SYMBOL_TABLE_getCurrentScopeIndex() {
+  if (arrlen(scopeStack) == 0) {
+    return 0;
+  }
+  return scopeStack[arrlen(scopeStack) - 1];
+}
+
 void SYMBOL_TABLE_init(void) {
   SYMBOL_TABLE_openScope();
 }
@@ -88,7 +89,19 @@ void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
   SYMBOL_TABLE_putFn(name, type, typeIndex, NULL);
 }
 
-SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(STRING* name) {
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scope) {
+  return hmgets(scopes, scope);
+}
+
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scopeIndex, STRING* name) {
+  SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
+  SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
+  if (entry.defined) {
+    return entry;
+  }
+  return (SYMBOL_TABLE_ENTRY){0};
+}
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STRING* name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);

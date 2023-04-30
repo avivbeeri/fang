@@ -46,6 +46,13 @@ typedef struct SYMBOL_TABLE_ENTRY {
   uint32_t* params;
 } SYMBOL_TABLE_ENTRY;
 
+
+typedef struct {
+  uint32_t key;
+  uint32_t parent;
+  SYMBOL_TABLE_ENTRY* table;
+} SYMBOL_TABLE_SCOPE;
+
 // 0 - LANGUAGE
 // 1 - User-defined globals
 // 2 - Function/record scopes
@@ -57,7 +64,10 @@ void SYMBOL_TABLE_report();
 void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, uint32_t* params);
 void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 bool SYMBOL_TABLE_scopeHas(STRING* name);
-SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(STRING* name);
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scopeIndex);
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STRING* name);
+uint32_t SYMBOL_TABLE_getCurrentScopeIndex();
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scope, STRING* name);
 void SYMBOL_TABLE_free(void);
 
 #endif
