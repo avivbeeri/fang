@@ -180,9 +180,8 @@ static void genReturn(FILE* f, STRING* name, int r) {
 static void genRaw(FILE* f, const char* str) {
   emitf("%s\n", str);
 }
-static int genInitSymbol(FILE* f, int lvalue, int rvalue) {
-  emitf("STR %s, [%s]\n", regList[rvalue], regList[lvalue]);
-  freeRegister(lvalue);
+static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
+  emitf("STR %s, %s\n", regList[rvalue], symbol(entry));
   return rvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue) {

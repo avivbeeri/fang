@@ -107,8 +107,7 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         int rvalue = p.genLoad(f, 0);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        int lvalue = p.genIdentifierAddr(f, symbol);
-        int r = p.genInitSymbol(f, lvalue, rvalue);
+        int r = p.genInitSymbol(f, symbol, rvalue);
         p.freeRegister(r);
         return 0;
       }
@@ -121,8 +120,7 @@ static int traverse(FILE* f, AST* ptr) {
 
         int rvalue = traverse(f, data.expr);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        int lvalue = p.genIdentifierAddr(f, symbol);
-        int r = p.genInitSymbol(f, lvalue, rvalue);
+        int r = p.genInitSymbol(f, symbol, rvalue);
         p.freeRegister(r);
         return 0;
       }
@@ -132,6 +130,13 @@ static int traverse(FILE* f, AST* ptr) {
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r = p.genIdentifierAddr(f, symbol);
         return r;
+      }
+    case AST_ASSIGNMENT:
+      {
+        struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
+        int l = traverse(f, data.lvalue);
+        int r = traverse(f, data.expr);
+        return p.genAssign(f, l, r);
       }
     case AST_IDENTIFIER:
       {

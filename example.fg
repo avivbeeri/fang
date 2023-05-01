@@ -9,6 +9,7 @@ var arr: [5]i8;
 fn main(): i8 {
   const i: i8 = 4;
   var j: i8 = 3;
+  j = 42;
   return i + j;
 //  i;
 }
