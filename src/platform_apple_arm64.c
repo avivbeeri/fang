@@ -40,7 +40,7 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   for (int i = 0; i < shlen(scope.table); i++) {
     SYMBOL_TABLE_ENTRY other = scope.table[i];
-    if (other.defined && other.ordinal < entry.ordinal) {
+    if (other.defined && other.ordinal < entry.ordinal && other.entryType != SYMBOL_TYPE_PARAMETER) {
       offset += typeTable[other.typeIndex].byteSize;
     }
   }
@@ -139,20 +139,21 @@ static void genPreamble(FILE* f) {
   emitf(".global _start\n");
   emitf(".align 2\n");
   emitf("_start:\n");
-  emitf("bl _fang_main\n");
+  emitf("  MOV X0, #0\n");
+  emitf("  BL _fang_main\n");
 }
 static void genSimpleExit(FILE* f) {
   // Returns 0;
   // emitf("mov X0, #0\n");
-  emitf("mov X16, #1\n");
-  emitf("svc 0\n");
+  emitf("  MOV X16, #1\n");
+  emitf("  SVC 0\n");
 }
 
 static void genExit(FILE* f, int r) {
   // Assumes return code is in reg r.
-  emitf("mov X0, %s\n", regList[r]);
-  emitf("mov X16, #1\n");
-  emitf("svc 0\n");
+  emitf("MOV X0, %s\n", regList[r]);
+  emitf("MOV X16, #1\n");
+  emitf("SVC 0\n");
 }
 
 static void genFunction(FILE* f, STRING* name) {
@@ -191,7 +192,7 @@ static int genAssign(FILE* f, int lvalue, int rvalue) {
 }
 
 static int genAdd(FILE* f, int leftReg, int rightReg) {
-  emitf("add %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  emitf("ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }

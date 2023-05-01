@@ -10,8 +10,19 @@ fn main(): i8 {
   const i: i8 = 4;
   var j: i8 = 3;
   j = 42;
+  write('h');
+  write('\n');
   return i + j;
-//  i;
+}
+
+fn write(c : char): void {
+  asm {
+    "MOV X0, #1" // STDOUT
+    "ADD X1, FP, #0" // PTR
+    "MOV X2, 1"
+    "MOV X16, #4"
+    "SVC 0"
+   };
 }
 
 /*
