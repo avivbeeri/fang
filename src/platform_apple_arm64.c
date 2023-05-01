@@ -35,6 +35,18 @@ static int allocateRegister() {
   exit(1);
 }
 
+static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
+  uint32_t offset = 0;
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
+  for (int i = 0; i < shlen(scope.table); i++) {
+    SYMBOL_TABLE_ENTRY other = scope.table[i];
+    if (other.defined && other.ordinal < entry.ordinal) {
+      offset += typeTable[other.typeIndex].byteSize;
+    }
+  }
+  return offset;
+}
+
 static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   static char buffer[128];
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
@@ -44,13 +56,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   } else {
     // local
     // calculate offset
-    uint32_t offset = 0;
-    for (int i = 0; i < shlen(scope.table); i++) {
-      SYMBOL_TABLE_ENTRY other = scope.table[i];
-      if (other.defined && other.ordinal < entry.ordinal) {
-        offset += typeTable[other.typeIndex].byteSize;
-      }
-    }
+    uint32_t offset = getStackOffset(entry);
     snprintf(buffer, sizeof(buffer), "[FP, #%i]", offset);
     return buffer;
   }
@@ -98,6 +104,12 @@ static bool isNumeric(int type) {
   return type <= NUMERICAL_INDEX && type >= BOOL_INDEX;
 }
 
+static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
+  int r = allocateRegister();
+  emitf("MOV %s, FP\n", regList[r]);
+  emitf("ADD %s, %s, #%i\n", regList[r], regList[r], getStackOffset(entry));
+  return r;
+}
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   if (isNumeric(entry.typeIndex)) {
@@ -131,7 +143,7 @@ static void genPreamble(FILE* f) {
 }
 static void genSimpleExit(FILE* f) {
   // Returns 0;
-  emitf("mov X0, #0\n");
+  // emitf("mov X0, #0\n");
   emitf("mov X16, #1\n");
   emitf("svc 0\n");
 }
@@ -168,10 +180,21 @@ static void genReturn(FILE* f, STRING* name, int r) {
 static void genRaw(FILE* f, const char* str) {
   emitf("%s\n", str);
 }
+static int genInitSymbol(FILE* f, int lvalue, int rvalue) {
+  emitf("STR %s, [%s]\n", regList[rvalue], regList[lvalue]);
+  freeRegister(lvalue);
+  return rvalue;
+}
 static int genAssign(FILE* f, int lvalue, int rvalue) {
   emitf("STR %s, [%s]\n", regList[rvalue], regList[lvalue]);
   freeRegister(lvalue);
   return rvalue;
+}
+
+static int genAdd(FILE* f, int leftReg, int rightReg) {
+  emitf("add %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
 }
 
 /*
@@ -215,11 +238,6 @@ static int genMul(int leftReg, int rightReg) {
   freeRegister(rightReg);
   return leftReg;
 }
-static int genAdd(int leftReg, int rightReg) {
-  emitf("add %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  freeRegister(rightReg);
-  return leftReg;
-}
 static int genNegate(int valueReg) {
   emitf("neg %s, %s\n", regList[valueReg], regList[valueReg]);
   return valueReg;
@@ -239,9 +257,12 @@ PLATFORM platform_apple_arm64 = {
   .genFunctionEpilogue = genFunctionEpilogue,
   .genReturn = genReturn,
   .genLoad = genLoad,
+  .genInitSymbol = genInitSymbol,
   .genIdentifier = genIdentifier,
+  .genIdentifierAddr = genIdentifierAddr,
   .genRaw = genRaw,
-  .genAssign = genAssign
+  .genAssign = genAssign,
+  .genAdd = genAdd
 };
 
 #undef emitf

@@ -36,6 +36,7 @@
 PLATFORM p;
 
 STRING** fnStack = NULL;
+bool lvalue = false;
 
 static int traverse(FILE* f, AST* ptr) {
   if (ptr == NULL) {
@@ -129,7 +130,7 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_LVALUE data = ast.data.AST_LVALUE;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        int r = p.genIdentifier(f, symbol);
+        int r = p.genIdentifierAddr(f, symbol);
         return r;
       }
     case AST_IDENTIFIER:
@@ -146,6 +147,18 @@ static int traverse(FILE* f, AST* ptr) {
         // TODO handle different value types here
         int r = p.genLoad(f, AS_LIT_NUM(v));
         return r;
+      }
+    case AST_BINARY:
+      {
+        struct AST_BINARY data = ast.data.AST_BINARY;
+        int l = traverse(f, data.left);
+        int r = traverse(f, data.right);
+        switch (data.op) {
+          case OP_ADD:
+            {
+              return p.genAdd(f, l, r);
+            }
+        }
       }
   }
   return 0;

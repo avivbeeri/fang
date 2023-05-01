@@ -6,9 +6,10 @@ var arr: [5]i8;
 
 // const message: string = "Hello world";
 
-fn main(): void {
+fn main(): i8 {
   const i: i8 = 4;
-  return;
+  var j: i8 = 3;
+  return i + j;
 //  i;
 }
 
