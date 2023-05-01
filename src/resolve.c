@@ -38,6 +38,7 @@ uint32_t* typeStack = NULL;
 #define POP() do { arrdel(typeStack, arrlen(typeStack) - 1); } while (false)
 #define PEEK() (arrlen(typeStack) == 0 ? 0 : typeStack[arrlen(typeStack) - 1])
 
+#define VOID_INDEX 1
 #define BOOL_INDEX 2
 #define U8_INDEX 3
 #define I8_INDEX 4
@@ -260,6 +261,9 @@ static bool traverse(AST* ptr) {
     case AST_RETURN:
       {
         struct AST_RETURN data = ast.data.AST_RETURN;
+        if (data.value == NULL) {
+          return PEEK() == VOID_INDEX;
+        }
         bool r = traverse(data.value);
         if (data.value->type != PEEK()) {
           printf("%i vs %i\n", data.value->type, PEEK());
@@ -320,6 +324,7 @@ static bool traverse(AST* ptr) {
 
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return result;
       }
     case AST_VAR_DECL:
@@ -329,6 +334,7 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.type);
         int typeIndex = data.type->type;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, typeIndex);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
       }
     case AST_CONST_DECL:
@@ -345,6 +351,7 @@ static bool traverse(AST* ptr) {
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
 
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return result;
       }
     case AST_ASSIGNMENT:
@@ -395,7 +402,8 @@ static bool traverse(AST* ptr) {
           SYMBOL_TABLE_put(paramName, SYMBOL_TYPE_PARAMETER, index);
         }
         PUSH(typeTable[ast.type].returnType);
-        r &= traverse(data.body);
+        struct AST_BLOCK block = data.body->data.AST_BLOCK;
+        r &= traverse(block.body);
         POP();
         SYMBOL_TABLE_closeScope();
         return r;
@@ -410,6 +418,8 @@ static bool traverse(AST* ptr) {
         }
         return true;
       }
+
+    case AST_LVALUE:
     case AST_IDENTIFIER:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
@@ -421,9 +431,9 @@ static bool traverse(AST* ptr) {
         }
         SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_getCurrent(identifier);
         if (entry.defined) {
+          ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
           ptr->type = entry.typeIndex;
         }
-        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return result;
       }
     case AST_INITIALIZER:

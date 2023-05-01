@@ -38,9 +38,9 @@ static int allocateRegister() {
 static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   static char buffer[128];
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
-  if (entry.entryType == SYMBOL_TYPE_CONSTANT || scope.parent == 0) {
+  if (entry.entryType == SYMBOL_TYPE_CONSTANT && scope.parent == 0) {
     snprintf(buffer, sizeof(buffer), "%s", entry.key);
-    return entry.key;
+    return buffer;
   } else {
     // local
     // calculate offset
@@ -51,7 +51,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
         offset += typeTable[other.typeIndex].byteSize;
       }
     }
-    snprintf(buffer, sizeof(buffer), "[baseptr, #%i]", offset);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", offset);
     return buffer;
   }
 }
@@ -83,13 +83,29 @@ static int genLoad(FILE* f, int i) {
   // Load i into a register
   // return the register index
   int r = allocateRegister();
-  emitf("mov %s, #%i\n", regList[r], i);
+  emitf("MOV %s, #%i\n", regList[r], i);
   return r;
+}
+
+#define BOOL_INDEX 2
+#define U8_INDEX 3
+#define I8_INDEX 4
+#define U16_INDEX 5
+#define I16_INDEX 6
+#define NUMERICAL_INDEX 7
+#define FN_INDEX 9
+static bool isNumeric(int type) {
+  return type <= NUMERICAL_INDEX && type >= BOOL_INDEX;
 }
 
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
-  emitf("mov %s, %s\n", regList[r], symbol(entry));
+  if (isNumeric(entry.typeIndex)) {
+    emitf("LDR %s, %s\n", regList[r], symbol(entry));
+  } else {
+    printf("%s\n", entry.key);
+    emitf("LDR %s, %s\n", regList[r], symbol(entry));
+  }
   return r;
 }
 
@@ -129,14 +145,33 @@ static void genExit(FILE* f, int r) {
 
 static void genFunction(FILE* f, STRING* name) {
   emitf("_fang_%s:\n", name->chars);
+  emitf("STP LR, FP, [SP, #-16]!\n"); // push LR onto stack
+  emitf("SUB FP, SP, #16\n"); // create stack frame
+  emitf("SUB SP, SP, #16\n"); // stack is 16 byte aligned
+                              // This needs to account for all function variables
 }
 
-static void genReturn(FILE* f, int r) {
-  emitf("ret\n");
+static void genFunctionEpilogue(FILE* f, STRING* name) {
+  emitf("_fang_ep_%s:\n", name->chars);
+  emitf("ADD SP, SP, #16\n");
+  emitf("LDP LR, FP, [SP], #16\n"); // pop LR from stack
+  emitf("RET\n");
+}
+
+static void genReturn(FILE* f, STRING* name, int r) {
+  if (r != -1) {
+    emitf("MOV X0, %s\n", regList[r]);
+  }
+  emitf("B _fang_ep_%s\n", name->chars);
 }
 
 static void genRaw(FILE* f, const char* str) {
   emitf("%s\n", str);
+}
+static int genAssign(FILE* f, int lvalue, int rvalue) {
+  emitf("STR %s, [%s]\n", regList[rvalue], regList[lvalue]);
+  freeRegister(lvalue);
+  return rvalue;
 }
 
 /*
@@ -196,14 +231,17 @@ PLATFORM platform_apple_arm64 = {
   .key = "apple_arm64",
   .init = init,
   .complete = complete,
+  .freeRegister = freeRegister,
   .genPreamble = genPreamble,
   .genExit = genExit,
   .genSimpleExit = genSimpleExit,
   .genFunction = genFunction,
+  .genFunctionEpilogue = genFunctionEpilogue,
   .genReturn = genReturn,
   .genLoad = genLoad,
   .genIdentifier = genIdentifier,
-  .genRaw = genRaw
+  .genRaw = genRaw,
+  .genAssign = genAssign
 };
 
 #undef emitf

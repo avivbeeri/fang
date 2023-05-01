@@ -70,7 +70,7 @@ void SYMBOL_TABLE_init(void) {
   SYMBOL_TABLE_openScope();
 }
 
-void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, uint32_t* paramTypes) {
+void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
   SYMBOL_TABLE_ENTRY entry = {
@@ -80,13 +80,14 @@ void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, uint
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
     .ordinal = shlen(scope.table),
-    .params = NULL
+    .constantIndex = 0
   };
   shputs(scope.table, entry);
   hmputs(scopes, scope);
 }
+
 void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
-  SYMBOL_TABLE_putFn(name, type, typeIndex, NULL);
+  SYMBOL_TABLE_putFn(name, type, typeIndex);
 }
 
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scope) {
@@ -94,10 +95,14 @@ SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scope) {
 }
 
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scopeIndex, STRING* name) {
-  SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
-  SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
-  if (entry.defined) {
-    return entry;
+  uint32_t current = scopeIndex;
+  while (current > 0) {
+    SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
+    SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
+    if (entry.defined) {
+      return entry;
+    }
+    current = scope.parent;
   }
   return (SYMBOL_TABLE_ENTRY){0};
 }

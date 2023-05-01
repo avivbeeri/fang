@@ -39,11 +39,13 @@ typedef enum SYMBOL_TYPE {
 typedef struct SYMBOL_TABLE_ENTRY {
   char* key;
   SYMBOL_TYPE entryType;
-  int typeIndex;
   bool defined;
+
+  uint32_t ordinal; // posiiton in scope
+  int typeIndex;
   uint32_t scopeIndex;
-  uint32_t ordinal;
-  uint32_t* params;
+  // only for constants
+  uint32_t constantIndex;
 } SYMBOL_TABLE_ENTRY;
 
 
@@ -61,7 +63,7 @@ void SYMBOL_TABLE_init(void);
 void SYMBOL_TABLE_openScope();
 void SYMBOL_TABLE_closeScope();
 void SYMBOL_TABLE_report();
-void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, uint32_t* params);
+void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 bool SYMBOL_TABLE_scopeHas(STRING* name);
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scopeIndex);

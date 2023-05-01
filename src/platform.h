@@ -35,11 +35,16 @@ typedef struct {
   const char* key;
   void (*init)();
   void (*complete)();
+  void (*freeRegister)(int r);
   void (*genPreamble)(FILE* f);
   void (*genFunction)(FILE* f, STRING* name);
-  void (*genReturn)(FILE* f, int);
+  void (*genFunctionEpilogue)(FILE* f, STRING* name);
+  void (*genReturn)(FILE* f, STRING*, int);
   int (*genLoad)(FILE* f, int);
   int (*genIdentifier)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
+  int (*genIdentifierAddr)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
+  int (*genAssign)(FILE* f, int, int);
+  int (*genInitSymbol)(FILE* f, int, int);
   void (*genSimpleExit)(FILE* f);
   void (*genExit)(FILE* f, int);
   void (*genRaw)(FILE* f, const char*);

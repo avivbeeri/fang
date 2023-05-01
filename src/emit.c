@@ -35,6 +35,8 @@
 
 PLATFORM p;
 
+STRING** fnStack = NULL;
+
 static int traverse(FILE* f, AST* ptr) {
   if (ptr == NULL) {
     return 0;
@@ -78,8 +80,10 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_FN data = ast.data.AST_FN;
         p.genFunction(f, data.identifier);
+        arrput(fnStack, data.identifier);
         traverse(f, data.body);
-        p.genReturn(f, 0);
+        arrdel(fnStack, 0);
+        p.genFunctionEpilogue(f, data.identifier);
         break;
       }
     case AST_ASM:
@@ -94,7 +98,38 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_RETURN data = ast.data.AST_RETURN;
         int r = traverse(f, data.value);
-        p.genReturn(f, r);
+        p.genReturn(f, fnStack[0], r);
+        return r;
+      }
+    case AST_VAR_DECL:
+      {
+        struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
+        int rvalue = p.genLoad(f, 0);
+        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        int lvalue = p.genIdentifierAddr(f, symbol);
+        int r = p.genInitSymbol(f, lvalue, rvalue);
+        p.freeRegister(r);
+        return 0;
+      }
+    case AST_VAR_INIT:
+    case AST_CONST_DECL:
+      {
+        struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+        // TODO: if in top level, it should be a static constant
+        // otherwise treat it as a variable initialisation
+
+        int rvalue = traverse(f, data.expr);
+        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        int lvalue = p.genIdentifierAddr(f, symbol);
+        int r = p.genInitSymbol(f, lvalue, rvalue);
+        p.freeRegister(r);
+        return 0;
+      }
+    case AST_LVALUE:
+      {
+        struct AST_LVALUE data = ast.data.AST_LVALUE;
+        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        int r = p.genIdentifier(f, symbol);
         return r;
       }
     case AST_IDENTIFIER:
