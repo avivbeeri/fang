@@ -72,12 +72,15 @@ static void genMacros(FILE* f) {
 }
 
 static int genAllocStack(FILE* f, int r, int storage) {
-  // emitf("  SUB SP, SP, %s\n", regList[storage]);
-  emitf("  ADD X28, X28, %s\n", regList[storage]);
-  emitf("  ADD %s, SP, X28\n", regList[r]);
-
+  char* store = regList[storage];
+  emitf("  ADD %s, %s, #15 ; storage\n", store, store);
+  emitf("  LSR %s, %s, #4\n", store, store);
+  emitf("  LSL %s, %s, #4\n", store, store);
+  emitf("  ADD X28, X28, %s ;\n", store);
+  //emitf("  ADD X28, X28, %s ; storage\n", regList[storage]);
+  emitf("  SUB SP, SP, %s\n", regList[storage]);
   freeRegister(storage);
-  return storage;
+  return r;
 }
 
 static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
@@ -103,7 +106,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     snprintf(buffer, sizeof(buffer), "%s", entry.key);
     return buffer;
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    snprintf(buffer, sizeof(buffer), "[SP, #%i]", entry.ordinal);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", entry.ordinal);
     return buffer;
   } else {
     // local
@@ -178,6 +181,7 @@ static void genPreamble(FILE* f) {
   emitf(".global _start\n");
   emitf(".align 2\n");
   emitf("_start:\n");
+  emitf("  MOV X28, #0\n");
   emitf("  MOV X0, #0\n");
   emitf("  BL _fang_main\n");
 }
@@ -198,17 +202,21 @@ static void genExit(FILE* f, int r) {
 static void genFunction(FILE* f, STRING* name) {
   emitf("\n_fang_%s:\n", name->chars);
   emitf("  PUSH2 LR, FP\n"); // push LR onto stack
-  // emitf("  STR X28, [SP, #-16]!\n");
   emitf("  SUB FP, SP, #16\n"); // create stack frame
   emitf("  SUB SP, SP, #16\n"); // stack is 16 byte aligned
+                                //
+  emitf("  PUSH1 X28\n");
+  emitf("  MOV X28, #0\n");
   // This needs to account for all function variables
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
   emitf("\n_fang_ep_%s:\n", name->chars);
 
-  // emitf("  ADD SP, SP, X28\n");
+  emitf("  ADD SP, SP, X28 ; reset SP based on function allocs\n");
+  emitf("  POP1 X28\n");
   // emitf("  LDR X28, [SP], #16\n");
+  // emitf("  MOV SP, FP\n");
   emitf("  ADD SP, SP, #16\n");
   emitf("  POP2 LR, FP\n"); // pop LR from stack
   emitf("  RET\n");
@@ -245,20 +253,9 @@ static int genAdd(FILE* f, int leftReg, int rightReg) {
 
 static int genFunctionCall(FILE* f, int callable, int* params) {
   for (int i = arrlen(params) - 1; i >= 0; i--) {
-    //emitf("MOV X0, %s\n", regList[params[i]]);
-    if (i == 0) {
-      emitf("  STR %s, [sp]\n", regList[params[i]]);
-    } else {
-      emitf("  STR %s, [sp, #%i]\n", regList[params[i]], (i - MAX_PARAM_REG) * 8);
-    }
+    emitf("  STR %s, [SP, %li]\n", regList[params[i]], (arrlen(params) - i - 1));
     freeRegister(params[i]);
   }
-  /*
-  for (int i = min(arrlen(params), MAX_PARAM_REG)  - 1; i >= 0; i--) {
-    emitf("MOV %s, %s\n", paramRegList[i], regList[params[i]]);
-    freeRegister(params[i]);
-  }
-  */
   emitf("  BLR %s\n", regList[callable]);
   emitf("  MOV %s, X0\n", regList[callable]);
   return callable;

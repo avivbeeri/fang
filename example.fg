@@ -1,26 +1,26 @@
 // const message: string = "Hello world";
 
 fn main(): i8 {
-  var message: [4]char;
+  var message: [5]char;
 
-  write('h');
-  write('e');
-  write('l');
-  write('l');
-  write('o');
-  write(' ');
-  write('w');
-  write('o');
-  write('r');
-  write('l');
-  write('d');
+  write(65, 'h');
+  write(66, 'e');
+  write(67, 'l');
+  write(68, 'l');
+  write(69, 'o');
+  write(70, ' ');
+  write(71, 'w');
+  write(72, 'o');
+  write(73, 'r');
+  write(74, 'l');
+  write(75, 'd');
   return 0;
 }
 
-fn write(c : char): void {
+fn write(i: i8, c : char): void {
   asm {
     "MOV X0, #1" // STDOUT
-    "ADD X1, SP, #32" // PTR
+    "ADD X1, FP, #32" // PTR
     "MOV X2, 1"
     "MOV X16, #4"
     "SVC 0"
