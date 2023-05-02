@@ -107,7 +107,7 @@ static int genLoad(FILE* f, int i) {
   // Load i into a register
   // return the register index
   int r = allocateRegister();
-  emitf("MOV %s, #%i\n", regList[r], i);
+  emitf("  MOV %s, #%i\n", regList[r], i);
   return r;
 }
 
@@ -124,19 +124,18 @@ static bool isNumeric(int type) {
 
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
-  emitf("MOV %s, FP\n", regList[r]);
-  emitf("ADD %s, %s, #%i\n", regList[r], regList[r], getStackOffset(entry));
+  emitf("  MOV %s, FP\n", regList[r]);
+  emitf("  ADD %s, %s, #%i\n", regList[r], regList[r], getStackOffset(entry));
   return r;
 }
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-    emitf("ADR %s, %s\n", regList[r], symbol(entry));
+    emitf("  ADR %s, %s\n", regList[r], symbol(entry));
   } else if (isNumeric(entry.typeIndex)) {
-    emitf("LDR %s, %s\n", regList[r], symbol(entry));
+    emitf("  LDR %s, %s\n", regList[r], symbol(entry));
   } else {
-    printf("%s\n", entry.key);
-    emitf("LDR %s, %s\n", regList[r], symbol(entry));
+    emitf("  LDR %s, %s\n", regList[r], symbol(entry));
   }
   return r;
 }
@@ -171,48 +170,48 @@ static void genSimpleExit(FILE* f) {
 
 static void genExit(FILE* f, int r) {
   // Assumes return code is in reg r.
-  emitf("MOV X0, %s\n", regList[r]);
-  emitf("MOV X16, #1\n");
-  emitf("SVC 0\n");
+  emitf("  MOV X0, %s\n", regList[r]);
+  emitf("  MOV X16, #1\n");
+  emitf("  SVC 0\n");
 }
 
 static void genFunction(FILE* f, STRING* name) {
-  emitf("_fang_%s:\n", name->chars);
-  emitf("STP LR, FP, [SP, #-16]!\n"); // push LR onto stack
-  emitf("SUB FP, SP, #16\n"); // create stack frame
-  emitf("SUB SP, SP, #16\n"); // stack is 16 byte aligned
+  emitf("\n_fang_%s:\n", name->chars);
+  emitf("  STP LR, FP, [SP, #-16]!\n"); // push LR onto stack
+  emitf("  SUB FP, SP, #16\n"); // create stack frame
+  emitf("  SUB SP, SP, #16\n"); // stack is 16 byte aligned
                               // This needs to account for all function variables
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
-  emitf("_fang_ep_%s:\n", name->chars);
-  emitf("ADD SP, SP, #16\n");
-  emitf("LDP LR, FP, [SP], #16\n"); // pop LR from stack
-  emitf("RET\n");
+  emitf("\n_fang_ep_%s:\n", name->chars);
+  emitf("  ADD SP, SP, #16\n");
+  emitf("  LDP LR, FP, [SP], #16\n"); // pop LR from stack
+  emitf("  RET\n");
 }
 
 static void genReturn(FILE* f, STRING* name, int r) {
   if (r != -1) {
-    emitf("MOV X0, %s\n", regList[r]);
+    emitf("  MOV X0, %s\n", regList[r]);
   }
-  emitf("B _fang_ep_%s\n", name->chars);
+  emitf("  B _fang_ep_%s\n", name->chars);
 }
 
 static void genRaw(FILE* f, const char* str) {
-  emitf("%s\n", str);
+  emitf("  %s\n", str);
 }
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
-  emitf("STR %s, %s\n", regList[rvalue], symbol(entry));
+  emitf("  STR %s, %s\n", regList[rvalue], symbol(entry));
   return rvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue) {
-  emitf("STR %s, [%s]\n", regList[rvalue], regList[lvalue]);
+  emitf("  STR %s, [%s]\n", regList[rvalue], regList[lvalue]);
   freeRegister(lvalue);
   return rvalue;
 }
 
 static int genAdd(FILE* f, int leftReg, int rightReg) {
-  emitf("ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  emitf("  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
@@ -221,9 +220,9 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
   for (int i = arrlen(params) - 1; i >= 0; i--) {
     //emitf("MOV X0, %s\n", regList[params[i]]);
     if (i == 0) {
-      emitf("STR %s, [sp]\n", regList[params[i]]);
+      emitf("  STR %s, [sp]\n", regList[params[i]]);
     } else {
-      emitf("STR %s, [sp, #%i]\n", regList[params[i]], (i - MAX_PARAM_REG) * 8);
+      emitf("  STR %s, [sp, #%i]\n", regList[params[i]], (i - MAX_PARAM_REG) * 8);
     }
     freeRegister(params[i]);
   }
@@ -233,8 +232,8 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
     freeRegister(params[i]);
   }
   */
-  emitf("BLR %s\n", regList[callable]);
-  emitf("MOV %s, X0\n", regList[callable]);
+  emitf("  BLR %s\n", regList[callable]);
+  emitf("  MOV %s, X0\n", regList[callable]);
   return callable;
 }
 
