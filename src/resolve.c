@@ -32,7 +32,6 @@
 #include "type_table.h"
 #include "symbol_table.h"
 
-struct { uint32_t key; STRING* value; }* nodeIdents = NULL;
 uint32_t* typeStack = NULL;
 #define PUSH(type) do { arrput(typeStack, type); } while (false)
 #define POP() do { arrdel(typeStack, arrlen(typeStack) - 1); } while (false)

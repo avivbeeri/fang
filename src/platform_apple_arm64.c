@@ -201,6 +201,7 @@ static void genExit(FILE* f, int r) {
 
 static void genFunction(FILE* f, STRING* name) {
   int p = 0 * 16;
+
   emitf("\n_fang_%s:\n", name->chars);
   emitf("  PUSH2 LR, FP\n"); // push LR onto stack
   emitf("  SUB FP, SP, #%i\n", p); // create stack frame
