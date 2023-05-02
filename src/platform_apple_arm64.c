@@ -76,8 +76,7 @@ static int genAllocStack(FILE* f, int r, int storage) {
   emitf("  ADD %s, %s, #15 ; storage\n", store, store);
   emitf("  LSR %s, %s, #4\n", store, store);
   emitf("  LSL %s, %s, #4\n", store, store);
-  emitf("  ADD X28, X28, %s ;\n", store);
-  //emitf("  ADD X28, X28, %s ; storage\n", regList[storage]);
+  emitf("  ADD X28, X28, %s ; storage\n", regList[storage]);
   emitf("  SUB SP, SP, %s\n", regList[storage]);
   freeRegister(storage);
   return r;
@@ -112,7 +111,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     // local
     // calculate offset
     uint32_t offset = getStackOffset(entry);
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", offset);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", (offset + 1) * 16);
     return buffer;
   }
 }
@@ -261,7 +260,7 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
   }
   emitf("  BLR %s\n", regList[callable]);
   emitf("  MOV %s, X0\n", regList[callable]);
-  emitf("  ADD SP, SP, #%li\n", arrlen(params) * 16);
+  emitf("  ADD SP, SP, #%li\n", (arrlen(params)) * 16);
 
   return callable;
 }
