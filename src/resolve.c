@@ -139,7 +139,6 @@ static int resolveType(AST* ptr) {
 
         STRING* typeName = copyString(buffer, strLen);
         FREE(char, buffer);
-        printf("%s\n", typeName->chars);
         ptr->type = TYPE_TABLE_declare(typeName);
         TYPE_TABLE_defineCallable(ptr->type, FN_INDEX, entries, returnType);
         return ptr->type;
@@ -766,8 +765,8 @@ bool resolveTree(AST* ptr) {
   success &= traverse(ptr);
   success &= TYPE_TABLE_calculateSizes();
   SYMBOL_TABLE_closeScope();
-  TYPE_TABLE_report();
-  SYMBOL_TABLE_report();
+//  TYPE_TABLE_report();
+ // SYMBOL_TABLE_report();
   return success;
 }
 

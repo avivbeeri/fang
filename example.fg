@@ -1,14 +1,6 @@
-/*
-var p: fn (): ^i8;
-var x: ^i8 = p();
-var arr: [5]i8;
-*/
-
 // const message: string = "Hello world";
 
 fn main(): i8 {
-  const i: i8 = 4;
-  var j: i8 = 3;
   write('h');
   write('e');
   write('l');
@@ -20,7 +12,6 @@ fn main(): i8 {
   write('r');
   write('l');
   write('d');
-  write('\n');
   return 0;
 }
 
@@ -45,11 +36,3 @@ fn write(c : char): void {
   };
 */
 
-/*
-// const s: string = "words";
-fn test(): i8 {}
-  var x: i8 = p();
-}
-*/
-
-// printf text
