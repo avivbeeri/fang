@@ -1,9 +1,10 @@
 // const message: string = "Hello world";
 
 fn main(): i8 {
-  var message: [5]char;
+//  var message: [5]char;
 
-  write(65, 'h');
+  write(65, 'h', 'e');
+/*
   write(66, 'e');
   write(67, 'l');
   write(68, 'l');
@@ -14,13 +15,20 @@ fn main(): i8 {
   write(73, 'r');
   write(74, 'l');
   write(75, 'd');
+*/
   return 0;
 }
 
-fn write(i: i8, c : char): void {
+fn write(i: i8, c : char, g: char): void {
+  syscall_write(i as char);
+  syscall_write(c);
+  syscall_write(g);
+}
+
+fn syscall_write(c: char): void {
   asm {
     "MOV X0, #1" // STDOUT
-    "ADD X1, FP, #32" // PTR
+    "ADD X1, FP, #16" // PTR
     "MOV X2, 1"
     "MOV X16, #4"
     "SVC 0"

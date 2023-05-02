@@ -106,7 +106,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     snprintf(buffer, sizeof(buffer), "%s", entry.key);
     return buffer;
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", entry.ordinal);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", (entry.ordinal + 1) * 16);
     return buffer;
   } else {
     // local
@@ -200,10 +200,11 @@ static void genExit(FILE* f, int r) {
 }
 
 static void genFunction(FILE* f, STRING* name) {
+  int p = 0 * 16;
   emitf("\n_fang_%s:\n", name->chars);
   emitf("  PUSH2 LR, FP\n"); // push LR onto stack
-  emitf("  SUB FP, SP, #16\n"); // create stack frame
-  emitf("  SUB SP, SP, #16\n"); // stack is 16 byte aligned
+  emitf("  SUB FP, SP, #%i\n", p); // create stack frame
+  emitf("  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
                                 //
   emitf("  PUSH1 X28\n");
   emitf("  MOV X28, #0\n");
@@ -211,13 +212,12 @@ static void genFunction(FILE* f, STRING* name) {
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
+  int p = 0 * 16;
   emitf("\n_fang_ep_%s:\n", name->chars);
 
   emitf("  ADD SP, SP, X28 ; reset SP based on function allocs\n");
   emitf("  POP1 X28\n");
-  // emitf("  LDR X28, [SP], #16\n");
-  // emitf("  MOV SP, FP\n");
-  emitf("  ADD SP, SP, #16\n");
+  emitf("  ADD SP, SP, #%i\n", p);
   emitf("  POP2 LR, FP\n"); // pop LR from stack
   emitf("  RET\n");
 }
@@ -225,6 +225,7 @@ static void genFunctionEpilogue(FILE* f, STRING* name) {
 static void genReturn(FILE* f, STRING* name, int r) {
   if (r != -1) {
     emitf("  MOV X0, %s\n", regList[r]);
+    freeRegister(r);
   }
   emitf("  B _fang_ep_%s\n", name->chars);
 }
@@ -253,11 +254,14 @@ static int genAdd(FILE* f, int leftReg, int rightReg) {
 
 static int genFunctionCall(FILE* f, int callable, int* params) {
   for (int i = arrlen(params) - 1; i >= 0; i--) {
-    emitf("  STR %s, [SP, %li]\n", regList[params[i]], (arrlen(params) - i - 1));
+    // emitf("  STR %s, [SP, %li]\n", regList[params[i]], (arrlen(params) - i - 1));
+    emitf("  PUSH1 %s\n", regList[params[i]]);
     freeRegister(params[i]);
   }
   emitf("  BLR %s\n", regList[callable]);
   emitf("  MOV %s, X0\n", regList[callable]);
+  emitf("  ADD SP, SP, #%li\n", arrlen(params) * 16);
+
   return callable;
 }
 

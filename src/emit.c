@@ -110,6 +110,12 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_TYPE data = ast.data.AST_TYPE;
         return traverse(f, data.type);
       }
+    case AST_CAST:
+      {
+        struct AST_CAST data = ast.data.AST_CAST;
+        int r = traverse(f, data.expr);
+        return r;
+      }
     case AST_TYPE_ARRAY:
       {
         struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
