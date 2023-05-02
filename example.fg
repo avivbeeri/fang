@@ -9,16 +9,25 @@ var arr: [5]i8;
 fn main(): i8 {
   const i: i8 = 4;
   var j: i8 = 3;
-  j = 42;
   write('h');
+  write('e');
+  write('l');
+  write('l');
+  write('o');
+  write(' ');
+  write('w');
+  write('o');
+  write('r');
+  write('l');
+  write('d');
   write('\n');
-  return i + j;
+  return 0;
 }
 
 fn write(c : char): void {
   asm {
     "MOV X0, #1" // STDOUT
-    "ADD X1, FP, #0" // PTR
+    "ADD X1, SP, #32" // PTR
     "MOV X2, 1"
     "MOV X16, #4"
     "SVC 0"

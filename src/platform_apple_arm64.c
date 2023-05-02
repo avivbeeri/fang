@@ -8,7 +8,9 @@
 
 static int labelId = 0;
 static bool freereg[4];
-static char *regList[4] = { "X1", "X2", "X3", "X4" };
+static char *regList[4] = { "X8", "X9", "X10", "X11" };
+static char *paramRegList[8] = { "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7" };
+static int MAX_PARAM_REG = 8;
 
 static void freeAllRegisters() {
   for (int i = 0; i < sizeof(freereg); i++) {
@@ -35,12 +37,22 @@ static int allocateRegister() {
   exit(1);
 }
 
+/*
+static int min(int i, int j) {
+  if (i < j) {
+    return i;
+  }
+  return j;
+}
+*/
+
 static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   uint32_t offset = 0;
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   for (int i = 0; i < shlen(scope.table); i++) {
     SYMBOL_TABLE_ENTRY other = scope.table[i];
-    if (other.defined && other.ordinal < entry.ordinal && other.entryType != SYMBOL_TYPE_PARAMETER) {
+    // TODO handle pushed params
+    if (other.defined && other.ordinal < entry.ordinal/*  && other.entryType != SYMBOL_TYPE_PARAMETER */) {
       offset += typeTable[other.typeIndex].byteSize;
     }
   }
@@ -50,8 +62,14 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
 static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   static char buffer[128];
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
-  if (entry.entryType == SYMBOL_TYPE_CONSTANT && scope.parent == 0) {
+  if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
+    snprintf(buffer, sizeof(buffer), "_fang_%s", entry.key);
+    return buffer;
+  } else if (entry.entryType == SYMBOL_TYPE_CONSTANT && scope.parent == 0) {
     snprintf(buffer, sizeof(buffer), "%s", entry.key);
+    return buffer;
+  } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
+    snprintf(buffer, sizeof(buffer), "[SP, #%i]", entry.ordinal);
     return buffer;
   } else {
     // local
@@ -112,7 +130,9 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
 }
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
-  if (isNumeric(entry.typeIndex)) {
+  if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
+    emitf("ADR %s, %s\n", regList[r], symbol(entry));
+  } else if (isNumeric(entry.typeIndex)) {
     emitf("LDR %s, %s\n", regList[r], symbol(entry));
   } else {
     printf("%s\n", entry.key);
@@ -197,6 +217,27 @@ static int genAdd(FILE* f, int leftReg, int rightReg) {
   return leftReg;
 }
 
+static int genFunctionCall(FILE* f, int callable, int* params) {
+  for (int i = arrlen(params) - 1; i >= 0; i--) {
+    //emitf("MOV X0, %s\n", regList[params[i]]);
+    if (i == 0) {
+      emitf("STR %s, [sp]\n", regList[params[i]]);
+    } else {
+      emitf("STR %s, [sp, #%i]\n", regList[params[i]], (i - MAX_PARAM_REG) * 8);
+    }
+    freeRegister(params[i]);
+  }
+  /*
+  for (int i = min(arrlen(params), MAX_PARAM_REG)  - 1; i >= 0; i--) {
+    emitf("MOV %s, %s\n", paramRegList[i], regList[params[i]]);
+    freeRegister(params[i]);
+  }
+  */
+  emitf("BLR %s\n", regList[callable]);
+  emitf("MOV %s, X0\n", regList[callable]);
+  return callable;
+}
+
 /*
 static void genPostamble() {
   size_t bytes = 0;
@@ -250,6 +291,7 @@ PLATFORM platform_apple_arm64 = {
   .init = init,
   .complete = complete,
   .freeRegister = freeRegister,
+  .freeAllRegisters = freeAllRegisters,
   .genPreamble = genPreamble,
   .genExit = genExit,
   .genSimpleExit = genSimpleExit,
@@ -262,7 +304,8 @@ PLATFORM platform_apple_arm64 = {
   .genIdentifierAddr = genIdentifierAddr,
   .genRaw = genRaw,
   .genAssign = genAssign,
-  .genAdd = genAdd
+  .genAdd = genAdd,
+  .genFunctionCall = genFunctionCall
 };
 
 #undef emitf

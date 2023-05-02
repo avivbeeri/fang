@@ -36,6 +36,7 @@ typedef struct {
   void (*init)();
   void (*complete)();
   void (*freeRegister)(int r);
+  void (*freeAllRegisters)(void);
   void (*genPreamble)(FILE* f);
   void (*genFunction)(FILE* f, STRING* name);
   void (*genFunctionEpilogue)(FILE* f, STRING* name);
@@ -45,6 +46,7 @@ typedef struct {
   int (*genIdentifierAddr)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   int (*genAssign)(FILE* f, int, int);
   int (*genAdd)(FILE* f, int, int);
+  int (*genFunctionCall)(FILE* f, int, int*);
   int (*genInitSymbol)(FILE* f, SYMBOL_TABLE_ENTRY, int);
   void (*genSimpleExit)(FILE* f);
   void (*genExit)(FILE* f, int);

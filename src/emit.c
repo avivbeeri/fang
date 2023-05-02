@@ -65,6 +65,7 @@ static int traverse(FILE* f, AST* ptr) {
             arrput(deferred, i);
           } else {
             traverse(f, data.decls[i]);
+            p.freeAllRegisters();
           }
         }
         for (int i = 0; i < arrlen(deferred); i++) {
@@ -164,6 +165,18 @@ static int traverse(FILE* f, AST* ptr) {
               return p.genAdd(f, l, r);
             }
         }
+      }
+    case AST_CALL:
+      {
+        struct AST_CALL data = ast.data.AST_CALL;
+        int l = traverse(f, data.identifier);
+        int* rs = NULL;
+        for (int i = 0; i < arrlen(data.arguments); i++) {
+          arrput(rs, traverse(f, data.arguments[i]));
+        }
+        int r = p.genFunctionCall(f, l, rs);
+        arrfree(rs);
+        return r;
       }
   }
   return 0;
