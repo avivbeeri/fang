@@ -323,6 +323,7 @@ static bool traverse(AST* ptr) {
 
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
+        ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return result;
       }
@@ -332,6 +333,7 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r = traverse(data.type);
         int typeIndex = data.type->type;
+        ptr->type = typeIndex;
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, typeIndex);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
@@ -348,6 +350,7 @@ static bool traverse(AST* ptr) {
         POP();
 
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
+        ptr->type = leftType;
 
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();

@@ -1,6 +1,8 @@
 // const message: string = "Hello world";
 
 fn main(): i8 {
+  var message: [4]char;
+
   write('h');
   write('e');
   write('l');

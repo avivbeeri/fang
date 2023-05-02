@@ -30,6 +30,7 @@
 #include "common.h"
 #include "ast.h"
 #include "value.h"
+#include "type_table.h"
 #include "const_table.h"
 #include "platform.h"
 
@@ -103,12 +104,28 @@ static int traverse(FILE* f, AST* ptr) {
         p.genReturn(f, fnStack[0], r);
         return r;
       }
+
+    case AST_TYPE:
+      {
+        struct AST_TYPE data = ast.data.AST_TYPE;
+        return traverse(f, data.type);
+      }
+    case AST_TYPE_ARRAY:
+      {
+        struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
+        int r = traverse(f, data.length);
+        return r;
+      }
     case AST_VAR_DECL:
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-        int rvalue = p.genLoad(f, 0);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        int rvalue = p.genLoad(f, 0);
         int r = p.genInitSymbol(f, symbol, rvalue);
+        if (typeTable[ast.type].entryType == ENTRY_TYPE_ARRAY) {
+          int storage = traverse(f, data.type);
+          p.genAllocStack(f, r, storage);
+        }
         p.freeRegister(r);
         return 0;
       }

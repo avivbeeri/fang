@@ -12,6 +12,16 @@ static char *regList[4] = { "X8", "X9", "X10", "X11" };
 static char *paramRegList[8] = { "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7" };
 static int MAX_PARAM_REG = 8;
 
+static int labelCreate() {
+  return labelId++;
+}
+
+const char* labelPrint(int i) {
+  static char buffer[128];
+  snprintf(buffer, sizeof(buffer), "L%i", i);
+  return buffer;
+}
+
 static void freeAllRegisters() {
   for (int i = 0; i < sizeof(freereg); i++) {
     freereg[i] = true;
@@ -46,6 +56,30 @@ static int min(int i, int j) {
 }
 */
 
+static void genMacros(FILE* f) {
+  emitf(" .macro PUSH1 register\n");
+  emitf("        STR \\register, [SP, #-16]!\n");
+  emitf(" .endm\n");
+  emitf(" .macro POP1 register\n");
+  emitf("        LDR \\register, [SP], #16\n");
+  emitf(" .endm\n");
+  emitf(" .macro PUSH2 register1, register2\n");
+  emitf("        STP \\register1, \\register2, [SP, #-16]!\n");
+  emitf(" .endm\n");
+  emitf(" .macro POP2 register1, register2\n");
+  emitf("        LDP \\register1, \\register2, [SP], #16\n");
+  emitf(" .endm\n");
+}
+
+static int genAllocStack(FILE* f, int r, int storage) {
+  // emitf("  SUB SP, SP, %s\n", regList[storage]);
+  emitf("  ADD X28, X28, %s\n", regList[storage]);
+  emitf("  ADD %s, SP, X28\n", regList[r]);
+
+  freeRegister(storage);
+  return storage;
+}
+
 static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   uint32_t offset = 0;
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
@@ -79,21 +113,6 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     return buffer;
   }
 }
-
-/*
-static int labelCreate() {
-  return labelId++;
-}
-*/
-
-
-/*
-const char* labelPrint(int i) {
-  static char buffer[128];
-  snprintf(buffer, sizeof(buffer), "L%i", i);
-  return buffer;
-}
-*/
 
 void init(void) {
   freeAllRegisters();
@@ -141,6 +160,7 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
 }
 
 static void genPreamble(FILE* f) {
+  genMacros(f);
   size_t bytes = 0;
   for (int i = 0; i < arrlen(constTable); i++) {
     Value v = constTable[i].value;
@@ -177,16 +197,20 @@ static void genExit(FILE* f, int r) {
 
 static void genFunction(FILE* f, STRING* name) {
   emitf("\n_fang_%s:\n", name->chars);
-  emitf("  STP LR, FP, [SP, #-16]!\n"); // push LR onto stack
+  emitf("  PUSH2 LR, FP\n"); // push LR onto stack
+  // emitf("  STR X28, [SP, #-16]!\n");
   emitf("  SUB FP, SP, #16\n"); // create stack frame
   emitf("  SUB SP, SP, #16\n"); // stack is 16 byte aligned
-                              // This needs to account for all function variables
+  // This needs to account for all function variables
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
   emitf("\n_fang_ep_%s:\n", name->chars);
+
+  // emitf("  ADD SP, SP, X28\n");
+  // emitf("  LDR X28, [SP], #16\n");
   emitf("  ADD SP, SP, #16\n");
-  emitf("  LDP LR, FP, [SP], #16\n"); // pop LR from stack
+  emitf("  POP2 LR, FP\n"); // pop LR from stack
   emitf("  RET\n");
 }
 
@@ -201,6 +225,9 @@ static void genRaw(FILE* f, const char* str) {
   emitf("  %s\n", str);
 }
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
+  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+    // allocate stack memory
+  }
   emitf("  STR %s, %s\n", regList[rvalue], symbol(entry));
   return rvalue;
 }
@@ -304,7 +331,8 @@ PLATFORM platform_apple_arm64 = {
   .genRaw = genRaw,
   .genAssign = genAssign,
   .genAdd = genAdd,
-  .genFunctionCall = genFunctionCall
+  .genFunctionCall = genFunctionCall,
+  .genAllocStack = genAllocStack
 };
 
 #undef emitf
