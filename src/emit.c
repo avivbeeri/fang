@@ -255,6 +255,14 @@ static int traverse(FILE* f, AST* ptr) {
             {
               return p.genSub(f, l, r);
             }
+          case OP_MUL:
+            {
+              return p.genMul(f, l, r);
+            }
+          case OP_DIV:
+            {
+              return p.genDiv(f, l, r);
+            }
           case OP_NOT_EQUAL:
             {
               int doneLabel = p.labelCreate();

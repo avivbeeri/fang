@@ -89,6 +89,16 @@ static int genAllocStack(FILE* f, int r, int storage) {
 static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   uint32_t offset = 0;
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
+  uint32_t index = entry.scopeIndex;
+
+  SYMBOL_TABLE_SCOPE current = scope;
+  while (current.scopeType != SCOPE_TYPE_FUNCTION) {
+    offset += current.offset;
+    index = current.parent;
+    current = SYMBOL_TABLE_getScope(index);
+    printf("%i\n", index);
+  }
+
   for (int i = 0; i < shlen(scope.table); i++) {
     SYMBOL_TABLE_ENTRY other = scope.table[i];
     // TODO handle pushed params
@@ -156,8 +166,9 @@ static bool isNumeric(int type) {
 
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
+  uint32_t offset = getStackOffset(entry);
   emitf("  MOV %s, FP\n", regList[r]);
-  emitf("  ADD %s, %s, #%i\n", regList[r], regList[r], (getStackOffset(entry) + 1) * 16);
+  emitf("  ADD %s, %s, #%i\n", regList[r], regList[r], (offset + 1) * 16);
   return r;
 }
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
@@ -210,11 +221,11 @@ static void genExit(FILE* f, int r) {
 }
 
 static void genFunction(FILE* f, STRING* name) {
-  int p = 0 * 16;
+  int p = 1 * 16;
 
   emitf("\n_fang_%s:\n", name->chars);
   emitf("  PUSH2 LR, FP\n"); // push LR onto stack
-  emitf("  SUB FP, SP, #%i\n", p); // create stack frame
+  emitf("  SUB FP, SP, #0\n"); // create stack frame
   emitf("  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
                                 //
   emitf("  PUSH1 X28\n");
@@ -223,7 +234,7 @@ static void genFunction(FILE* f, STRING* name) {
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
-  int p = 0 * 16;
+  int p = 1 * 16;
   emitf("\n_fang_ep_%s:\n", name->chars);
 
   emitf("  ADD SP, SP, X28 ; reset SP based on function allocs\n");
@@ -264,7 +275,18 @@ static int genAdd(FILE* f, int leftReg, int rightReg) {
 }
 
 static int genSub(FILE* f, int leftReg, int rightReg) {
-  emitf("SUB %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  emitf("  SUB %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
+
+static int genMul(FILE* f, int leftReg, int rightReg) {
+  emitf("  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
+static int genDiv(FILE* f, int leftReg, int rightReg) {
+  emitf("  UDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
@@ -288,16 +310,6 @@ static int genMod(int leftReg, int rightReg) {
   emitf("udiv %s, %s, %s\n", regList[r], regList[leftReg], regList[rightReg]);
   emitf("msub %s, %s, %s, %s\n", regList[leftReg], regList[2], regList[rightReg], regList[leftReg]);
   freeRegister(r);
-  freeRegister(rightReg);
-  return leftReg;
-}
-static int genDiv(int leftReg, int rightReg) {
-  emitf("sdiv %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  freeRegister(rightReg);
-  return leftReg;
-}
-static int genMul(int leftReg, int rightReg) {
-  emitf("mul %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
@@ -329,6 +341,8 @@ PLATFORM platform_apple_arm64 = {
   .genAssign = genAssign,
   .genAdd = genAdd,
   .genSub = genSub,
+  .genMul = genMul,
+  .genDiv = genDiv,
   .genFunctionCall = genFunctionCall,
   .genAllocStack = genAllocStack,
   .labelCreate = labelCreate,

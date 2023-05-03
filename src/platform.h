@@ -48,6 +48,8 @@ typedef struct {
   int (*genAssign)(FILE* f, int, int);
   int (*genAdd)(FILE* f, int, int);
   int (*genSub)(FILE* f, int, int);
+  int (*genMul)(FILE* f, int, int);
+  int (*genDiv)(FILE* f, int, int);
   int (*genAllocStack)(FILE* f, int, int);
   int (*genFunctionCall)(FILE* f, int, int*);
   int (*genInitSymbol)(FILE* f, SYMBOL_TABLE_ENTRY, int);

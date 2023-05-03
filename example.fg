@@ -1,11 +1,17 @@
 // const message: string = "Hello world";
 
-fn main(): i8 {
-  const message: [5]char = [0, 0, 0, 0 ,0];
-  var c: char = 'A';
+fn mod(a: i8, b: i8): i8 {
+  return a - b * (a / b);
+}
 
-  for (var i: u8 = 70; i != 0; i = i - 1) {
-    write(1, 'h', 'e');
+fn main(): i8 {
+  // const message: [5]char = [0, 0, 0, 0 ,0];
+  // var c: char = 'A';
+  var n: i8;
+
+  for (var i: i8 = 70; i != 0; i = i - 1) {
+     n = mod(i, 2);
+    // write(n, 'h', 'e');
   }
 /*
   write(66, 'e');

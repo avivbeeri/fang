@@ -541,7 +541,6 @@ static bool traverse(AST* ptr) {
         }
         bool compatible = true;
 
-
         switch (data.op) {
           // Arithmetic-only operators
           case OP_ADD:
@@ -726,30 +725,36 @@ static bool traverse(AST* ptr) {
         struct AST_CALL data = ast.data.AST_CALL;
         bool r = traverse(data.identifier);
         if (!r) {
+          printf("failed to call left\n");
           return false;
         }
         // resolve data.identifier to string
         uint32_t leftType = data.identifier->type;
         TYPE_TABLE_ENTRY fnType = typeTable[leftType];
         if (fnType.parent != FN_INDEX) {
+          printf("trying to call not-a-function\n");
           return false;
         }
 
         // Call should contain it's arguments
         if (arrlen(fnType.fields) != arrlen(data.arguments)) {
+          printf("term 3\n");
           return false;
         }
 
         for (int i = 0; i < arrlen(data.arguments); i++) {
           r = traverse(data.arguments[i]);
           if (!r) {
+            printf("term 4\n");
             return false;
           }
           if (fnType.fields[i].typeIndex != data.arguments[i]->type) {
+            printf("term 5\n");
             return false;
           }
         }
         ptr->type = typeTable[leftType].returnType;
+        printf("term 6\n");
         return true;
       }
     default:
@@ -765,9 +770,14 @@ bool resolveTree(AST* ptr) {
   SYMBOL_TABLE_init();
   bool success = resolveTopLevel(ptr);
   if (!success) {
+    printf("topLevel resolution failure\n");
     return false;
   }
   success &= traverse(ptr);
+  if (!success) {
+    printf("resolution failure\n");
+    return false;
+  }
   success &= TYPE_TABLE_calculateSizes();
   SYMBOL_TABLE_closeScope();
 //  TYPE_TABLE_report();
