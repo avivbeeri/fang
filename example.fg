@@ -1,7 +1,7 @@
 // const message: string = "Hello world";
 
 fn main(): i8 {
-  var message: [5]char;
+  const message: [5]char = [0, 0, 0, 0 ,0];
 
   write(65, 'h', 'e');
 /*

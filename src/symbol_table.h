@@ -42,6 +42,7 @@ typedef struct SYMBOL_TABLE_ENTRY {
   bool defined;
 
   uint32_t ordinal; // posiiton in scope
+  uint32_t offset;
   int typeIndex;
   uint32_t scopeIndex;
   // only for constants
@@ -53,6 +54,7 @@ typedef struct {
   uint32_t key;
   uint32_t parent;
   SYMBOL_TABLE_ENTRY* table;
+  uint32_t offset;
 } SYMBOL_TABLE_SCOPE;
 
 // 0 - LANGUAGE

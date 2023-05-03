@@ -350,9 +350,12 @@ static bool traverse(AST* ptr) {
 
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         ptr->type = leftType;
-
-        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        if (ptr->scopeIndex <= 1) {
+          SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
+        } else {
+          SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
+        }
         return result;
       }
     case AST_ASSIGNMENT:
@@ -768,7 +771,7 @@ bool resolveTree(AST* ptr) {
   success &= TYPE_TABLE_calculateSizes();
   SYMBOL_TABLE_closeScope();
 //  TYPE_TABLE_report();
- // SYMBOL_TABLE_report();
+  SYMBOL_TABLE_report();
   return success;
 }
 

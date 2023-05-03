@@ -145,7 +145,11 @@ static int traverse(FILE* f, AST* ptr) {
         int rvalue = traverse(f, data.expr);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r = p.genInitSymbol(f, symbol, rvalue);
-        p.freeRegister(r);
+        if (typeTable[ast.type].entryType == ENTRY_TYPE_ARRAY) {
+          int storage = traverse(f, data.type);
+          p.genAllocStack(f, r, storage);
+        }
+        // p.freeRegister(r);
         return 0;
       }
     case AST_LVALUE:

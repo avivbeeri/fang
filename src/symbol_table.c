@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include "common.h"
 #include "memory.h"
+#include "type_table.h"
 #include "symbol_table.h"
 
 uint32_t scopeId = 1;
@@ -79,9 +80,11 @@ void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
     .defined = true,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
+    .offset = scope.offset,
     .ordinal = shlen(scope.table),
     .constantIndex = 0
   };
+  scope.offset += typeTable[typeIndex].byteSize;
   shputs(scope.table, entry);
   hmputs(scopes, scope);
 }
