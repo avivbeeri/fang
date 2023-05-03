@@ -74,17 +74,27 @@ void SYMBOL_TABLE_init(void) {
 void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
+
+  uint32_t offset = 0;
+  if (type == SYMBOL_TYPE_VARIABLE) {
+    offset = scope.localOffset;
+    scope.localOffset += typeTable[typeIndex].byteSize;
+  } else if (type == SYMBOL_TYPE_PARAMETER) {
+    offset = scope.paramOffset;
+    scope.paramOffset += typeTable[typeIndex].byteSize;
+  }
+
   SYMBOL_TABLE_ENTRY entry = {
     .key = name->chars,
     .entryType = type,
     .defined = true,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
-    .offset = scope.offset,
-    .ordinal = shlen(scope.table),
+    .offset = offset,
+    .ordinal = scope.ordinal,
     .constantIndex = 0
   };
-  scope.offset += typeTable[typeIndex].byteSize;
+  scope.ordinal++;
   shputs(scope.table, entry);
   hmputs(scopes, scope);
 }

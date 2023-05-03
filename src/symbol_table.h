@@ -62,7 +62,9 @@ typedef struct {
   uint32_t parent;
   SYMBOL_TABLE_SCOPE_TYPE scopeType;
   SYMBOL_TABLE_ENTRY* table;
-  uint32_t offset;
+  uint32_t ordinal;
+  uint32_t localOffset;
+  uint32_t paramOffset;
 } SYMBOL_TABLE_SCOPE;
 
 // 0 - LANGUAGE

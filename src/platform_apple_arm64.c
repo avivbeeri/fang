@@ -12,6 +12,17 @@ static char *regList[4] = { "X8", "X9", "X10", "X11" };
 static char *paramRegList[8] = { "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7" };
 static int MAX_PARAM_REG = 8;
 
+#define BOOL_INDEX 2
+#define U8_INDEX 3
+#define I8_INDEX 4
+#define U16_INDEX 5
+#define I16_INDEX 6
+#define NUMERICAL_INDEX 7
+#define FN_INDEX 9
+static bool isNumeric(int type) {
+  return type <= NUMERICAL_INDEX && type >= BOOL_INDEX;
+}
+
 static int labelCreate() {
   return labelId++;
 }
@@ -20,13 +31,6 @@ const char* labelPrint(int i) {
   static char buffer[128];
   snprintf(buffer, sizeof(buffer), "L%i", i);
   return buffer;
-}
-
-static void genLabel(FILE* f, int label) {
-  emitf("%s:\n", labelPrint(label));
-}
-static void genJump(FILE* f, int label) {
-  emitf("  B %s\n", labelPrint(label));
 }
 
 static void freeAllRegisters() {
@@ -69,6 +73,13 @@ static void genMacros(FILE* f) {
   emitf(" .endm\n");
 }
 
+static void genLabel(FILE* f, int label) {
+  emitf("%s:\n", labelPrint(label));
+}
+static void genJump(FILE* f, int label) {
+  emitf("  B %s\n", labelPrint(label));
+}
+
 static void genCmp(FILE* f, int r, int jumpLabel) {
   emitf("  CMP %s, #0\n", regList[r]);
   emitf("  BEQ %s\n", labelPrint(jumpLabel));
@@ -87,25 +98,26 @@ static int genAllocStack(FILE* f, int r, int storage) {
 }
 
 static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
-  uint32_t offset = 0;
+  uint32_t offset = entry.offset;
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   uint32_t index = entry.scopeIndex;
 
   SYMBOL_TABLE_SCOPE current = scope;
   while (current.scopeType != SCOPE_TYPE_FUNCTION) {
-    offset += current.offset;
     index = current.parent;
     current = SYMBOL_TABLE_getScope(index);
-    printf("%i\n", index);
+    offset += current.localOffset;
   }
 
+  /*
   for (int i = 0; i < shlen(scope.table); i++) {
     SYMBOL_TABLE_ENTRY other = scope.table[i];
     // TODO handle pushed params
-    if (other.defined && other.ordinal < entry.ordinal/*  && other.entryType != SYMBOL_TYPE_PARAMETER */) {
+    if (other.defined && other.ordinal < entry.ordinal) {
       offset += typeTable[other.typeIndex].byteSize;
     }
   }
+*/
   return offset;
 }
 
@@ -119,13 +131,13 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     snprintf(buffer, sizeof(buffer), "%s", entry.key);
     return buffer;
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", (entry.ordinal + 1) * 16);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", -entry.offset);
     return buffer;
   } else {
     // local
     // calculate offset
     uint32_t offset = getStackOffset(entry);
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", (offset + 1) * 16);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", offset);
     return buffer;
   }
 }
@@ -153,22 +165,15 @@ static int genLoad(FILE* f, int i) {
   return r;
 }
 
-#define BOOL_INDEX 2
-#define U8_INDEX 3
-#define I8_INDEX 4
-#define U16_INDEX 5
-#define I16_INDEX 6
-#define NUMERICAL_INDEX 7
-#define FN_INDEX 9
-static bool isNumeric(int type) {
-  return type <= NUMERICAL_INDEX && type >= BOOL_INDEX;
-}
 
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   uint32_t offset = getStackOffset(entry);
-  emitf("  MOV %s, FP\n", regList[r]);
-  emitf("  ADD %s, %s, #%i\n", regList[r], regList[r], (offset + 1) * 16);
+  if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
+    emitf("  ADD %s, FP, #%i\n", regList[r], -offset);
+  } else {
+    emitf("  ADD %s, FP, #%i\n", regList[r], offset);
+  }
   return r;
 }
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
@@ -221,25 +226,29 @@ static void genExit(FILE* f, int r) {
 }
 
 static void genFunction(FILE* f, STRING* name) {
+  // get max function scope offset
+  // and round to next 16
   int p = 1 * 16;
 
   emitf("\n_fang_%s:\n", name->chars);
   emitf("  PUSH2 LR, FP\n"); // push LR onto stack
+  emitf("  PUSH1 X28\n");
   emitf("  SUB FP, SP, #0\n"); // create stack frame
   emitf("  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
                                 //
-  emitf("  PUSH1 X28\n");
   emitf("  MOV X28, #0\n");
   // This needs to account for all function variables
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
+  // get max function scope offset
+  // and round to next 16
   int p = 1 * 16;
   emitf("\n_fang_ep_%s:\n", name->chars);
 
   emitf("  ADD SP, SP, X28 ; reset SP based on function allocs\n");
-  emitf("  POP1 X28\n");
   emitf("  ADD SP, SP, #%i\n", p);
+  emitf("  POP1 X28\n");
   emitf("  POP2 LR, FP\n"); // pop LR from stack
   emitf("  RET\n");
 }
@@ -257,7 +266,7 @@ static void genRaw(FILE* f, const char* str) {
 }
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
-    // allocate stack memory
+    // allocate stack memory?
   }
   emitf("  STR %s, %s\n", regList[rvalue], symbol(entry));
   return rvalue;
@@ -292,6 +301,25 @@ static int genDiv(FILE* f, int leftReg, int rightReg) {
 }
 
 static int genFunctionCall(FILE* f, int callable, int* params) {
+  // We need to push registers which aren't free
+  // non-params first
+  int* snapshot = NULL;
+  for (int i = 0; i < 4; i++) {
+    if (!freereg[i] && i != callable) {
+      bool found = false;
+      for (int j = arrlen(params) - 1; j >= 0; j--) {
+        if (params[j] == i) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        emitf("  PUSH1 %s\n", regList[i]);
+        arrput(snapshot, i);
+      }
+    }
+  }
+
   for (int i = arrlen(params) - 1; i >= 0; i--) {
     // emitf("  STR %s, [SP, %li]\n", regList[params[i]], (arrlen(params) - i - 1));
     emitf("  PUSH1 %s\n", regList[params[i]]);
@@ -300,6 +328,10 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
   emitf("  BLR %s\n", regList[callable]);
   emitf("  MOV %s, X0\n", regList[callable]);
   emitf("  ADD SP, SP, #%li\n", (arrlen(params)) * 16);
+  for (int i = arrlen(snapshot) - 1; i >= 0; i--) {
+    emitf("  POP1 %s\n", regList[i]);
+  }
+  arrfree(snapshot);
 
   return callable;
 }

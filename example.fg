@@ -9,9 +9,11 @@ fn main(): i8 {
   // var c: char = 'A';
   var n: i8;
 
-  for (var i: i8 = 70; i != 0; i = i - 1) {
-     n = mod(i, 2);
-    // write(n, 'h', 'e');
+  for (var i: i8 = 5; i; i = i - 1) {
+    write(0, 'h', 'e');
+    n = mod(i, 2);
+    /*
+*/
   }
 /*
   write(66, 'e');
