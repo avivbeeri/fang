@@ -23,7 +23,7 @@ const char* labelPrint(int i) {
 }
 
 static void genLabel(FILE* f, int label) {
-  emitf("%s:", labelPrint(label));
+  emitf("%s:\n", labelPrint(label));
 }
 static void genJump(FILE* f, int label) {
   emitf("  B %s\n", labelPrint(label));
@@ -128,6 +128,13 @@ void complete(void) {
   freeRegister(r);
 }
 
+static int genLoadRegister(FILE* f, int i, int r) {
+  // Load i into a register
+  // return the register index
+  r = r == -1 ? allocateRegister() : r;
+  emitf("  MOV %s, #%i\n", regList[r], i);
+  return r;
+}
 static int genLoad(FILE* f, int i) {
   // Load i into a register
   // return the register index
@@ -314,6 +321,7 @@ PLATFORM platform_apple_arm64 = {
   .genFunctionEpilogue = genFunctionEpilogue,
   .genReturn = genReturn,
   .genLoad = genLoad,
+  .genLoadRegister = genLoadRegister,
   .genInitSymbol = genInitSymbol,
   .genIdentifier = genIdentifier,
   .genIdentifierAddr = genIdentifierAddr,

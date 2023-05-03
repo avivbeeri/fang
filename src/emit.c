@@ -253,6 +253,32 @@ static int traverse(FILE* f, AST* ptr) {
             {
               return p.genSub(f, l, r);
             }
+          case OP_NOT_EQUAL:
+            {
+              int doneLabel = p.labelCreate();
+              int trueLabel = p.labelCreate();
+              r = p.genSub(f, l, r);
+              p.genCmp(f, r, trueLabel);
+              r = p.genLoad(f, 1);
+              p.genJump(f, doneLabel);
+              p.genLabel(f, trueLabel);
+              r = p.genLoadRegister(f, 0, r);
+              p.genLabel(f, doneLabel);
+              return r;
+            }
+          case OP_COMPARE_EQUAL:
+            {
+              int doneLabel = p.labelCreate();
+              int trueLabel = p.labelCreate();
+              r = p.genSub(f, l, r);
+              p.genCmp(f, r, trueLabel);
+              r = p.genLoad(f, 0);
+              p.genJump(f, doneLabel);
+              p.genLabel(f, trueLabel);
+              r = p.genLoadRegister(f, 1, r);
+              p.genLabel(f, doneLabel);
+              return r;
+            }
         }
       }
     case AST_CALL:

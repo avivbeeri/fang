@@ -3,11 +3,8 @@
 fn main(): i8 {
   const message: [5]char = [0, 0, 0, 0 ,0];
   var c: char = 'A';
-  for (;; c = c + 1) {
-    write(1, c, 'e');
-  }
 
-  for (var i: u8 = 70; i; i = i - 1) {
+  for (var i: u8 = 70; i != 0; i = i - 1) {
     write(1, 'h', 'e');
   }
 /*
