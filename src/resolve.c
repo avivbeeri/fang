@@ -272,7 +272,7 @@ static bool traverse(AST* ptr) {
     case AST_BLOCK:
       {
         struct AST_BLOCK data = ast.data.AST_BLOCK;
-        SYMBOL_TABLE_openScope();
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_BLOCK);
         bool r = traverse(data.body);
         SYMBOL_TABLE_closeScope();
         return r;
@@ -398,7 +398,7 @@ static bool traverse(AST* ptr) {
         // Define symbol with parameter types
         bool r = true;
 
-        SYMBOL_TABLE_openScope();
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
         for (int i = 0; i < arrlen(data.params); i++) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
           STRING* paramName = param.identifier;
@@ -661,7 +661,7 @@ static bool traverse(AST* ptr) {
     case AST_FOR:
       {
         struct AST_FOR data = ast.data.AST_FOR;
-        SYMBOL_TABLE_openScope();
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_LOOP);
         bool r = traverse(data.initializer);
         if (!r) {
           return false;

@@ -49,10 +49,18 @@ typedef struct SYMBOL_TABLE_ENTRY {
   uint32_t constantIndex;
 } SYMBOL_TABLE_ENTRY;
 
+typedef enum {
+  SCOPE_TYPE_INVALID,
+  SCOPE_TYPE_GLOBAL,
+  SCOPE_TYPE_FUNCTION,
+  SCOPE_TYPE_BLOCK,
+  SCOPE_TYPE_LOOP,
+} SYMBOL_TABLE_SCOPE_TYPE;
 
 typedef struct {
   uint32_t key;
   uint32_t parent;
+  SYMBOL_TABLE_SCOPE_TYPE scopeType;
   SYMBOL_TABLE_ENTRY* table;
   uint32_t offset;
 } SYMBOL_TABLE_SCOPE;
@@ -62,7 +70,7 @@ typedef struct {
 // 2 - Function/record scopes
 
 void SYMBOL_TABLE_init(void);
-void SYMBOL_TABLE_openScope();
+void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType);
 void SYMBOL_TABLE_closeScope();
 void SYMBOL_TABLE_report();
 void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);

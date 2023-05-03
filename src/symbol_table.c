@@ -34,12 +34,12 @@ int* scopeStack = NULL;
 
 SYMBOL_TABLE_SCOPE* scopes = NULL;
 
-void SYMBOL_TABLE_openScope() {
+void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   uint32_t parent = 0;
   if (scopeStack != NULL) {
     parent = scopeStack[arrlen(scopeStack) - 1];
   }
-  hmputs(scopes, ((SYMBOL_TABLE_SCOPE){ scopeId, parent, NULL }));
+  hmputs(scopes, ((SYMBOL_TABLE_SCOPE){ scopeId, parent, scopeType, NULL }));
   arrput(scopeStack, scopeId);
   scopeId++;
 }
@@ -68,7 +68,7 @@ uint32_t SYMBOL_TABLE_getCurrentScopeIndex() {
 }
 
 void SYMBOL_TABLE_init(void) {
-  SYMBOL_TABLE_openScope();
+  SYMBOL_TABLE_openScope(SCOPE_TYPE_GLOBAL);
 }
 
 void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
