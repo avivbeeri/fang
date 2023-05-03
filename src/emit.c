@@ -97,6 +97,63 @@ static int traverse(FILE* f, AST* ptr) {
         }
         break;
       }
+    case AST_IF:
+      {
+        struct AST_IF data = ast.data.AST_IF;
+        int r = traverse(f, data.condition);
+        int nextLabel = p.labelCreate();
+        p.genCmp(f, r, nextLabel);
+        traverse(f, data.body);
+
+        if (data.elseClause != NULL) {
+          int endLabel = p.labelCreate();
+          p.genJump(f, endLabel);
+          p.genLabel(f, nextLabel);
+          traverse(f, data.elseClause);
+          p.genLabel(f, endLabel);
+        } else {
+          p.genLabel(f, nextLabel);
+        }
+        return -1;
+      }
+    case AST_FOR:
+      {
+        struct AST_FOR data = ast.data.AST_FOR;
+        int loopLabel = p.labelCreate();
+        int exitLabel = p.labelCreate();
+        if (data.initializer != NULL) {
+          traverse(f, data.initializer);
+          p.freeAllRegisters();
+        }
+        p.genLabel(f, loopLabel);
+        if (data.condition != NULL) {
+          int r = traverse(f, data.condition);
+          p.genCmp(f, r, exitLabel);
+          p.freeAllRegisters();
+        }
+        traverse(f, data.body);
+        p.freeAllRegisters();
+        if (data.increment != NULL) {
+          traverse(f, data.increment);
+          p.freeAllRegisters();
+        }
+        p.genJump(f, loopLabel);
+        p.genLabel(f, exitLabel);
+        return -1;
+      }
+    case AST_WHILE:
+      {
+        struct AST_WHILE data = ast.data.AST_WHILE;
+        int loopLabel = p.labelCreate();
+        int exitLabel = p.labelCreate();
+        p.genLabel(f, loopLabel);
+        int r = traverse(f, data.condition);
+        p.genCmp(f, r, exitLabel);
+        traverse(f, data.body);
+        p.genJump(f, loopLabel);
+        p.genLabel(f, exitLabel);
+        return -1;
+      }
     case AST_RETURN:
       {
         struct AST_RETURN data = ast.data.AST_RETURN;
@@ -154,6 +211,7 @@ static int traverse(FILE* f, AST* ptr) {
       }
     case AST_LVALUE:
       {
+        printf("LVALUE\n");
         struct AST_LVALUE data = ast.data.AST_LVALUE;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r = p.genIdentifierAddr(f, symbol);
@@ -190,6 +248,10 @@ static int traverse(FILE* f, AST* ptr) {
           case OP_ADD:
             {
               return p.genAdd(f, l, r);
+            }
+          case OP_SUB:
+            {
+              return p.genSub(f, l, r);
             }
         }
       }

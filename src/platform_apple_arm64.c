@@ -22,6 +22,13 @@ const char* labelPrint(int i) {
   return buffer;
 }
 
+static void genLabel(FILE* f, int label) {
+  emitf("%s:", labelPrint(label));
+}
+static void genJump(FILE* f, int label) {
+  emitf("  B %s\n", labelPrint(label));
+}
+
 static void freeAllRegisters() {
   for (int i = 0; i < sizeof(freereg); i++) {
     freereg[i] = true;
@@ -47,15 +54,6 @@ static int allocateRegister() {
   exit(1);
 }
 
-/*
-static int min(int i, int j) {
-  if (i < j) {
-    return i;
-  }
-  return j;
-}
-*/
-
 static void genMacros(FILE* f) {
   emitf(" .macro PUSH1 register\n");
   emitf("        STR \\register, [SP, #-16]!\n");
@@ -69,6 +67,12 @@ static void genMacros(FILE* f) {
   emitf(" .macro POP2 register1, register2\n");
   emitf("        LDP \\register1, \\register2, [SP], #16\n");
   emitf(" .endm\n");
+}
+
+static void genCmp(FILE* f, int r, int jumpLabel) {
+  emitf("  CMP %s, #0\n", regList[r]);
+  emitf("  BEQ %s\n", labelPrint(jumpLabel));
+  freeRegister(r);
 }
 
 static int genAllocStack(FILE* f, int r, int storage) {
@@ -146,7 +150,7 @@ static bool isNumeric(int type) {
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   emitf("  MOV %s, FP\n", regList[r]);
-  emitf("  ADD %s, %s, #%i\n", regList[r], regList[r], getStackOffset(entry));
+  emitf("  ADD %s, %s, #%i\n", regList[r], regList[r], (getStackOffset(entry) + 1) * 16);
   return r;
 }
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
@@ -252,6 +256,12 @@ static int genAdd(FILE* f, int leftReg, int rightReg) {
   return leftReg;
 }
 
+static int genSub(FILE* f, int leftReg, int rightReg) {
+  emitf("SUB %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
+
 static int genFunctionCall(FILE* f, int callable, int* params) {
   for (int i = arrlen(params) - 1; i >= 0; i--) {
     // emitf("  STR %s, [SP, %li]\n", regList[params[i]], (arrlen(params) - i - 1));
@@ -266,23 +276,6 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
 }
 
 /*
-static void genPostamble() {
-  size_t bytes = 0;
-  emitf(".text\n");
-  for (int i = 0; i < arrlen(constTable); i++) {
-    if (bytes % 4 != 0) {
-      emitf(".align %lu\n", 4 - bytes % 4);
-    }
-    emitf("const_%i: ", i);
-    emitf(".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length - 1) % 256);
-    emitf(".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
-    bytes += strlen(AS_STRING(constTable[i].value)->chars);
-  }
-}
-*/
-
-
-/*
 static int genMod(int leftReg, int rightReg) {
   int r = allocateRegister();
   emitf("udiv %s, %s, %s\n", regList[r], regList[leftReg], regList[rightReg]);
@@ -293,11 +286,6 @@ static int genMod(int leftReg, int rightReg) {
 }
 static int genDiv(int leftReg, int rightReg) {
   emitf("sdiv %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  freeRegister(rightReg);
-  return leftReg;
-}
-static int genSub(int leftReg, int rightReg) {
-  emitf("sub %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
@@ -332,8 +320,14 @@ PLATFORM platform_apple_arm64 = {
   .genRaw = genRaw,
   .genAssign = genAssign,
   .genAdd = genAdd,
+  .genSub = genSub,
   .genFunctionCall = genFunctionCall,
-  .genAllocStack = genAllocStack
+  .genAllocStack = genAllocStack,
+  .labelCreate = labelCreate,
+  .genCmp = genCmp,
+  .genJump = genJump,
+  .genLabel = genLabel
+
 };
 
 #undef emitf

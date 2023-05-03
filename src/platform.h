@@ -46,12 +46,17 @@ typedef struct {
   int (*genIdentifierAddr)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   int (*genAssign)(FILE* f, int, int);
   int (*genAdd)(FILE* f, int, int);
+  int (*genSub)(FILE* f, int, int);
   int (*genAllocStack)(FILE* f, int, int);
   int (*genFunctionCall)(FILE* f, int, int*);
   int (*genInitSymbol)(FILE* f, SYMBOL_TABLE_ENTRY, int);
   void (*genSimpleExit)(FILE* f);
   void (*genExit)(FILE* f, int);
   void (*genRaw)(FILE* f, const char*);
+  int (*labelCreate)();
+  void (*genCmp)(FILE* f, int, int);
+  void (*genJump)(FILE* f, int);
+  void (*genLabel)(FILE* f, int);
 } PLATFORM;
 
 void PLATFORM_init();

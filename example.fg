@@ -2,8 +2,14 @@
 
 fn main(): i8 {
   const message: [5]char = [0, 0, 0, 0 ,0];
+  var c: char = 'A';
+  for (;; c = c + 1) {
+    write(1, c, 'e');
+  }
 
-  write(65, 'h', 'e');
+  for (var i: u8 = 70; i; i = i - 1) {
+    write(1, 'h', 'e');
+  }
 /*
   write(66, 'e');
   write(67, 'l');
@@ -20,9 +26,12 @@ fn main(): i8 {
 }
 
 fn write(i: i8, c : char, g: char): void {
-  syscall_write(i as char);
-  syscall_write(c);
-  syscall_write(g);
+  if (i) {
+    syscall_write(c);
+  } else {
+    syscall_write(g);
+  }
+  // syscall_write(i as char);
 }
 
 fn syscall_write(c: char): void {
