@@ -129,7 +129,6 @@ static int traverse(FILE* f, AST* ptr) {
         if (data.condition != NULL) {
           int r = traverse(f, data.condition);
           p.genCmp(f, r, exitLabel);
-          p.freeAllRegisters();
         }
         traverse(f, data.body);
         p.freeAllRegisters();
@@ -157,7 +156,10 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_RETURN:
       {
         struct AST_RETURN data = ast.data.AST_RETURN;
-        int r = traverse(f, data.value);
+        int r = -1;
+        if (data.value) {
+          r = traverse(f, data.value);
+        }
         p.genReturn(f, fnStack[0], r);
         return r;
       }
