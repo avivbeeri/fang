@@ -26,9 +26,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include "common.h"
 #include "compiler.h"
-
 
 static char* readFile(const char* path) {
   FILE* file = fopen(path, "rb");
@@ -58,6 +58,12 @@ static char* readFile(const char* path) {
 }
 
 int main(int argc, const char* argv[]) {
+   struct timeval t1, t2;
+  double elapsedTime;
+
+  // start timer
+  gettimeofday(&t1, NULL);
+
   char* path = "example.fg";
   if (argc > 1) {
     path = (char*)argv[1];
@@ -67,6 +73,13 @@ int main(int argc, const char* argv[]) {
 
   compile(source);
   free(source);
+
+
+  gettimeofday(&t2, NULL);
+  elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
+  elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
+
+  printf("Completed in %f milliseconds.\n", elapsedTime);
 
   return 0;
 }
