@@ -241,6 +241,15 @@ static int traverse(FILE* f, AST* ptr) {
         int r = p.genLoad(f, AS_LIT_NUM(v));
         return r;
       }
+    case AST_UNARY:
+      {
+        struct AST_UNARY data = ast.data.AST_UNARY;
+        int r = traverse(f, data.expr);
+        switch (data.op) {
+          case OP_NOT: return p.genNeg(f, r);
+          case OP_NEG: return p.genNeg(f, r);
+        }
+      }
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;

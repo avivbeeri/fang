@@ -339,18 +339,23 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
 
 static int genMod(FILE* f, int leftReg, int rightReg) {
   int r = allocateRegister();
-  emitf("UDIV %s, %s, %s\n", regList[r], regList[leftReg], regList[rightReg]);
-  emitf("MSUB %s, %s, %s, %s\n", regList[leftReg], regList[r], regList[rightReg], regList[leftReg]);
+  emitf("  UDIV %s, %s, %s\n", regList[r], regList[leftReg], regList[rightReg]);
+  emitf("  MSUB %s, %s, %s, %s\n", regList[leftReg], regList[r], regList[rightReg], regList[leftReg]);
   freeRegister(r);
   freeRegister(rightReg);
   return leftReg;
 }
-/*
-static int genNegate(int valueReg) {
-  emitf("neg %s, %s\n", regList[valueReg], regList[valueReg]);
+
+static int genNeg(FILE* f, int valueReg) {
+  emitf("  NEG %s, %s\n", regList[valueReg], regList[valueReg]);
   return valueReg;
 }
-*/
+static int genLogicNeg(FILE* f, int valueReg) {
+  emitf("  CMP %s, #0\n", regList[valueReg]);
+  emitf("  CSET %s, eq\n", regList[valueReg]);
+  emitf("  AND %s, %s, 255\n", regList[valueReg], regList[valueReg]);
+  return valueReg;
+}
 
 
 PLATFORM platform_apple_arm64 = {
@@ -377,6 +382,7 @@ PLATFORM platform_apple_arm64 = {
   .genMul = genMul,
   .genDiv = genDiv,
   .genMod = genMod,
+  .genNeg = genLogicNeg,
   .genFunctionCall = genFunctionCall,
   .genAllocStack = genAllocStack,
   .labelCreate = labelCreate,

@@ -8,7 +8,7 @@ fn main(): i8 {
 }
 
 fn write(i: i8, c : char): void {
-  if (i == 0) {
+  if ((i == 0)) {
     syscall_write(c);
   } else {
     syscall_write('.');
