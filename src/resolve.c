@@ -495,6 +495,7 @@ static bool traverse(AST* ptr) {
         struct AST_UNARY data = ast.data.AST_UNARY;
         bool r = traverse(data.expr);
         switch (data.op) {
+          case OP_BITWISE_NOT:
           case OP_NEG:
             {
               ptr->type = data.expr->type;

@@ -1,7 +1,7 @@
 fn main(): i8 {
   var j: [43]i8;
   for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
-    write(i, 'a' ^ 0x0F);
+    write(i, 'a');
   }
   return 0;
 }
@@ -16,9 +16,11 @@ fn test2(): bool {
 }
 
 fn write(i: i8, c : char): void {
-//  if (test1() || test2()) {
+  if (i & 0x01) {
     syscall_write(c);
- // }
+  } else {
+    syscall_write('d');
+  }
 }
 
 fn syscall_write(c: char): void {

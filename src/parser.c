@@ -300,6 +300,7 @@ static AST* unary(bool canAssign) {
   switch (operatorType) {
     case TOKEN_MINUS: expr = AST_NEW_T(AST_UNARY, start, OP_NEG, operand); break;
     case TOKEN_BANG: expr = AST_NEW_T(AST_UNARY, start, OP_NOT, operand); break;
+    case TOKEN_TILDE: expr = AST_NEW_T(AST_UNARY, start, OP_BITWISE_NOT, operand); break;
     default: expr = AST_NEW_T(AST_ERROR, start, 0);
   }
   return expr;
@@ -541,6 +542,7 @@ ParseRule rules[] = {
   [TOKEN_STAR]            = {NULL,     binary, PREC_FACTOR},
   [TOKEN_PERCENT]         = {NULL,     binary, PREC_FACTOR},
   [TOKEN_BANG]            = {unary,    NULL,   PREC_TERM},
+  [TOKEN_TILDE]           = {unary,    NULL,   PREC_TERM},
   [TOKEN_BANG_EQUAL]      = {NULL,     binary, PREC_EQUALITY},
   [TOKEN_EQUAL_EQUAL]     = {NULL,     binary, PREC_COMPARISON},
   [TOKEN_GREATER_EQUAL]   = {NULL,     binary, PREC_COMPARISON},

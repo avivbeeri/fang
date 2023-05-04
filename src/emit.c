@@ -247,6 +247,7 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_UNARY data = ast.data.AST_UNARY;
         int r = traverse(f, data.expr);
         switch (data.op) {
+          case OP_BITWISE_NOT: return p.genBitwiseNot(f, r);
           case OP_NOT: return p.genLogicalNot(f, r);
           case OP_NEG: return p.genNeg(f, r);
                        //TODO: ref dref

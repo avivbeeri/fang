@@ -319,7 +319,8 @@ static void traverse(AST* ptr, int level) {
       switch(data.op) {
         case OP_NEG: str = "-"; break;
         case OP_NOT: str = "!"; break;
-        case OP_REF: str = "$"; break;
+        case OP_REF: str = "^"; break;
+        case OP_BITWISE_NOT: str = "~"; break;
         case OP_DEREF: str = "@"; break;
         default: str = "MISSING";
       }
@@ -344,6 +345,7 @@ static void traverse(AST* ptr, int level) {
         case OP_MUL: str = "*"; break;
         case OP_DIV: str = "/"; break;
         case OP_MOD: str = "%"; break;
+        case OP_BITWISE_XOR: str = "^"; break;
         case OP_OR: str = "||"; break;
         case OP_AND: str = "&&"; break;
         case OP_BITWISE_OR: str = "|"; break;
