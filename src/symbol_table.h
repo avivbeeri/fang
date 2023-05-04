@@ -1,4 +1,4 @@
-/*
+ /*
   MIT License
 
   Copyright (c) 2023 Aviv Beeri
@@ -42,6 +42,7 @@ typedef struct SYMBOL_TABLE_ENTRY {
   bool defined;
 
   uint32_t ordinal; // posiiton in scope
+  uint32_t paramOrdinal; // posiiton in scope
   uint32_t offset;
   int typeIndex;
   uint32_t scopeIndex;
@@ -63,6 +64,7 @@ typedef struct {
   SYMBOL_TABLE_SCOPE_TYPE scopeType;
   SYMBOL_TABLE_ENTRY* table;
   uint32_t ordinal;
+  uint32_t paramOrdinal;
   uint32_t localOffset;
   uint32_t paramOffset;
 } SYMBOL_TABLE_SCOPE;

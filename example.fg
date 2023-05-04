@@ -6,14 +6,9 @@ fn mod(a: i8, b: i8): i8 {
 
 fn main(): i8 {
   // const message: [5]char = [0, 0, 0, 0 ,0];
-  // var c: char = 'A';
   var n: i8;
-
-  for (var i: i8 = 5; i; i = i - 1) {
-    write(0, 'h', 'e');
-    n = mod(i, 2);
-    /*
-*/
+  for (var i: i8 = 70; i != 0; i = i - 1) {
+    write(mod(i, 2), 'h');
   }
 /*
   write(66, 'e');
@@ -30,19 +25,18 @@ fn main(): i8 {
   return 0;
 }
 
-fn write(i: i8, c : char, g: char): void {
-  if (i) {
+fn write(i: i8, c : char): void {
+  if (i == 0) {
     syscall_write(c);
   } else {
-    syscall_write(g);
+    syscall_write('.');
   }
-  // syscall_write(i as char);
 }
 
 fn syscall_write(c: char): void {
   asm {
     "MOV X0, #1" // STDOUT
-    "ADD X1, FP, #16" // PTR
+    "ADD X1, FP, #16" // PTR (FP+16) // function argument
     "MOV X2, 1"
     "MOV X16, #4"
     "SVC 0"

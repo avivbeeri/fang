@@ -97,6 +97,29 @@ static int genAllocStack(FILE* f, int r, int storage) {
   return r;
 }
 
+static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
+  uint32_t ordinal = entry.ordinal;
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
+  uint32_t index = entry.scopeIndex;
+
+  SYMBOL_TABLE_SCOPE current = scope;
+  while (current.scopeType != SCOPE_TYPE_FUNCTION) {
+    index = current.parent;
+    current = SYMBOL_TABLE_getScope(index);
+    ordinal += current.ordinal;
+  }
+
+  /*
+  for (int i = 0; i < shlen(scope.table); i++) {
+    SYMBOL_TABLE_ENTRY other = scope.table[i];
+    // TODO handle pushed params
+    if (other.defined && other.ordinal < entry.ordinal) {
+      offset += typeTable[other.typeIndex].byteSize;
+    }
+  }
+*/
+  return ordinal + 1;
+}
 static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   uint32_t offset = entry.offset;
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
@@ -131,13 +154,13 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     snprintf(buffer, sizeof(buffer), "%s", entry.key);
     return buffer;
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", -entry.offset);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", (entry.paramOrdinal + 1) * 16);
     return buffer;
   } else {
     // local
     // calculate offset
-    uint32_t offset = getStackOffset(entry);
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", offset);
+    uint32_t offset = getStackOrdinal(entry);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", -offset * 16);
     return buffer;
   }
 }
@@ -168,11 +191,11 @@ static int genLoad(FILE* f, int i) {
 
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
-  uint32_t offset = getStackOffset(entry);
   if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    emitf("  ADD %s, FP, #%i\n", regList[r], -offset);
+    emitf("  ADD %s, FP, #%i\n", regList[r], (entry.paramOrdinal + 1) * 16);
   } else {
-    emitf("  ADD %s, FP, #%i\n", regList[r], offset);
+    uint32_t offset = getStackOrdinal(entry);
+    emitf("  ADD %s, FP, #%i\n", regList[r], -offset * 16);
   }
   return r;
 }
@@ -228,27 +251,25 @@ static void genExit(FILE* f, int r) {
 static void genFunction(FILE* f, STRING* name) {
   // get max function scope offset
   // and round to next 16
-  int p = 1 * 16;
+  int p = 2 * 16;
 
   emitf("\n_fang_%s:\n", name->chars);
   emitf("  PUSH2 LR, FP\n"); // push LR onto stack
-  emitf("  PUSH1 X28\n");
-  emitf("  SUB FP, SP, #0\n"); // create stack frame
+  emitf("  MOV FP, SP\n"); // create stack frame
   emitf("  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
-                                //
-  emitf("  MOV X28, #0\n");
+  // emitf("  PUSH1 X28\n");
+  // emitf("  MOV X28, #0\n");
   // This needs to account for all function variables
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
   // get max function scope offset
   // and round to next 16
-  int p = 1 * 16;
   emitf("\n_fang_ep_%s:\n", name->chars);
 
-  emitf("  ADD SP, SP, X28 ; reset SP based on function allocs\n");
-  emitf("  ADD SP, SP, #%i\n", p);
-  emitf("  POP1 X28\n");
+  // emitf("  ADD SP, SP, X28 ; reset SP based on function allocs\n");
+  // emitf("  POP1 X28\n");
+  emitf("  MOV SP, FP\n");
   emitf("  POP2 LR, FP\n"); // pop LR from stack
   emitf("  RET\n");
 }

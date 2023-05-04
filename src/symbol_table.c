@@ -39,7 +39,7 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   if (scopeStack != NULL) {
     parent = scopeStack[arrlen(scopeStack) - 1];
   }
-  hmputs(scopes, ((SYMBOL_TABLE_SCOPE){ scopeId, parent, scopeType, NULL }));
+  hmputs(scopes, ((SYMBOL_TABLE_SCOPE){ scopeId, parent, scopeType, NULL, 0, 0, 0, 0 }));
   arrput(scopeStack, scopeId);
   scopeId++;
 }
@@ -92,9 +92,14 @@ void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
     .scopeIndex = scopeIndex,
     .offset = offset,
     .ordinal = scope.ordinal,
+    .paramOrdinal = scope.paramOrdinal,
     .constantIndex = 0
   };
-  scope.ordinal++;
+  if (type == SYMBOL_TYPE_VARIABLE) {
+    scope.ordinal++;
+  } else if (type == SYMBOL_TYPE_PARAMETER) {
+    scope.paramOrdinal++;
+  }
   shputs(scope.table, entry);
   hmputs(scopes, scope);
 }
