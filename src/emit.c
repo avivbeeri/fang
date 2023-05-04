@@ -245,14 +245,27 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_UNARY:
       {
         struct AST_UNARY data = ast.data.AST_UNARY;
+        if (data.op == OP_REF) {
+          // TODO calculate true LVAlue offsets
+          // int r = traverseLValue(f, data.expr);
+
+          // Pretend we contain an LValue
+          data.expr->tag = AST_LVALUE;
+          // int r = p.genIdentifierAddr(f, symbol);
+          return traverse(f, data.expr);
+        }
         int r = traverse(f, data.expr);
         switch (data.op) {
           case OP_BITWISE_NOT: return p.genBitwiseNot(f, r);
           case OP_NOT: return p.genLogicalNot(f, r);
           case OP_NEG: return p.genNeg(f, r);
-                       //TODO: ref dref
-                       // unreachable
-          default: return -1;
+          case OP_DEREF: return p.genDeref(f, r);
+          default:
+            {
+              // unreachable
+              printf("unknown unary operator\n");
+              exit(1);
+            }
         }
       }
     case AST_BINARY:

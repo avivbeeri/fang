@@ -196,6 +196,14 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   return r;
 }
 
+static int genRef(FILE* f, int leftReg) {
+  return leftReg;
+}
+static int genDeref(FILE* f, int leftReg) {
+  emitf("  LDR %s, [%s]\n", regList[leftReg], regList[leftReg]);
+  return leftReg;
+}
+
 static void genPreamble(FILE* f) {
   genMacros(f);
   size_t bytes = 0;
@@ -463,7 +471,9 @@ PLATFORM platform_apple_arm64 = {
   .genBitwiseAnd = genBitwiseAnd,
   .genBitwiseOr = genBitwiseOr,
   .genBitwiseXor = genBitwiseXor,
-  .genBitwiseNot = genBitwiseNot
+  .genBitwiseNot = genBitwiseNot,
+  .genRef = genRef,
+  .genDeref = genDeref
 };
 
 #undef emitf

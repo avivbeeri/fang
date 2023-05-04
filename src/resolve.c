@@ -48,8 +48,12 @@ uint32_t* typeStack = NULL;
 static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
 }
+
+static bool isPointer(int type) {
+  return typeTable[type].entryType == ENTRY_TYPE_POINTER;
+}
 static bool isNumeric(int type) {
-  return type <= NUMERICAL_INDEX && type > BOOL_INDEX;
+  return (type <= NUMERICAL_INDEX && type > BOOL_INDEX) || isPointer(type);
 }
 
 static bool isCompatible(int type1, int type2) {

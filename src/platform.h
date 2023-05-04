@@ -74,6 +74,8 @@ typedef struct {
   void (*genCmpNotEqual)(FILE* f, int, int);
   void (*genJump)(FILE* f, int);
   void (*genLabel)(FILE* f, int);
+  int (*genRef)(FILE* f, int);
+  int (*genDeref)(FILE* f, int);
 } PLATFORM;
 
 void PLATFORM_init();
