@@ -1,12 +1,7 @@
-
-fn mod(a: i8, b: i8): i8 {
-  return a - b * (a / b);
-}
-
 fn main(): i8 {
   var n: i8;
   for (var i: i8 = 70; i != 0; i = i - 1) {
-    n = mod(i, 2);
+    n = i % 2;
     write(n, 'h');
   }
   return 0;

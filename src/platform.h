@@ -50,6 +50,7 @@ typedef struct {
   int (*genSub)(FILE* f, int, int);
   int (*genMul)(FILE* f, int, int);
   int (*genDiv)(FILE* f, int, int);
+  int (*genMod)(FILE* f, int, int);
   int (*genAllocStack)(FILE* f, int, int);
   int (*genFunctionCall)(FILE* f, int, int*);
   int (*genInitSymbol)(FILE* f, SYMBOL_TABLE_ENTRY, int);

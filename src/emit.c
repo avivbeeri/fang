@@ -263,6 +263,10 @@ static int traverse(FILE* f, AST* ptr) {
             {
               return p.genDiv(f, l, r);
             }
+          case OP_MOD:
+            {
+              return p.genMod(f, l, r);
+            }
           case OP_NOT_EQUAL:
             {
               int doneLabel = p.labelCreate();
