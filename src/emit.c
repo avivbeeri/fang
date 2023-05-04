@@ -247,7 +247,7 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_UNARY data = ast.data.AST_UNARY;
         int r = traverse(f, data.expr);
         switch (data.op) {
-          case OP_NOT: return p.genNeg(f, r);
+          case OP_NOT: return p.genLogicalNot(f, r);
           case OP_NEG: return p.genNeg(f, r);
         }
       }
@@ -276,6 +276,14 @@ static int traverse(FILE* f, AST* ptr) {
           case OP_MOD:
             {
               return p.genMod(f, l, r);
+            }
+          case OP_SHIFT_LEFT:
+            {
+              return p.genShiftLeft(f, l, r);
+            }
+          case OP_SHIFT_RIGHT:
+            {
+              return p.genShiftRight(f, l, r);
             }
           case OP_NOT_EQUAL:
             {

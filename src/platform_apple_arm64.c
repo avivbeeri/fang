@@ -345,6 +345,16 @@ static int genMod(FILE* f, int leftReg, int rightReg) {
   freeRegister(rightReg);
   return leftReg;
 }
+static int genShiftLeft(FILE* f, int leftReg, int rightReg) {
+  emitf("  LSL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
+static int genShiftRight(FILE* f, int leftReg, int rightReg) {
+  emitf("  LSR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
 
 static int genNeg(FILE* f, int valueReg) {
   emitf("  NEG %s, %s\n", regList[valueReg], regList[valueReg]);
@@ -379,7 +389,7 @@ static int genLessThan(FILE* f, int left, int right) {
   emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
   return left;
 }
-static int genLogicNeg(FILE* f, int valueReg) {
+static int genLogicalNot(FILE* f, int valueReg) {
   emitf("  CMP %s, #0\n", regList[valueReg]);
   emitf("  CSET %s, eq\n", regList[valueReg]);
   emitf("  AND %s, %s, 255\n", regList[valueReg], regList[valueReg]);
@@ -411,7 +421,8 @@ PLATFORM platform_apple_arm64 = {
   .genMul = genMul,
   .genDiv = genDiv,
   .genMod = genMod,
-  .genNeg = genLogicNeg,
+  .genLogicalNot = genLogicalNot,
+  .genNeg = genNeg,
   .genFunctionCall = genFunctionCall,
   .genAllocStack = genAllocStack,
   .labelCreate = labelCreate,
@@ -422,7 +433,8 @@ PLATFORM platform_apple_arm64 = {
   .genGreaterThan = genGreaterThan,
   .genEqualLessThan = genEqualLessThan,
   .genEqualGreaterThan = genEqualGreaterThan,
-
+  .genShiftLeft = genShiftLeft,
+  .genShiftRight = genShiftRight,
 };
 
 #undef emitf
