@@ -86,6 +86,11 @@ static void genCmp(FILE* f, int r, int jumpLabel) {
   emitf("  BEQ %s\n", labelPrint(jumpLabel));
   freeRegister(r);
 }
+static void genCmpNotEqual(FILE* f, int r, int jumpLabel) {
+  emitf("  CMP %s, #0\n", regList[r]);
+  emitf("  BNE %s\n", labelPrint(jumpLabel));
+  freeRegister(r);
+}
 
 static int genAllocStack(FILE* f, int r, int storage) {
   char* store = regList[storage];
@@ -427,6 +432,7 @@ PLATFORM platform_apple_arm64 = {
   .genAllocStack = genAllocStack,
   .labelCreate = labelCreate,
   .genCmp = genCmp,
+  .genCmpNotEqual = genCmpNotEqual,
   .genJump = genJump,
   .genLabel = genLabel,
   .genLessThan = genLessThan,

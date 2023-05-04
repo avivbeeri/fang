@@ -249,11 +249,50 @@ static int traverse(FILE* f, AST* ptr) {
         switch (data.op) {
           case OP_NOT: return p.genLogicalNot(f, r);
           case OP_NEG: return p.genNeg(f, r);
+                       //TODO: ref dref
+                       // unreachable
+          default: return -1;
         }
       }
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;
+        if (data.op == OP_AND) {
+          // Short circuiting semantics please
+          int doneLabel = p.labelCreate();
+          int falseLabel = p.labelCreate();
+          int l = traverse(f, data.left);
+          p.genCmp(f, l, falseLabel);
+          // if (!l), go to done
+          int r = traverse(f, data.right);
+          // if (!r) go to done
+          p.genCmp(f, r, falseLabel);
+          r = p.genLoad(f, 1);
+          p.genJump(f, doneLabel);
+          p.genLabel(f, falseLabel);
+          r = p.genLoadRegister(f, 0, r);
+          p.genLabel(f, doneLabel);
+
+          return r;
+        } else if (data.op == OP_OR) {
+          // Short circuiting semantics please
+          int doneLabel = p.labelCreate();
+          int trueLabel = p.labelCreate();
+          int l = traverse(f, data.left);
+          p.genCmpNotEqual(f, l, trueLabel);
+          // if (l), go to done
+          int r = traverse(f, data.right);
+          // if (r) go to done
+          p.genCmpNotEqual(f, r, trueLabel);
+          r = p.genLoad(f, 0);
+          p.genJump(f, doneLabel);
+          p.genLabel(f, trueLabel);
+          r = p.genLoadRegister(f, 1, r);
+          p.genLabel(f, doneLabel);
+
+          return r;
+        }
+
         int l = traverse(f, data.left);
         int r = traverse(f, data.right);
         switch (data.op) {

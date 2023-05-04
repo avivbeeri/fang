@@ -75,14 +75,14 @@ void printValueType(Value value) {
 void printValue(Value value) {
   switch (value.type) {
     case VAL_BOOL: printf("%s", AS_BOOL(value) ? "true" : "false"); break;
-    case VAL_CHAR: printf("%c", AS_CHAR(value)); break;
+    case VAL_CHAR: printf("'%c'", AS_CHAR(value)); break;
     case VAL_U8: printf("%hhu", AS_U8(value)); break;
   case VAL_I8: printf("%hhi", AS_I8(value)); break;
     case VAL_I16: printf("%hi", AS_I16(value)); break;
     case VAL_U16: printf("%hu", AS_U16(value)); break;
     case VAL_LIT_NUM: printf("%i", AS_LIT_NUM(value)); break;
     case VAL_PTR: printf("$%hu", AS_PTR(value)); break;
-    case VAL_STRING: printf("%s", AS_STRING(value)->chars); break;
+    case VAL_STRING: printf("\"%s\"", AS_STRING(value)->chars); break;
     case VAL_ERROR: printf("ERROR(%i)", AS_ERROR(value)); break;
     case VAL_UNDEF: printf("0"); break;
     case VAL_RECORD:

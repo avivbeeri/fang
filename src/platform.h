@@ -67,6 +67,7 @@ typedef struct {
   void (*genRaw)(FILE* f, const char*);
   int (*labelCreate)();
   void (*genCmp)(FILE* f, int, int);
+  void (*genCmpNotEqual)(FILE* f, int, int);
   void (*genJump)(FILE* f, int);
   void (*genLabel)(FILE* f, int);
 } PLATFORM;

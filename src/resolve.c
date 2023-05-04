@@ -593,6 +593,10 @@ static bool traverse(AST* ptr) {
           // Logical ops, return a bool
           case OP_OR:
           case OP_AND:
+            {
+              compatible = true;
+              break;
+            }
           case OP_COMPARE_EQUAL:
           case OP_NOT_EQUAL:
             {

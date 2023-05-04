@@ -1,16 +1,24 @@
 fn main(): i8 {
   var j: [43]i8;
   for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
-    write(i, 'h');
+    write(i, 'c');
   }
   return 0;
 }
 
+
+fn test1(): bool {
+  syscall_write('a');
+  return false;
+}
+fn test2(): bool {
+  syscall_write('b');
+  return false;
+}
+
 fn write(i: i8, c : char): void {
-  if ((i % 4) < 2) {
+  if (test1() || test2()) {
     syscall_write(c);
-  } else {
-    syscall_write('.');
   }
 }
 
