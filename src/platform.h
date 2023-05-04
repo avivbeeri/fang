@@ -51,6 +51,9 @@ typedef struct {
   int (*genMul)(FILE* f, int, int);
   int (*genDiv)(FILE* f, int, int);
   int (*genMod)(FILE* f, int, int);
+  int (*genBitwiseAnd)(FILE* f, int, int);
+  int (*genBitwiseOr)(FILE* f, int, int);
+  int (*genBitwiseXor)(FILE* f, int, int);
   int (*genShiftLeft)(FILE* f, int, int);
   int (*genShiftRight)(FILE* f, int, int);
   int (*genLessThan)(FILE* f, int, int);

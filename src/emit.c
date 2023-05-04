@@ -316,6 +316,18 @@ static int traverse(FILE* f, AST* ptr) {
             {
               return p.genMod(f, l, r);
             }
+          case OP_BITWISE_AND:
+            {
+              return p.genBitwiseAnd(f, l, r);
+            }
+          case OP_BITWISE_OR:
+            {
+              return p.genBitwiseOr(f, l, r);
+            }
+          case OP_BITWISE_XOR:
+            {
+              return p.genBitwiseXor(f, l, r);
+            }
           case OP_SHIFT_LEFT:
             {
               return p.genShiftLeft(f, l, r);

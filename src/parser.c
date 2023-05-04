@@ -269,6 +269,7 @@ static AST* binary(bool canAssign, AST* left) {
     case TOKEN_BANG_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_NOT_EQUAL, left, right);
     case TOKEN_GREATER_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_GREATER_EQUAL, left, right);
     case TOKEN_LESS_EQUAL: return AST_NEW_T(AST_BINARY, opToken, OP_LESS_EQUAL, left, right);
+    case TOKEN_CARET: return AST_NEW_T(AST_BINARY, opToken, OP_BITWISE_XOR, left, right);
 
     default: return AST_NEW_T(AST_ERROR, parser.previous, 0);
   }
@@ -557,7 +558,7 @@ ParseRule rules[] = {
   [TOKEN_DOT]             = {NULL,     dot,    PREC_CALL},
   [TOKEN_AS]              = {NULL,     as,     PREC_AS},
   [TOKEN_AT]              = {ref,    NULL,   PREC_REF},
-  [TOKEN_CARET]           = {ref,    NULL,   PREC_REF},
+  [TOKEN_CARET]           = {ref,      binary,   PREC_REF},
   [TOKEN_COLON]           = {NULL,     NULL,   PREC_NONE},
   [TOKEN_COLON_COLON]     = {NULL,     NULL,   PREC_NONE},
 

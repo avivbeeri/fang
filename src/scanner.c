@@ -302,18 +302,18 @@ static Token number() {
     // hexadecimal
     advance();
     advance();
-  }
-
-  while (isDigit(peek())) advance();
-
-  // Look for a fractional part.
-  if (peek() == '.' && isDigit(peekNext())) {
-    // Consume the ".".
-    advance();
-
+    while (isAlpha(peek()) || isDigit(peek())) advance();
+  } else {
     while (isDigit(peek())) advance();
-  }
+    // Look for a fractional part.
+    if (peek() == '.' && isDigit(peekNext())) {
+      // Consume the ".".
+      advance();
 
+      while (isDigit(peek())) advance();
+    }
+
+  }
   return makeToken(TOKEN_NUMBER);
 }
 

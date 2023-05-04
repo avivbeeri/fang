@@ -283,6 +283,21 @@ static int genAssign(FILE* f, int lvalue, int rvalue) {
   return rvalue;
 }
 
+static int genBitwiseXor(FILE* f, int leftReg, int rightReg) {
+  emitf("  EOR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
+static int genBitwiseOr(FILE* f, int leftReg, int rightReg) {
+  emitf("  ORR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
+static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
+  emitf("  AND %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  freeRegister(rightReg);
+  return leftReg;
+}
 static int genAdd(FILE* f, int leftReg, int rightReg) {
   emitf("  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
@@ -441,6 +456,9 @@ PLATFORM platform_apple_arm64 = {
   .genEqualGreaterThan = genEqualGreaterThan,
   .genShiftLeft = genShiftLeft,
   .genShiftRight = genShiftRight,
+  .genBitwiseAnd = genBitwiseAnd,
+  .genBitwiseOr = genBitwiseOr,
+  .genBitwiseXor = genBitwiseXor,
 };
 
 #undef emitf
