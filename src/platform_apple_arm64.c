@@ -91,7 +91,6 @@ static int genAllocStack(FILE* f, int r, int storage) {
   emitf("  ADD %s, %s, #15 ; storage\n", store, store);
   emitf("  LSR %s, %s, #4\n", store, store);
   emitf("  LSL %s, %s, #4\n", store, store);
-  emitf("  ADD X28, X28, %s ; storage\n", regList[storage]);
   emitf("  SUB SP, SP, %s\n", regList[storage]);
   freeRegister(storage);
   return r;

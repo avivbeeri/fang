@@ -1,5 +1,6 @@
 fn main(): i8 {
   var n: i8;
+  var j: [43]i8;
   for (var i: i8 = 70; i != 0; i = i - 1) {
     n = i % 2;
     write(n, 'h');
