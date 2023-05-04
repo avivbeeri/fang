@@ -54,7 +54,8 @@ static int allocateRegister() {
       return i;
     }
   }
-  printf("Out of registers, abort");
+  printf("\n");
+  printf("Out of registers, abort\n");
   exit(1);
 }
 
@@ -91,7 +92,7 @@ static int genAllocStack(FILE* f, int r, int storage) {
   emitf("  ADD %s, %s, #15 ; storage\n", store, store);
   emitf("  LSR %s, %s, #4\n", store, store);
   emitf("  LSL %s, %s, #4\n", store, store);
-  emitf("  SUB SP, SP, %s\n", regList[storage]);
+  emitf("  SUB SP, SP, %s\n", store);
   freeRegister(storage);
   return r;
 }
@@ -349,6 +350,35 @@ static int genNeg(FILE* f, int valueReg) {
   emitf("  NEG %s, %s\n", regList[valueReg], regList[valueReg]);
   return valueReg;
 }
+
+static int genGreaterThan(FILE* f, int left, int right) {
+  emitf("  CMP %s, %s\n", regList[left], regList[right]);
+  freeRegister(right);
+  emitf("  CSET %s, gt\n", regList[left]);
+  emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
+  return left;
+}
+static int genEqualGreaterThan(FILE* f, int left, int right) {
+  emitf("  CMP %s, %s\n", regList[left], regList[right]);
+  freeRegister(right);
+  emitf("  CSET %s, ge\n", regList[left]);
+  emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
+  return left;
+}
+static int genEqualLessThan(FILE* f, int left, int right) {
+  emitf("  CMP %s, %s\n", regList[left], regList[right]);
+  freeRegister(right);
+  emitf("  CSET %s, le\n", regList[left]);
+  emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
+  return left;
+}
+
+static int genLessThan(FILE* f, int left, int right) {
+  emitf("  CMP %s, %s\n", regList[left], regList[right]);
+  emitf("  CSET %s, lt\n", regList[left]);
+  emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
+  return left;
+}
 static int genLogicNeg(FILE* f, int valueReg) {
   emitf("  CMP %s, #0\n", regList[valueReg]);
   emitf("  CSET %s, eq\n", regList[valueReg]);
@@ -387,7 +417,11 @@ PLATFORM platform_apple_arm64 = {
   .labelCreate = labelCreate,
   .genCmp = genCmp,
   .genJump = genJump,
-  .genLabel = genLabel
+  .genLabel = genLabel,
+  .genLessThan = genLessThan,
+  .genGreaterThan = genGreaterThan,
+  .genEqualLessThan = genEqualLessThan,
+  .genEqualGreaterThan = genEqualGreaterThan,
 
 };
 

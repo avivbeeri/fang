@@ -51,6 +51,10 @@ typedef struct {
   int (*genMul)(FILE* f, int, int);
   int (*genDiv)(FILE* f, int, int);
   int (*genMod)(FILE* f, int, int);
+  int (*genLessThan)(FILE* f, int, int);
+  int (*genGreaterThan)(FILE* f, int, int);
+  int (*genEqualLessThan)(FILE* f, int, int);
+  int (*genEqualGreaterThan)(FILE* f, int, int);
   int (*genNeg)(FILE* f, int);
   int (*genAllocStack)(FILE* f, int, int);
   int (*genFunctionCall)(FILE* f, int, int*);

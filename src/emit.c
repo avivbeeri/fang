@@ -129,6 +129,7 @@ static int traverse(FILE* f, AST* ptr) {
         if (data.condition != NULL) {
           int r = traverse(f, data.condition);
           p.genCmp(f, r, exitLabel);
+          p.freeAllRegisters();
         }
         traverse(f, data.body);
         p.freeAllRegisters();
@@ -301,6 +302,22 @@ static int traverse(FILE* f, AST* ptr) {
               r = p.genLoadRegister(f, 1, r);
               p.genLabel(f, doneLabel);
               return r;
+            }
+          case OP_LESS:
+            {
+              return p.genLessThan(f, l, r);
+            }
+          case OP_LESS_EQUAL:
+            {
+              return p.genEqualLessThan(f, l, r);
+            }
+          case OP_GREATER:
+            {
+              return p.genGreaterThan(f, l, r);
+            }
+          case OP_GREATER_EQUAL:
+            {
+              return p.genEqualGreaterThan(f, l, r);
             }
         }
       }
