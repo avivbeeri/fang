@@ -108,17 +108,7 @@ static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
     current = SYMBOL_TABLE_getScope(index);
     ordinal += current.ordinal;
   }
-
-  /*
-  for (int i = 0; i < shlen(scope.table); i++) {
-    SYMBOL_TABLE_ENTRY other = scope.table[i];
-    // TODO handle pushed params
-    if (other.defined && other.ordinal < entry.ordinal) {
-      offset += typeTable[other.typeIndex].byteSize;
-    }
-  }
-*/
-  return ordinal + 1;
+  return ordinal + 1; // offset by 1 from frame pointer
 }
 static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   uint32_t offset = entry.offset;
@@ -131,16 +121,6 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
     current = SYMBOL_TABLE_getScope(index);
     offset += current.localOffset;
   }
-
-  /*
-  for (int i = 0; i < shlen(scope.table); i++) {
-    SYMBOL_TABLE_ENTRY other = scope.table[i];
-    // TODO handle pushed params
-    if (other.defined && other.ordinal < entry.ordinal) {
-      offset += typeTable[other.typeIndex].byteSize;
-    }
-  }
-*/
   return offset;
 }
 
