@@ -1,27 +1,14 @@
-// const message: string = "Hello world";
 
 fn mod(a: i8, b: i8): i8 {
   return a - b * (a / b);
 }
 
 fn main(): i8 {
-  // const message: [5]char = [0, 0, 0, 0 ,0];
   var n: i8;
   for (var i: i8 = 70; i != 0; i = i - 1) {
-    write(mod(i, 2), 'h');
+    n = mod(i, 2);
+    write(n, 'h');
   }
-/*
-  write(66, 'e');
-  write(67, 'l');
-  write(68, 'l');
-  write(69, 'o');
-  write(70, ' ');
-  write(71, 'w');
-  write(72, 'o');
-  write(73, 'r');
-  write(74, 'l');
-  write(75, 'd');
-*/
   return 0;
 }
 
@@ -42,6 +29,8 @@ fn syscall_write(c: char): void {
     "SVC 0"
    };
 }
+
+// const message: string = "Hello world";
 
 /*
  asm {

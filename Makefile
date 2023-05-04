@@ -5,6 +5,7 @@ CFLAGS := -g -Wall -std=c99 -Werror -Wno-error=switch -Wno-error=unused-variable
 
 SOURCES := $(wildcard $(SRC)/*.c)
 OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))
+DEP = $(OBJECTS:%.o=%.d)
 
 TESTS := $(wildcard $(TEST)/*.c)
 TESTBINS := $(patsubst $(TEST)/%.c, $(TEST)/bin/%, $(TESTS))
@@ -35,9 +36,11 @@ $(TEST)/bin/%: $(TEST)/%.c
 $(TEST)/bin:
 	mkdir -p $@
 
+# Include all .d files
+-include $(DEP)
 
 $(OBJ)/%.o: $(SRC)/%.c
-	$(CC) -I$(SRC) -c $< $(CFLAGS) -o $@
+	$(CC) -I$(SRC) -c  -MMD $< $(CFLAGS) -o $@
 
 clean:
 	rm $(OBJECTS)
