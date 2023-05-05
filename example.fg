@@ -10,16 +10,16 @@ fn syscall_write(c: char): void {
 
 fn main(): i8 {
   var c: char = 'a';
-//  for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
-  syscall_write(c);
- // }
+  var p: ^char = ^c;
+  var g: [5]char;
+  
+  for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
+    @p = (65 + i) as char;
+    write(@p);
+  }
   return 0;
 }
 
-/*
 fn write(c : char): void {
   syscall_write(c);
 }
-
-
-*/

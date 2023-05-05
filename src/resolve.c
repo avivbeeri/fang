@@ -32,11 +32,11 @@
 #include "type_table.h"
 #include "symbol_table.h"
 
-bool rvalue = false;
+uint32_t* rvalueStack = NULL;
 uint32_t* typeStack = NULL;
-#define PUSH(type) do { arrput(typeStack, type); } while (false)
-#define POP() do { arrdel(typeStack, arrlen(typeStack) - 1); } while (false)
-#define PEEK() (arrlen(typeStack) == 0 ? 0 : typeStack[arrlen(typeStack) - 1])
+#define PUSH(stack, type) do { arrput(stack, type); } while (false)
+#define POP(stack) do { arrdel(stack, arrlen(stack) - 1); } while (false)
+#define PEEK(stack) (arrlen(stack) == 0 ? 0 : stack[arrlen(stack) - 1])
 
 #define VOID_INDEX 1
 #define BOOL_INDEX 2
@@ -236,7 +236,6 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_FN data = ast.data.AST_FN;
         ptr->type = resolveType(data.fnType);
         SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type);
-        printf("%s\n", data.identifier->chars);
         return true;
       }
     default:
@@ -252,7 +251,7 @@ static bool traverse(AST* ptr) {
     return true;
   }
   AST ast = *ptr;
-  ptr->rvalue = rvalue;
+  ptr->rvalue = PEEK(rvalueStack);
   switch(ast.tag) {
     case AST_ERROR:
       {
@@ -267,11 +266,11 @@ static bool traverse(AST* ptr) {
       {
         struct AST_RETURN data = ast.data.AST_RETURN;
         if (data.value == NULL) {
-          return PEEK() == VOID_INDEX;
+          return PEEK(typeStack) == VOID_INDEX;
         }
         bool r = traverse(data.value);
-        if (data.value->type != PEEK()) {
-          printf("%i vs %i\n", data.value->type, PEEK());
+        if (data.value->type != PEEK(typeStack)) {
+          printf("%i vs %i\n", data.value->type, PEEK(typeStack));
           return false;
         }
         return r;
@@ -319,9 +318,9 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r  = traverse(data.type);
         int leftType = data.type->type;
-        PUSH(leftType);
+        PUSH(typeStack, leftType);
         r &= traverse(data.expr);
-        POP();
+        POP(typeStack);
         int rightType = data.expr->type;
         if (!r) {
           return false;
@@ -350,10 +349,10 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r = traverse(data.type);
         int leftType = data.type->type;
-        PUSH(leftType);
+        PUSH(typeStack, leftType);
         r &= traverse(data.expr);
         int rightType = data.expr->type;
-        POP();
+        POP(typeStack);
 
         bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         ptr->type = leftType;
@@ -370,11 +369,11 @@ static bool traverse(AST* ptr) {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         bool ident = traverse(data.lvalue);
         int leftType = data.lvalue->type;
-        PUSH(leftType);
-        rvalue = true;
+        PUSH(typeStack, leftType);
+        PUSH(rvalueStack, true);
         bool expr = traverse(data.expr);
-        rvalue = false;
-        POP();
+        POP(rvalueStack);
+        POP(typeStack);
         int rightType = data.expr->type;
 
         if (!(ident && expr)) {
@@ -414,10 +413,10 @@ static bool traverse(AST* ptr) {
           uint32_t index = typeTable[ast.type].fields[i].typeIndex;
           SYMBOL_TABLE_put(paramName, SYMBOL_TYPE_PARAMETER, index);
         }
-        PUSH(typeTable[ast.type].returnType);
+        PUSH(typeStack, typeTable[ast.type].returnType);
         struct AST_BLOCK block = data.body->data.AST_BLOCK;
         r &= traverse(block.body);
-        POP();
+        POP(typeStack);
         SYMBOL_TABLE_closeScope();
         return r;
       }
@@ -426,8 +425,8 @@ static bool traverse(AST* ptr) {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
         Value value = CONST_TABLE_get(data.constantIndex);
         ptr->type = valueToType(value);
-        if (isCompatible(PEEK(), ptr->type)) {
-          ptr->type = PEEK();
+        if (isCompatible(PEEK(typeStack), ptr->type)) {
+          ptr->type = PEEK(typeStack);
         }
         return true;
       }
@@ -450,12 +449,12 @@ static bool traverse(AST* ptr) {
     case AST_INITIALIZER:
       {
         struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
-        TYPE_TABLE_ENTRY entry = typeTable[PEEK()];
+        TYPE_TABLE_ENTRY entry = typeTable[PEEK(typeStack)];
         if ((data.initType == INIT_TYPE_RECORD && entry.entryType != ENTRY_TYPE_RECORD)
             || (data.initType == INIT_TYPE_ARRAY && entry.entryType != ENTRY_TYPE_ARRAY)) {
           return false;
         }
-        ptr->type = PEEK();
+        ptr->type = PEEK(typeStack);
         bool r = true;
         for (int i = 0; i < arrlen(data.assignments); i++) {
           if (entry.entryType == ENTRY_TYPE_ARRAY) {
@@ -483,9 +482,9 @@ static bool traverse(AST* ptr) {
               r = false;
               break;
             }
-            PUSH(entry.fields[fieldIndex].typeIndex);
+            PUSH(typeStack, entry.fields[fieldIndex].typeIndex);
             r &= traverse(field.value);
-            POP();
+            POP(typeStack);
             if (!r) {
               return false;
             }
@@ -505,6 +504,7 @@ static bool traverse(AST* ptr) {
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
         ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
       }
     case AST_DEREF:
@@ -542,9 +542,9 @@ static bool traverse(AST* ptr) {
         struct AST_BINARY data = ast.data.AST_BINARY;
         bool r = traverse(data.left);
         int leftType = data.left->type;
-        PUSH(leftType);
+        PUSH(typeStack, leftType);
         r &= traverse(data.right);
-        POP();
+        POP(typeStack);
         int rightType = data.right->type;
         if (!r) {
           return false;
@@ -642,7 +642,9 @@ static bool traverse(AST* ptr) {
     case AST_IF:
       {
         struct AST_IF data = ast.data.AST_IF;
+        PUSH(rvalueStack, true);
         bool r = traverse(data.condition);
+        POP(rvalueStack);
         if (!r) {
           return false;
         }
@@ -661,7 +663,9 @@ static bool traverse(AST* ptr) {
     case AST_WHILE:
       {
         struct AST_WHILE data = ast.data.AST_WHILE;
+        PUSH(rvalueStack, true);
         bool r = traverse(data.condition);
+        POP(rvalueStack);
         if (!r) {
           return false;
         }
@@ -675,11 +679,15 @@ static bool traverse(AST* ptr) {
       {
         struct AST_FOR data = ast.data.AST_FOR;
         SYMBOL_TABLE_openScope(SCOPE_TYPE_LOOP);
+        PUSH(rvalueStack, false);
         bool r = traverse(data.initializer);
+        POP(rvalueStack);
         if (!r) {
           return false;
         }
+        PUSH(rvalueStack, true);
         r = traverse(data.condition);
+        POP(rvalueStack);
         if (!r) {
           return false;
         }
@@ -687,7 +695,9 @@ static bool traverse(AST* ptr) {
         if (!r) {
           return false;
         }
+        PUSH(rvalueStack, false);
         r = traverse(data.increment);
+        POP(rvalueStack);
         if (!r) {
           return false;
         }
@@ -757,9 +767,9 @@ static bool traverse(AST* ptr) {
         }
 
         for (int i = 0; i < arrlen(data.arguments); i++) {
-          rvalue = true;
+          PUSH(rvalueStack, true);
           r = traverse(data.arguments[i]);
-          rvalue = false;
+          POP(rvalueStack);
           if (!r) {
             printf("term 4\n");
             return false;
@@ -783,6 +793,9 @@ static bool traverse(AST* ptr) {
 
 
 bool resolveTree(AST* ptr) {
+
+  PUSH(rvalueStack, false);
+
   SYMBOL_TABLE_init();
   bool success = resolveTopLevel(ptr);
   if (!success) {
@@ -796,8 +809,11 @@ bool resolveTree(AST* ptr) {
   }
   success &= TYPE_TABLE_calculateSizes();
   SYMBOL_TABLE_closeScope();
-//  TYPE_TABLE_report();
   SYMBOL_TABLE_report();
+//  TYPE_TABLE_report();
+//
+  arrfree(rvalueStack);
+  arrfree(typeStack);
   return success;
 }
 

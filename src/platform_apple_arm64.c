@@ -108,9 +108,6 @@ static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
   uint32_t index = entry.scopeIndex;
 
   SYMBOL_TABLE_SCOPE current = scope;
-  printf("%s\n", entry.key);
-  printf("%i\n", current.scopeType);
-  printf("%i\n", SCOPE_TYPE_FUNCTION);
   while (current.scopeType != SCOPE_TYPE_FUNCTION) {
     index = current.parent;
     current = SYMBOL_TABLE_getScope(index);
@@ -151,7 +148,6 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     // calculate offset
     uint32_t offset = getStackOrdinal(entry);
     snprintf(buffer, sizeof(buffer), "[FP, #%i]", -offset * 16);
-    printf("%s\n", buffer);
     return buffer;
   }
 }
@@ -250,15 +246,13 @@ static void genExit(FILE* f, int r) {
 static void genFunction(FILE* f, STRING* name) {
   // get max function scope offset
   // and round to next 16
-  int p = 2 * 16;
+  // TODO: Allocate based on function local scopes
+  int p = 3 * 16;
 
   emitf("\n_fang_%s:\n", name->chars);
   emitf("  PUSH2 LR, FP\n"); // push LR onto stack
   emitf("  MOV FP, SP\n"); // create stack frame
   emitf("  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
-  // emitf("  PUSH1 X28\n");
-  // emitf("  MOV X28, #0\n");
-  // This needs to account for all function variables
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
@@ -266,8 +260,6 @@ static void genFunctionEpilogue(FILE* f, STRING* name) {
   // and round to next 16
   emitf("\n_fang_ep_%s:\n", name->chars);
 
-  // emitf("  ADD SP, SP, X28 ; reset SP based on function allocs\n");
-  // emitf("  POP1 X28\n");
   emitf("  MOV SP, FP\n");
   emitf("  POP2 LR, FP\n"); // pop LR from stack
   emitf("  RET\n");

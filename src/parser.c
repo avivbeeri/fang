@@ -282,8 +282,8 @@ static AST* ref(bool canAssign) {
   AST* operand = parsePrecedence(PREC_REF);
   AST* expr = NULL;
   switch (operatorType) {
-    case TOKEN_AT: expr = AST_NEW_T(AST_UNARY, start, OP_DEREF, operand); break;
-    case TOKEN_CARET: expr = AST_NEW_T(AST_UNARY, start, OP_REF, operand); break;
+    case TOKEN_AT: expr = AST_NEW_T(AST_DEREF, start, operand); break;
+    case TOKEN_CARET: expr = AST_NEW_T(AST_REF, start, operand); break;
     default: expr = AST_NEW_T(AST_ERROR, start, 0); break;
   }
 

@@ -71,7 +71,7 @@ int main(int argc, const char* argv[]) {
 
   char* source = readFile(path);
 
-  compile(source);
+  bool success = compile(source);
   free(source);
 
 
@@ -81,5 +81,5 @@ int main(int argc, const char* argv[]) {
 
   printf("Completed in %f milliseconds.\n", elapsedTime);
 
-  return 0;
+  return success ? 0 : 1;
 }

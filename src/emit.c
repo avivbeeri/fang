@@ -191,6 +191,7 @@ static int traverse(FILE* f, AST* ptr) {
         if (typeTable[ast.type].entryType == ENTRY_TYPE_ARRAY) {
           int storage = traverse(f, data.type);
           p.genAllocStack(f, r, storage);
+          printf("alloc\n");
         }
         p.freeRegister(r);
         return 0;
@@ -208,6 +209,7 @@ static int traverse(FILE* f, AST* ptr) {
         if (typeTable[ast.type].entryType == ENTRY_TYPE_ARRAY) {
           int storage = traverse(f, data.type);
           p.genAllocStack(f, r, storage);
+          printf("alloc\n");
         }
         // p.freeRegister(r);
         return 0;
@@ -223,7 +225,6 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        printf("%s\n", symbol.entryType == SYMBOL_TYPE_FUNCTION ? "true" : "false");
         int r;
         if (ast.rvalue) {
           r = p.genIdentifier(f, symbol);
@@ -243,7 +244,9 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_REF:
       {
         struct AST_REF data = ast.data.AST_REF;
-        return traverse(f, data.expr);
+        STRING* identifier = data.expr->data.AST_IDENTIFIER.identifier;
+        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
+        return p.genIdentifierAddr(f, symbol);
       }
     case AST_DEREF:
       {
