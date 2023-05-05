@@ -757,7 +757,9 @@ static bool traverse(AST* ptr) {
         }
 
         for (int i = 0; i < arrlen(data.arguments); i++) {
+          rvalue = true;
           r = traverse(data.arguments[i]);
+          rvalue = false;
           if (!r) {
             printf("term 4\n");
             return false;

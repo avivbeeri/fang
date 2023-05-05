@@ -111,7 +111,7 @@ static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
   printf("%s\n", entry.key);
   printf("%i\n", current.scopeType);
   printf("%i\n", SCOPE_TYPE_FUNCTION);
-  while (current.scopeType != SCOPE_TYPE_FUNCTION && index > 0) {
+  while (current.scopeType != SCOPE_TYPE_FUNCTION) {
     index = current.parent;
     current = SYMBOL_TABLE_getScope(index);
     ordinal += current.ordinal;
@@ -151,6 +151,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     // calculate offset
     uint32_t offset = getStackOrdinal(entry);
     snprintf(buffer, sizeof(buffer), "[FP, #%i]", -offset * 16);
+    printf("%s\n", buffer);
     return buffer;
   }
 }
@@ -195,8 +196,6 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     emitf("  ADR %s, %s\n", regList[r], symbol(entry));
-  } else if (isNumeric(entry.typeIndex)) {
-    emitf("  LDR %s, %s\n", regList[r], symbol(entry));
   } else {
     emitf("  LDR %s, %s\n", regList[r], symbol(entry));
   }
