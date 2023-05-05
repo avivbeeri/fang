@@ -1,7 +1,9 @@
 fn main(): i8 {
+  var arr: [4]char;
   for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
-    var c: char = 'a';
-    write(^c, 65, 72);
+    var c:char;
+    @c = 'n';
+    write(c);
   }
   return 0;
 }
@@ -15,9 +17,8 @@ fn test2(): bool {
   return true;
 }
 
-fn write(c : ^char, i: i8, j: i8): void {
-//  syscall_write(@c);
-  syscall_write(@(c - 48));
+fn write(c : char): void {
+  syscall_write(c);
 }
 
 fn syscall_write(c: char): void {

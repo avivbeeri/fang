@@ -138,15 +138,20 @@ static bool match(TokenType type) {
   return true;
 }
 
+static AST* assign(AST* variable) {
+  AST* varTree = AST_NEW(AST_LVALUE, variable);
+  AST* expr = expression();
+  return AST_NEW(AST_ASSIGNMENT, varTree, expr);
+}
+
 static AST* variable(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start, parser.previous.length);
-  if (canAssign && match(TOKEN_EQUAL)) {
-    AST* variable = AST_NEW_T(AST_LVALUE, parser.previous, string);
-    AST* expr = expression();
-    return AST_NEW(AST_ASSIGNMENT, variable, expr);
-  }
   AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, string);
+  if (canAssign && match(TOKEN_EQUAL)) {
+  //   AST* variable = AST_NEW_T(AST_LVALUE, parser.previous, string);
+    return assign(variable);
+  }
   return variable;
   /*
 
@@ -192,8 +197,7 @@ static AST* subscript(bool canAssign, AST* left) {
   consume(TOKEN_RIGHT_BRACKET, "Expect ']' after a subscript.");
 
   if (canAssign && match(TOKEN_EQUAL)) {
-    AST* right = expression();
-    expr = AST_NEW(AST_ASSIGNMENT, expr, right);
+    return assign(expr);
   }
   return expr;
 }
@@ -287,8 +291,7 @@ static AST* ref(bool canAssign) {
   }
 
   if (canAssign && match(TOKEN_EQUAL)) {
-    AST* right = expression();
-    expr = AST_NEW(AST_ASSIGNMENT, expr, right);
+    expr = assign(expr);
   }
   return expr;
 }
@@ -401,8 +404,7 @@ static AST* as(bool canAssign, AST* left) {
   AST* right = type();
   AST* expr = AST_NEW_T(AST_CAST, parser.previous, left, right);
   if (canAssign && match(TOKEN_EQUAL)) {
-    AST* right = expression();
-    expr = AST_NEW(AST_ASSIGNMENT, expr, right);
+    expr = assign(expr);
   }
   return expr;
 }
@@ -434,8 +436,7 @@ static AST* dot(bool canAssign, AST* left) {
   AST* expr = AST_NEW(AST_DOT, left, field);
 
   if (canAssign && match(TOKEN_EQUAL)) {
-    AST* right = expression();
-    expr = AST_NEW(AST_ASSIGNMENT, expr, right);
+    expr = assign(expr);
   }
   return expr;
 }

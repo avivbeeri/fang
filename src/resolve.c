@@ -428,6 +428,10 @@ static bool traverse(AST* ptr) {
       }
 
     case AST_LVALUE:
+      {
+        struct AST_LVALUE data = ast.data.AST_LVALUE;
+        return traverse(data.expr);
+      }
     case AST_IDENTIFIER:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;

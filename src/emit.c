@@ -214,11 +214,9 @@ static int traverse(FILE* f, AST* ptr) {
       }
     case AST_LVALUE:
       {
-        printf("LVALUE\n");
         struct AST_LVALUE data = ast.data.AST_LVALUE;
-        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        int r = p.genIdentifierAddr(f, symbol);
-        return r;
+        int l = traverse(f, data.expr);
+        return l;
       }
     case AST_ASSIGNMENT:
       {

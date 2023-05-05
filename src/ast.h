@@ -110,7 +110,7 @@ struct AST {
     struct AST_LITERAL { int constantIndex; } AST_LITERAL;
     struct AST_INITIALIZER { AST** assignments; INIT_TYPE initType; } AST_INITIALIZER;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
-    struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
+    struct AST_LVALUE { AST* expr; } AST_LVALUE;
 
     struct AST_TYPE { AST* type; } AST_TYPE;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
