@@ -69,12 +69,13 @@ typedef enum {
   AST_LITERAL,
   AST_INITIALIZER,
   AST_IDENTIFIER,
-  AST_LVALUE,
   AST_TYPE,
   AST_TYPE_NAME,
   AST_TYPE_FN,
   AST_TYPE_ARRAY,
   AST_TYPE_PTR,
+  AST_REF,
+  AST_DEREF,
   AST_UNARY,
   AST_BINARY,
   AST_DOT,
@@ -110,7 +111,6 @@ struct AST {
     struct AST_LITERAL { int constantIndex; } AST_LITERAL;
     struct AST_INITIALIZER { AST** assignments; INIT_TYPE initType; } AST_INITIALIZER;
     struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
-    struct AST_LVALUE { STRING* identifier; } AST_LVALUE;
 
     struct AST_TYPE { AST* type; } AST_TYPE;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
@@ -118,6 +118,8 @@ struct AST {
     struct AST_TYPE_FN { AST** params; AST* returnType; } AST_TYPE_FN;
     struct AST_TYPE_PTR { AST* subType; } AST_TYPE_PTR;
 
+    struct AST_REF { AST *expr; } AST_REF;
+    struct AST_DEREF { AST *expr; } AST_DEREF;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
     struct AST_DOT { AST *left; STRING* name; } AST_DOT;
@@ -146,6 +148,7 @@ struct AST {
   Token token;
   uint64_t id;
   uint32_t scopeIndex;
+  bool rvalue;
 };
 
 AST* ast_new(AST ast);

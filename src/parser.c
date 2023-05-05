@@ -141,12 +141,12 @@ static bool match(TokenType type) {
 static AST* variable(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start, parser.previous.length);
+  AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, string);
   if (canAssign && match(TOKEN_EQUAL)) {
-    AST* variable = AST_NEW_T(AST_LVALUE, parser.previous, string);
     AST* expr = expression();
+    expr->rvalue = true;
     return AST_NEW(AST_ASSIGNMENT, variable, expr);
   }
-  AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, string);
   return variable;
   /*
 

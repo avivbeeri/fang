@@ -1,26 +1,5 @@
-fn main(): i8 {
-  for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
-    var c: char = 'a';
-    write(^c, 65, 72);
-  }
-  return 0;
-}
-
-fn test1(): bool {
-  syscall_write('a');
-  return false;
-}
-fn test2(): bool {
-  syscall_write('b');
-  return true;
-}
-
-fn write(c : ^char, i: i8, j: i8): void {
-//  syscall_write(@c);
-  syscall_write(@(c - 48));
-}
-
 fn syscall_write(c: char): void {
+/*
   asm {
     "MOV X0, #1" // STDOUT
     "ADD X1, FP, #16" // PTR (FP+16) // function argument
@@ -28,18 +7,21 @@ fn syscall_write(c: char): void {
     "MOV X16, #4"
     "SVC 0"
    };
+*/
 }
 
-// const message: string = "Hello world";
+fn main(): i8 {
+  var c: char = 'a';
+//  for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
+//    syscall_write(c);
+ // }
+  return 0;
+}
 
 /*
- asm {
-   "mov X0, #1"
-   "adr X1, const_3 + 1"
-   "adr X2, const_3"
-   "ldrb W2,[X2, 0]"
-   "mov X16, #4"
-   "svc 0"
-  };
-*/
+fn write(c : char): void {
+  syscall_write(c);
+}
 
+
+*/

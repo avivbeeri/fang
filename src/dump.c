@@ -35,107 +35,70 @@ static void traverse(AST* ptr, int level) {
     return;
   }
   AST ast = *ptr;
-  //printf("%s\n", getNodeTypeName(ast.tag));
+
+  printf("%*s", level * 2, "");
+  //printf("%s (%s)\n", getNodeTypeName(ast.tag), ast.rvalue ? "rvalue" : "lvalue");
   switch(ast.tag) {
     case AST_ERROR: {
       printf("An error occurred in the tree");
       break;
     }
     case AST_WHILE: {
-      printf("%*s", level * 2, "");
       struct AST_WHILE data = ast.data.AST_WHILE;
-      printf("while (");
-      traverse(data.condition, 0);
-      printf(") ");
-      printf("{\n");
+      traverse(data.condition, level + 1);
       traverse(data.body, level + 1);
-      printf("%*s", level * 2, "");
-      printf("}");
       break;
     }
     case AST_FOR: {
-      printf("%*s", level * 2, "");
       struct AST_FOR data = ast.data.AST_FOR;
-      printf("for (");
-      traverse(data.initializer, 0);
-      printf("; ");
-      traverse(data.condition, 0);
-      printf("; ");
-      traverse(data.increment, 0);
-      printf(") ");
-      printf("{\n");
+      traverse(data.initializer, level + 1);
+      traverse(data.condition, level + 1);
+      traverse(data.increment, level + 1);
       traverse(data.body, level + 1);
-      printf("%*s", level * 2, "");
-      printf("}");
       break;
     }
     case AST_IF: {
-      printf("%*s", level * 2, "");
       struct AST_IF data = ast.data.AST_IF;
-      printf("if (");
-      traverse(data.condition, 0);
-      printf(") ");
-      printf("{\n");
+      traverse(data.condition, level + 1);
       traverse(data.body, level + 1);
       if (data.elseClause != NULL) {
-        printf("%*s", level * 2, "");
-        printf("} else {\n");
+        printf("%*sAST_ELSE\n", level * 2, "");
         traverse(data.elseClause, level + 1);
       }
-      printf("%*s", level * 2, "");
-      printf("}\n");
       break;
     }
     case AST_ASSIGNMENT: {
-      printf("%*s", level * 2, "");
       struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-      traverse(data.lvalue, 0);
-      printf(" = ");
-      traverse(data.expr, 0);
+      traverse(data.lvalue, level + 1);
+      printf("%*s=\n", level * 2, "");
+      traverse(data.expr, level + 1);
       break;
     }
     case AST_VAR_INIT: {
-      printf("%*s", level * 2, "");
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      printf("var ");
-      printf("%s", data.identifier->chars);
-      printf(": ");
-      traverse(data.type, 0);
-      printf(" = ");
-      traverse(data.expr, 0);
+      printf("%*s", level * 2, "");
+      printf("%s\n", data.identifier->chars);
+      traverse(data.expr, level + 1);
       break;
     }
     case AST_VAR_DECL: {
-      printf("%*s", level * 2, "");
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      printf("var ");
-      printf("%s", data.identifier->chars);
-      printf(": ");
-      traverse(data.type, 0);
+      printf("%*s", level * 2, "");
+      printf("%s\n", data.identifier->chars);
       break;
     }
     case AST_CONST_DECL: {
-      printf("%*s", level * 2, "");
       struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-      printf("const ");
-      printf("%s", data.identifier->chars);
-      printf(": ");
-      traverse(data.type, 0);
-      printf(" = ");
-      traverse(data.expr, 0);
+      printf("%*s", level * 2, "");
+      printf("%s\n", data.identifier->chars);
+      traverse(data.expr, level + 1);
       break;
     }
     case AST_TYPE_DECL: {
-      printf("%*s", level * 2, "");
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-      printf("type %s {\n", data.name->chars);
       for (int i = 0; i < arrlen(data.fields); i++) {
-        printf("%*s", (level + 1) * 2, "");
         traverse(data.fields[i], level + 1);
-        printf("\n");
       }
-      printf("%*s", level * 2, "");
-      printf("}");
       break;
     }
     case AST_INITIALIZER: {
@@ -144,92 +107,67 @@ static void traverse(AST* ptr, int level) {
       if (data.initType == INIT_TYPE_RECORD) {
         printf("{\n");
         for (int i = 0; i < arrlen(data.assignments); i++) {
-          printf("%*s", (level+1) * 2, "");
           traverse(data.assignments[i], level + 1);
-          printf(";\n");
         }
-        printf("%*s}", (level+1) * 2, "");
+        printf("%*s}\n", (level+1) * 2, "");
       } else if (data.initType == INIT_TYPE_ARRAY) {
-        printf("[ ");
+        printf("[\n");
         for (int i = 0; i < arrlen(data.assignments); i++) {
-          traverse(data.assignments[i], 0);
-          if (i < arrlen(data.assignments) - 1) {
-            printf(", ");
-          }
+          traverse(data.assignments[i], level + 1);
         }
-        printf(" ]");
+        printf("%*s]\n", (level+1) * 2, "");
       }
       break;
     }
     case AST_FN: {
-      printf("%*s", level * 2, "");
       struct AST_FN data = ast.data.AST_FN;
-      printf("fn ");
-      printf("%s", data.identifier->chars);
-      printf("(");
+      printf("%*s", (level + 1) * 2, "");
+      printf("%s\n", data.identifier->chars);
       for (int i = 0; i < arrlen(data.params); i++) {
         traverse(data.params[i], level + 1);
-        if (i < arrlen(data.params) - 1) {
-          printf(", ");
-        }
       }
-      printf("): ");
-      traverse(data.returnType, 0);
-      printf(" ");
-      printf("{\n");
       traverse(data.body, level + 1);
-      printf("%*s", level * 2, "");
-      printf("}");
       break;
     }
     case AST_CAST: {
       struct AST_CAST data = ast.data.AST_CAST;
-      traverse(data.expr, 0);
-      printf(" as ");
-      traverse(data.type, 0);
+      traverse(data.expr, level + 1);
+      traverse(data.type, level + 1);
       break;
     }
     case AST_CALL: {
       struct AST_CALL data = ast.data.AST_CALL;
-      traverse(data.identifier, 0);
-      printf("(");
+      traverse(data.identifier, level + 1);
       for (int i = 0; i < arrlen(data.arguments); i++) {
         traverse(data.arguments[i], level + 1);
-        if (i < arrlen(data.arguments) - 1) {
-          printf(", ");
-        }
       }
-      printf(")");
       break;
     }
     case AST_RETURN: {
-      printf("%*s", level * 2, "");
+     //  printf("%*s", level * 2, "");
       struct AST_RETURN data = ast.data.AST_RETURN;
-      printf("return ");
       if (data.value != NULL) {
-        traverse(data.value, 0);
+        traverse(data.value, level + 1);
       }
-      printf(";");
       break;
     }
     case AST_PARAM: {
       struct AST_PARAM data = ast.data.AST_PARAM;
-      printf("%s", data.identifier->chars);
-      printf(": ");
-      traverse(data.value, 0);
+      printf("%*s", (level + 1) * 2, "");
+      printf("%s\n", data.identifier->chars);
+      traverse(data.value, level + 1);
       break;
     }
     case AST_LIST: {
       struct AST_LIST data = ast.data.AST_LIST;
       for (int i = 0; i < arrlen(data.decls); i++) {
         traverse(data.decls[i], level);
-        printf("\n");
       }
       break;
     }
     case AST_BLOCK: {
       struct AST_BLOCK data = ast.data.AST_BLOCK;
-      return traverse(data.body, level);
+      return traverse(data.body, level + 1);
     }
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;
@@ -241,9 +179,12 @@ static void traverse(AST* ptr, int level) {
     case AST_LITERAL: {
       struct AST_LITERAL data = ast.data.AST_LITERAL;
       Value value = CONST_TABLE_get(data.constantIndex); // data.value;
+      printf("%*s", level * 2, "");
       printValue(value);
+      printf("\n");
       break;
     }
+                      /*
     case AST_TYPE_FN:
       {
         struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
@@ -281,6 +222,7 @@ static void traverse(AST* ptr, int level) {
       printf("%s", data.typeName->chars);
       break;
     }
+    */
     case AST_ASM: {
       printf("%*s", level * 2, "");
       struct AST_ASM data = ast.data.AST_ASM;
@@ -296,15 +238,24 @@ static void traverse(AST* ptr, int level) {
     case AST_IDENTIFIER:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-        printf("%s", data.identifier->chars);
+        printf("%*s", level * 2, "");
+        printf("%s\n", data.identifier->chars);
         break;
       }
     case AST_SUBSCRIPT: {
       struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-      traverse(data.left, 0);
-      printf("[");
-      traverse(data.index, 0);
-      printf("]");
+      traverse(data.left, level + 1);
+      traverse(data.index, level + 1);
+      break;
+    }
+    case AST_REF: {
+      struct AST_REF data = ast.data.AST_REF;
+      traverse(data.expr, level + 1);
+      break;
+    }
+    case AST_DEREF: {
+      struct AST_DEREF data = ast.data.AST_DEREF;
+      traverse(data.expr, level + 1);
       break;
     }
     case AST_UNARY: {
@@ -313,21 +264,20 @@ static void traverse(AST* ptr, int level) {
       switch(data.op) {
         case OP_NEG: str = "-"; break;
         case OP_NOT: str = "!"; break;
-        case OP_REF: str = "^"; break;
         case OP_BITWISE_NOT: str = "~"; break;
         case OP_DEREF: str = "@"; break;
         default: str = "MISSING";
       }
-      printf("%s", str);
-      traverse(data.expr, 0);
+      printf("%s\n", str);
+      traverse(data.expr, level + 1);
       break;
     }
     case AST_DOT: {
       struct AST_DOT data = ast.data.AST_DOT;
       char* str = ".";
-      traverse(data.left, 0);
-      printf("%s", str);
-      printf("%s", data.name->chars);
+      traverse(data.left, level + 1);
+      printf("%s\n", str);
+      printf("%s\n", data.name->chars);
       break;
     }
     case AST_BINARY: {
@@ -354,20 +304,18 @@ static void traverse(AST* ptr, int level) {
         case OP_LESS: str = "<"; break;
         default: str = "MISSING"; break;
       }
-      printf("(");
-      traverse(data.left, 0);
-      printf(" %s ", str);
-      traverse(data.right, 0);
-      printf(")");
+      printf("%*s", level * 2, "");
+      printf("%s\n", str);
+      traverse(data.left, level + 1);
+      traverse(data.right, level + 1);
       break;
     }
     default: {
-      printf("\nERROR\n");
       break;
     }
   }
 }
-void printTree(AST* ptr) {
+void dumpTree(AST* ptr) {
   traverse(ptr, 1);
   printf("\n");
 }

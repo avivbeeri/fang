@@ -212,14 +212,6 @@ static int traverse(FILE* f, AST* ptr) {
         // p.freeRegister(r);
         return 0;
       }
-    case AST_LVALUE:
-      {
-        printf("LVALUE\n");
-        struct AST_LVALUE data = ast.data.AST_LVALUE;
-        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        int r = p.genIdentifierAddr(f, symbol);
-        return r;
-      }
     case AST_ASSIGNMENT:
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
@@ -231,7 +223,12 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        int r = p.genIdentifier(f, symbol);
+        int r;
+        if (ast.rvalue) {
+          r = p.genIdentifier(f, symbol);
+        } else {
+          r = p.genIdentifierAddr(f, symbol);
+        }
         return r;
       }
     case AST_LITERAL:
@@ -242,24 +239,25 @@ static int traverse(FILE* f, AST* ptr) {
         int r = p.genLoad(f, AS_LIT_NUM(v));
         return r;
       }
+    case AST_REF:
+      {
+        struct AST_REF data = ast.data.AST_REF;
+        return traverse(f, data.expr);
+      }
+    case AST_DEREF:
+      {
+        struct AST_DEREF data = ast.data.AST_DEREF;
+        int r = traverse(f, data.expr);
+        return p.genDeref(f, r);
+      }
     case AST_UNARY:
       {
         struct AST_UNARY data = ast.data.AST_UNARY;
-        if (data.op == OP_REF) {
-          // TODO calculate true LVAlue offsets
-          // int r = traverseLValue(f, data.expr);
-
-          // Pretend we contain an LValue
-          data.expr->tag = AST_LVALUE;
-          // int r = p.genIdentifierAddr(f, symbol);
-          return traverse(f, data.expr);
-        }
         int r = traverse(f, data.expr);
         switch (data.op) {
           case OP_BITWISE_NOT: return p.genBitwiseNot(f, r);
           case OP_NOT: return p.genLogicalNot(f, r);
           case OP_NEG: return p.genNeg(f, r);
-          case OP_DEREF: return p.genDeref(f, r);
           default:
             {
               // unreachable

@@ -426,8 +426,6 @@ static bool traverse(AST* ptr) {
         }
         return true;
       }
-
-    case AST_LVALUE:
     case AST_IDENTIFIER:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
@@ -494,6 +492,27 @@ static bool traverse(AST* ptr) {
         }
         return r;
       }
+    case AST_REF:
+      {
+        struct AST_REF data = ast.data.AST_REF;
+        bool r = traverse(data.expr);
+        int subType = data.expr->type;
+        STRING* name = typeTable[subType].name;
+        STRING* typeName = STRING_prepend(name, "^");
+        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
+        return r;
+      }
+    case AST_DEREF:
+      {
+        struct AST_DEREF data = ast.data.AST_DEREF;
+        bool r = traverse(data.expr);
+        int subType = data.expr->type;
+        ptr->type = typeTable[subType].parent;
+        if (ptr->type == 0) {
+          return false;
+        }
+        return r;
+      }
     case AST_UNARY:
       {
         struct AST_UNARY data = ast.data.AST_UNARY;
@@ -508,25 +527,6 @@ static bool traverse(AST* ptr) {
           case OP_NOT:
             {
               ptr->type = BOOL_INDEX; // to bool
-              break;
-            }
-          case OP_DEREF:
-            {
-              // TODO: check tha what we are reffing is not a literal
-              int subType = data.expr->type;
-              ptr->type = typeTable[subType].parent;
-              if (ptr->type == 0) {
-                return false;
-              }
-              break;
-            }
-          case OP_REF:
-            {
-              // TODO: check tha what we are reffing is not a literal
-              int subType = data.expr->type;
-              STRING* name = typeTable[subType].name;
-              STRING* typeName = STRING_prepend(name, "^");
-              ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
               break;
             }
         }
