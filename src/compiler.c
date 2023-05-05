@@ -33,6 +33,7 @@
 #include "symbol_table.h"
 #include "resolve.h"
 #include "print.h"
+#include "dump.h"
 #include "emit.h"
 #include "eval.h"
 
@@ -47,6 +48,7 @@ bool compile(const char* source) {
     printTree(ast);
     if (resolveTree(ast)) {
       printf("Resolved successfully.\n");
+      dumpTree(ast);
       emitTree(ast);
       // evalTree(ast);
     } else {

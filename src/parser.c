@@ -193,6 +193,7 @@ static AST* subscript(bool canAssign, AST* left) {
 
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
+    right->rvalue = true;
     expr = AST_NEW(AST_ASSIGNMENT, expr, right);
   }
   return expr;
@@ -288,6 +289,7 @@ static AST* ref(bool canAssign) {
 
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
+    right->rvalue = true;
     expr = AST_NEW(AST_ASSIGNMENT, expr, right);
   }
   return expr;
@@ -402,6 +404,7 @@ static AST* as(bool canAssign, AST* left) {
   AST* expr = AST_NEW_T(AST_CAST, parser.previous, left, right);
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
+    right->rvalue = true;
     expr = AST_NEW(AST_ASSIGNMENT, expr, right);
   }
   return expr;
@@ -435,6 +438,7 @@ static AST* dot(bool canAssign, AST* left) {
 
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
+    right->rvalue = true;
     expr = AST_NEW(AST_ASSIGNMENT, expr, right);
   }
   return expr;

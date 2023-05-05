@@ -108,13 +108,17 @@ static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
   uint32_t index = entry.scopeIndex;
 
   SYMBOL_TABLE_SCOPE current = scope;
-  while (current.scopeType != SCOPE_TYPE_FUNCTION) {
+  printf("%s\n", entry.key);
+  printf("%i\n", current.scopeType);
+  printf("%i\n", SCOPE_TYPE_FUNCTION);
+  while (current.scopeType != SCOPE_TYPE_FUNCTION && index > 0) {
     index = current.parent;
     current = SYMBOL_TABLE_getScope(index);
     ordinal += current.ordinal;
   }
   return ordinal + 1; // offset by 1 from frame pointer
 }
+/*
 static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   uint32_t offset = entry.offset;
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
@@ -128,6 +132,7 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   }
   return offset;
 }
+*/
 
 static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   static char buffer[128];
@@ -178,6 +183,8 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
     emitf("  ADD %s, FP, #%i\n", regList[r], (entry.paramOrdinal + 1) * 16);
+  } else if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
+    emitf("  ADR %s, %s\n", regList[r], symbol(entry));
   } else {
     uint32_t offset = getStackOrdinal(entry);
     emitf("  ADD %s, FP, #%i\n", regList[r], -offset * 16);

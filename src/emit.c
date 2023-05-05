@@ -223,6 +223,7 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        printf("%s\n", symbol.entryType == SYMBOL_TYPE_FUNCTION ? "true" : "false");
         int r;
         if (ast.rvalue) {
           r = p.genIdentifier(f, symbol);

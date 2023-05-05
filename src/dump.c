@@ -37,7 +37,7 @@ static void traverse(AST* ptr, int level) {
   AST ast = *ptr;
 
   printf("%*s", level * 2, "");
-  //printf("%s (%s)\n", getNodeTypeName(ast.tag), ast.rvalue ? "rvalue" : "lvalue");
+  printf("%s (%s)\n", getNodeTypeName(ast.tag), ast.rvalue ? "rvalue" : "lvalue");
   switch(ast.tag) {
     case AST_ERROR: {
       printf("An error occurred in the tree");

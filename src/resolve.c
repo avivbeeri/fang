@@ -32,6 +32,7 @@
 #include "type_table.h"
 #include "symbol_table.h"
 
+bool rvalue = false;
 uint32_t* typeStack = NULL;
 #define PUSH(type) do { arrput(typeStack, type); } while (false)
 #define POP() do { arrdel(typeStack, arrlen(typeStack) - 1); } while (false)
@@ -235,6 +236,7 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_FN data = ast.data.AST_FN;
         ptr->type = resolveType(data.fnType);
         SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type);
+        printf("%s\n", data.identifier->chars);
         return true;
       }
     default:
@@ -250,6 +252,7 @@ static bool traverse(AST* ptr) {
     return true;
   }
   AST ast = *ptr;
+  ptr->rvalue = rvalue;
   switch(ast.tag) {
     case AST_ERROR:
       {
@@ -368,7 +371,9 @@ static bool traverse(AST* ptr) {
         bool ident = traverse(data.lvalue);
         int leftType = data.lvalue->type;
         PUSH(leftType);
+        rvalue = true;
         bool expr = traverse(data.expr);
+        rvalue = false;
         POP();
         int rightType = data.expr->type;
 
