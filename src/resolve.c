@@ -151,6 +151,7 @@ static int resolveType(AST* ptr) {
       {
         // Arrays are basically just pointers with some runtime allocation
         // semantics
+        printf("Resolving array\n");
         struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
         traverse(data.length);
         int lenType = data.length->type;
@@ -159,8 +160,9 @@ static int resolveType(AST* ptr) {
         }
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
-        STRING* typeName = STRING_prepend(name, "^");
+        STRING* typeName = STRING_prepend(name, "[]");
         ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, 2, subType, NULL);
+        printf("type: %i\n", ptr->type);
         return ptr->type;
       }
   }
@@ -810,7 +812,7 @@ bool resolveTree(AST* ptr) {
   success &= TYPE_TABLE_calculateSizes();
   SYMBOL_TABLE_closeScope();
   SYMBOL_TABLE_report();
-//  TYPE_TABLE_report();
+  TYPE_TABLE_report();
 //
   arrfree(rvalueStack);
   arrfree(typeStack);

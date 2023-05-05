@@ -48,7 +48,7 @@ bool compile(const char* source) {
     printTree(ast);
     if (resolveTree(ast)) {
       printf("Resolved successfully.\n");
-      dumpTree(ast);
+      // dumpTree(ast);
       emitTree(ast);
       // evalTree(ast);
     } else {

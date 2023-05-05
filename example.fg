@@ -12,11 +12,21 @@ fn main(): i8 {
   var c: char = 'a';
   var p: ^char = ^c;
   var g: [5]char;
+  p = g;
+/*
+  @g = 'h';
+  @(g+1) = 'e';
+  @(g+2) = 'l';
+  @(g+3) = 'l';
+  @(g+4) = 'o';
+*/
   
+/*
   for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
     @p = (65 + i) as char;
     write(@p);
   }
+*/
   return 0;
 }
 

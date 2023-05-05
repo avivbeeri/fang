@@ -188,10 +188,10 @@ static int traverse(FILE* f, AST* ptr) {
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int rvalue = p.genLoad(f, 0);
         int r = p.genInitSymbol(f, symbol, rvalue);
-        if (typeTable[ast.type].entryType == ENTRY_TYPE_ARRAY) {
+        printf("%s: alloc %s\n", symbol.key, typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
+        if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
           int storage = traverse(f, data.type);
           p.genAllocStack(f, r, storage);
-          printf("alloc\n");
         }
         p.freeRegister(r);
         return 0;
@@ -206,10 +206,9 @@ static int traverse(FILE* f, AST* ptr) {
         int rvalue = traverse(f, data.expr);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r = p.genInitSymbol(f, symbol, rvalue);
-        if (typeTable[ast.type].entryType == ENTRY_TYPE_ARRAY) {
+        if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
           int storage = traverse(f, data.type);
           p.genAllocStack(f, r, storage);
-          printf("alloc\n");
         }
         // p.freeRegister(r);
         return 0;
