@@ -406,6 +406,14 @@ static int traverse(FILE* f, AST* ptr) {
             }
         }
       }
+    case AST_SUBSCRIPT:
+      {
+        struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+        int index = traverse(f, data.index);
+        int left = traverse(f, data.left);
+        //return p.genLoadIndex(f, left, index);
+        return left;
+      }
     case AST_CALL:
       {
         struct AST_CALL data = ast.data.AST_CALL;

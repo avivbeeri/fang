@@ -10,7 +10,7 @@ fn syscall_write(c: char): void {
 
 fn write(c : ^char, len: u8): void {
   for (var i: u8 = 0; i < len; i = i + 1) {
-    syscall_write(@c);
+    syscall_write(c[i]);
     c = (c + 1);
   }
 }

@@ -736,7 +736,9 @@ static bool traverse(AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+        PUSH(rvalueStack, false);
         bool r = traverse(data.left);
+        POP(rvalueStack);
         r &= traverse(data.index);
         if (!r || !isNumeric(data.index->type)) {
           return false;
