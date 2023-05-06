@@ -776,6 +776,7 @@ static bool traverse(AST* ptr) {
             printf("term 4\n");
             return false;
           }
+          printf("%i vs %i\n", fnType.fields[i].typeIndex, data.arguments[i]->type);
           if (fnType.fields[i].typeIndex != data.arguments[i]->type) {
             printf("term 5\n");
             return false;
@@ -805,15 +806,14 @@ bool resolveTree(AST* ptr) {
     return false;
   }
   success &= traverse(ptr);
-  if (!success) {
-    printf("resolution failure\n");
-    return false;
-  }
   success &= TYPE_TABLE_calculateSizes();
   SYMBOL_TABLE_closeScope();
   SYMBOL_TABLE_report();
   TYPE_TABLE_report();
-//
+  if (!success) {
+    printf("resolution failure\n");
+    return false;
+  }
   arrfree(rvalueStack);
   arrfree(typeStack);
   return success;

@@ -63,7 +63,7 @@ typedef struct {
   int (*genEqualGreaterThan)(FILE* f, int, int);
   int (*genNeg)(FILE* f, int);
   int (*genLogicalNot)(FILE* f, int);
-  int (*genAllocStack)(FILE* f, int, int);
+  int (*genAllocStack)(FILE* f, int);
   int (*genFunctionCall)(FILE* f, int, int*);
   int (*genInitSymbol)(FILE* f, SYMBOL_TABLE_ENTRY, int);
   void (*genSimpleExit)(FILE* f);

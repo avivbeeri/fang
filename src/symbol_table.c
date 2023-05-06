@@ -144,7 +144,10 @@ void SYMBOL_TABLE_report(void) {
     printf("Scope %u (parent %u):\n", scope.key, scope.parent);
     for (int j = 0; j < hmlen(scope.table); j++) {
       SYMBOL_TABLE_ENTRY entry = scope.table[j];
+
+
       printf("%s - ", entry.key);
+      printf("%s - ", typeTable[entry.typeIndex].name->chars);
       switch (entry.entryType) {
         case SYMBOL_TYPE_UNKNOWN: { printf("UNKNOWN"); break; }
         case SYMBOL_TYPE_KEYWORD: { printf("KEYWORD"); break; }

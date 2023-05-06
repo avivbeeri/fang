@@ -186,15 +186,16 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        int rvalue = p.genLoad(f, 0);
-        int r = p.genInitSymbol(f, symbol, rvalue);
         printf("%s: alloc %s\n", symbol.key, typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
+        int rvalue;
         if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
           int storage = traverse(f, data.type);
-          p.genAllocStack(f, r, storage);
+          rvalue = p.genAllocStack(f, storage);
+        } else {
+          rvalue = p.genLoad(f, 0);
         }
-        p.freeRegister(r);
-        return 0;
+
+        return p.genInitSymbol(f, symbol, rvalue);
       }
     case AST_VAR_INIT:
     case AST_CONST_DECL:
@@ -202,16 +203,19 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
         // TODO: if in top level, it should be a static constant
         // otherwise treat it as a variable initialisation
-
-        int rvalue = traverse(f, data.expr);
+        int rvalue;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        int r = p.genInitSymbol(f, symbol, rvalue);
         if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
           int storage = traverse(f, data.type);
-          p.genAllocStack(f, r, storage);
+          rvalue = p.genAllocStack(f, storage);
+          // TODO: initialiser
+          printf("Array initialisers aren't supported yet.");
+          exit(1);
+        } else {
+          rvalue = traverse(f, data.expr);
         }
-        // p.freeRegister(r);
-        return 0;
+
+        return p.genInitSymbol(f, symbol, rvalue);
       }
     case AST_ASSIGNMENT:
       {

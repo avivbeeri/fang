@@ -92,14 +92,14 @@ static void genCmpNotEqual(FILE* f, int r, int jumpLabel) {
   freeRegister(r);
 }
 
-static int genAllocStack(FILE* f, int r, int storage) {
+static int genAllocStack(FILE* f, int storage) {
   char* store = regList[storage];
   emitf("  ADD %s, %s, #15 ; storage\n", store, store);
   emitf("  LSR %s, %s, #4\n", store, store);
   emitf("  LSL %s, %s, #4\n", store, store);
   emitf("  SUB SP, SP, %s\n", store);
-  freeRegister(storage);
-  return r;
+  emitf("  MOV %s, SP\n", store);
+  return storage;
 }
 
 static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {

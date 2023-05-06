@@ -8,28 +8,28 @@ fn syscall_write(c: char): void {
    };
 }
 
-fn main(): i8 {
-  var c: char = 'a';
-  var p: ^char = ^c;
-  var g: [5]char;
-  p = g;
-/*
-  @g = 'h';
-  @(g+1) = 'e';
-  @(g+2) = 'l';
-  @(g+3) = 'l';
-  @(g+4) = 'o';
-*/
-  
-/*
-  for (var i: i8 = 0; i < (1 << 4); i = i + 1) {
-    @p = (65 + i) as char;
-    write(@p);
+fn write(c : ^char, len: u8): void {
+  for (var i: u8 = 0; i < len; i = i + 1) {
+    syscall_write(@c);
+    c = (c + 1) as ^char;
   }
-*/
-  return 0;
 }
 
-fn write(c : char): void {
-  syscall_write(c);
+fn main(): i8 {
+  var g: [5]char;
+  var p: ^char;
+  p = (g) as ^char;
+  @p = 'h';
+  p = (p + 1) as ^char;
+  @p = 'e';
+  p = (p + 1) as ^char;
+  @p = 'l';
+  p = (p + 1) as ^char;
+  @p = 'l';
+  p = (p + 1) as ^char;
+  @p = 'o';
+  var len: u8 = 5;
+  write(g as ^char, len);
+
+  return 0;
 }
