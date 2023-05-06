@@ -160,8 +160,8 @@ static int resolveType(AST* ptr) {
         }
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
-        STRING* typeName = STRING_prepend(name, "[]");
-        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, 2, subType, NULL);
+        STRING* typeName = STRING_prepend(name, "^");
+        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
         printf("type: %i\n", ptr->type);
         return ptr->type;
       }

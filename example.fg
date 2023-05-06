@@ -11,25 +11,25 @@ fn syscall_write(c: char): void {
 fn write(c : ^char, len: u8): void {
   for (var i: u8 = 0; i < len; i = i + 1) {
     syscall_write(@c);
-    c = (c + 1) as ^char;
+    c = (c + 1);
   }
 }
 
 fn main(): i8 {
   var g: [5]char;
   var p: ^char;
-  p = (g) as ^char;
+  p = g;
   @p = 'h';
-  p = (p + 1) as ^char;
+  p = (p + 1);
   @p = 'e';
-  p = (p + 1) as ^char;
+  p = (p + 1);
   @p = 'l';
-  p = (p + 1) as ^char;
+  p = (p + 1);
   @p = 'l';
-  p = (p + 1) as ^char;
+  p = (p + 1);
   @p = 'o';
   var len: u8 = 5;
-  write(g as ^char, len);
+  write(g, len);
 
   return 0;
 }

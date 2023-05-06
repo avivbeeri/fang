@@ -176,10 +176,17 @@ static int traverse(FILE* f, AST* ptr) {
         int r = traverse(f, data.expr);
         return r;
       }
+    case AST_TYPE_FN:
+    case AST_TYPE_PTR:
+    case AST_TYPE_NAME:
+      {
+        return -1;
+      }
     case AST_TYPE_ARRAY:
       {
         struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
-        int r = traverse(f, data.length);
+        int r = traverse(f, data.subType);
+        r = traverse(f, data.length);
         return r;
       }
     case AST_VAR_DECL:
@@ -188,8 +195,8 @@ static int traverse(FILE* f, AST* ptr) {
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         printf("%s: alloc %s\n", symbol.key, typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
         int rvalue;
-        if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
-          int storage = traverse(f, data.type);
+        int storage = traverse(f, data.type);
+        if (storage != -1) {
           rvalue = p.genAllocStack(f, storage);
         } else {
           rvalue = p.genLoad(f, 0);
