@@ -206,6 +206,18 @@ static int genDeref(FILE* f, int leftReg) {
   return leftReg;
 }
 
+static int genIndexAddr(FILE* f, int leftReg, int index) {
+  emitf("  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[index]);
+  freeRegister(index);
+  return leftReg;
+}
+
+static int genIndexRead(FILE* f, int leftReg, int index) {
+  emitf("  LDR %s, [%s, %s]\n", regList[leftReg], regList[leftReg], regList[index]);
+  freeRegister(index);
+  return leftReg;
+}
+
 static void genPreamble(FILE* f) {
   genMacros(f);
   size_t bytes = 0;
@@ -471,7 +483,10 @@ PLATFORM platform_apple_arm64 = {
   .genBitwiseXor = genBitwiseXor,
   .genBitwiseNot = genBitwiseNot,
   .genRef = genRef,
-  .genDeref = genDeref
+  .genDeref = genDeref,
+  .genIndexRead = genIndexRead,
+  .genIndexAddr = genIndexAddr
+
 };
 
 #undef emitf

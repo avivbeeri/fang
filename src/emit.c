@@ -415,8 +415,11 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
         int index = traverse(f, data.index);
         int left = traverse(f, data.left);
-        //return p.genLoadIndex(f, left, index);
-        return left;
+        if (ast.rvalue) {
+          return p.genIndexRead(f, left, index);
+        } else {
+          return p.genIndexAddr(f, left, index);
+        }
       }
     case AST_CALL:
       {

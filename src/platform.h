@@ -76,6 +76,8 @@ typedef struct {
   void (*genLabel)(FILE* f, int);
   int (*genRef)(FILE* f, int);
   int (*genDeref)(FILE* f, int);
+  int (*genIndexRead)(FILE* f, int, int);
+  int (*genIndexAddr)(FILE* f, int, int);
 } PLATFORM;
 
 void PLATFORM_init();

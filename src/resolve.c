@@ -743,7 +743,9 @@ static bool traverse(AST* ptr) {
         PUSH(rvalueStack, false);
         bool r = traverse(data.left);
         POP(rvalueStack);
+        PUSH(rvalueStack, true);
         r &= traverse(data.index);
+        POP(rvalueStack);
         if (!r || !isNumeric(data.index->type)) {
           return false;
         }
