@@ -82,6 +82,13 @@ static void genJump(FILE* f, int label) {
   emitf("  B %s\n", labelPrint(label));
 }
 
+static int genLoad(FILE* f, int i) {
+  // Load i into a register
+  // return the register index
+  int r = allocateRegister();
+  emitf("  MOV %s, #%i\n", regList[r], i);
+  return r;
+}
 static void genCmp(FILE* f, int r, int jumpLabel) {
   emitf("  CMP %s, #0\n", regList[r]);
   emitf("  BEQ %s\n", labelPrint(jumpLabel));
@@ -168,13 +175,6 @@ static int genLoadRegister(FILE* f, int i, int r) {
   emitf("  MOV %s, #%i\n", regList[r], i);
   return r;
 }
-static int genLoad(FILE* f, int i) {
-  // Load i into a register
-  // return the register index
-  int r = allocateRegister();
-  emitf("  MOV %s, #%i\n", regList[r], i);
-  return r;
-}
 
 
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
@@ -207,13 +207,23 @@ static int genDeref(FILE* f, int leftReg) {
   return leftReg;
 }
 
-static int genIndexAddr(FILE* f, int leftReg, int index) {
+static int genIndexAddr(FILE* f, int leftReg, int index, int dataSize) {
+  if (dataSize > 1) {
+    int temp = genLoad(f, dataSize);
+    emitf("  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
+    freeRegister(temp);
+  }
   emitf("  ADD %s, %s, %s; index address\n", regList[leftReg], regList[leftReg], regList[index]);
   freeRegister(index);
   return leftReg;
 }
 
-static int genIndexRead(FILE* f, int leftReg, int index) {
+static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
+  if (dataSize > 1) {
+    int temp = genLoad(f, dataSize);
+    emitf("  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
+    freeRegister(temp);
+  }
   emitf("  LDR %s, [%s, %s] ; index read\n", regList[leftReg], regList[leftReg], regList[index]);
   freeRegister(index);
   return leftReg;

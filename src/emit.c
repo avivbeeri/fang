@@ -415,10 +415,12 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
         int index = traverse(f, data.index);
         int left = traverse(f, data.left);
+        TYPE_TABLE_ENTRY type = typeTable[data.left->type];
+        int offset = typeTable[type.parent].byteSize;
         if (ast.rvalue) {
-          return p.genIndexRead(f, left, index);
+          return p.genIndexRead(f, left, index, offset);
         } else {
-          return p.genIndexAddr(f, left, index);
+          return p.genIndexAddr(f, left, index, offset);
         }
       }
     case AST_CALL:
