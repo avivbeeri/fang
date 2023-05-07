@@ -23,7 +23,7 @@ example: file.o
         -e _start \
         -arch arm64
 file.o: file.S
-	as -o file.o file.S
+	as -g -o file.o file.S
 file.S: fgcc example.fg
 	./fgcc 
 

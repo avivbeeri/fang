@@ -307,6 +307,22 @@ static void traverse(AST* ptr, int level) {
       printf("]");
       break;
     }
+    case AST_REF:
+      {
+        struct AST_REF data = ast.data.AST_REF;
+        printf("^(");
+        traverse(data.expr, 0);
+        printf(")");
+        break;
+      }
+    case AST_DEREF:
+      {
+        struct AST_DEREF data = ast.data.AST_DEREF;
+        printf("@(");
+        traverse(data.expr, 0);
+        printf(")");
+        break;
+      }
     case AST_UNARY: {
       struct AST_UNARY data = ast.data.AST_UNARY;
       char* str;

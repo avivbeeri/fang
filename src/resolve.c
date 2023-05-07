@@ -369,7 +369,9 @@ static bool traverse(AST* ptr) {
     case AST_ASSIGNMENT:
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
+        PUSH(rvalueStack, false);
         bool ident = traverse(data.lvalue);
+        POP(rvalueStack);
         int leftType = data.lvalue->type;
         PUSH(typeStack, leftType);
         PUSH(rvalueStack, true);
@@ -542,11 +544,13 @@ static bool traverse(AST* ptr) {
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;
+        PUSH(rvalueStack, true);
         bool r = traverse(data.left);
         int leftType = data.left->type;
         PUSH(typeStack, leftType);
         r &= traverse(data.right);
         POP(typeStack);
+        POP(rvalueStack);
         int rightType = data.right->type;
         if (!r) {
           return false;
@@ -751,7 +755,9 @@ static bool traverse(AST* ptr) {
     case AST_CALL:
       {
         struct AST_CALL data = ast.data.AST_CALL;
+        PUSH(rvalueStack, true);
         bool r = traverse(data.identifier);
+        POP(rvalueStack);
         if (!r) {
           printf("failed to call left\n");
           return false;

@@ -284,7 +284,7 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   return rvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue) {
-  emitf("  STR %s, [%s]\n", regList[rvalue], regList[lvalue]);
+  emitf("  STR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
   freeRegister(lvalue);
   return rvalue;
 }

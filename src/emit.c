@@ -227,8 +227,8 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_ASSIGNMENT:
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-        int l = traverse(f, data.lvalue);
         int r = traverse(f, data.expr);
+        int l = traverse(f, data.lvalue);
         return p.genAssign(f, l, r);
       }
     case AST_IDENTIFIER:
@@ -262,7 +262,11 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_DEREF data = ast.data.AST_DEREF;
         int r = traverse(f, data.expr);
-        return p.genDeref(f, r);
+        if (ast.rvalue) {
+          return p.genDeref(f, r);
+        } else {
+          return r;
+        }
       }
     case AST_UNARY:
       {
