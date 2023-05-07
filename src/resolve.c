@@ -514,7 +514,9 @@ static bool traverse(AST* ptr) {
     case AST_DEREF:
       {
         struct AST_DEREF data = ast.data.AST_DEREF;
+        PUSH(rvalueStack, true);
         bool r = traverse(data.expr);
+        POP(rvalueStack);
         int subType = data.expr->type;
         ptr->type = typeTable[subType].parent;
         if (ptr->type == 0) {
@@ -740,7 +742,8 @@ static bool traverse(AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-        PUSH(rvalueStack, false);
+        // ptr->rvalue = false;
+        PUSH(rvalueStack, true);
         bool r = traverse(data.left);
         POP(rvalueStack);
         PUSH(rvalueStack, true);

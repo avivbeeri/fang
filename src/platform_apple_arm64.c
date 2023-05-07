@@ -8,6 +8,7 @@
 
 static int labelId = 0;
 static bool freereg[4];
+static char *storeRegList[4] = { "W8", "W9", "W10", "W11" };
 static char *regList[4] = { "X8", "X9", "X10", "X11" };
 static char *paramRegList[8] = { "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7" };
 static int MAX_PARAM_REG = 8;
@@ -207,13 +208,13 @@ static int genDeref(FILE* f, int leftReg) {
 }
 
 static int genIndexAddr(FILE* f, int leftReg, int index) {
-  emitf("  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[index]);
+  emitf("  ADD %s, %s, %s; index address\n", regList[leftReg], regList[leftReg], regList[index]);
   freeRegister(index);
   return leftReg;
 }
 
 static int genIndexRead(FILE* f, int leftReg, int index) {
-  emitf("  LDR %s, [%s, %s]\n", regList[leftReg], regList[leftReg], regList[index]);
+  emitf("  LDR %s, [%s, %s] ; index read\n", regList[leftReg], regList[leftReg], regList[index]);
   freeRegister(index);
   return leftReg;
 }
@@ -296,7 +297,7 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   return rvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue) {
-  emitf("  STR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
+  emitf("  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
   freeRegister(lvalue);
   return rvalue;
 }
