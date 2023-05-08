@@ -20,4 +20,5 @@ fn main(): void {
   syscall_write('r');
   syscall_write('l');
   syscall_write('d');
+  return;
 }

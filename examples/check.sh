@@ -6,6 +6,16 @@ RED='\033[0;31m'
 NC='\033[0m'
 TOTAL=0
 FAILURES=0
+
+# Tests are defined here so make adding them easier
+allTests() {
+  testFile examples/error.fg "[line 3; pos 1] Error at '}': Expect ';' after expression." 1
+  testFile examples/helloworld.fg "OK" 0 "hello world" 0
+  testFile examples/empty.fg "OK" 0 "" 0
+  testFile examples/return.fg "OK" 0 "" 42
+}
+
+
 testFile() {
   local FILENAME=$1
   local BIN=${FILENAME%.*}
@@ -48,10 +58,12 @@ testFile() {
   fi
   
   if test -f $BIN; then
-    local OUTPUT=$($BIN)
+    local OUTPUT
+    OUTPUT=$(${BIN})
     local OUTPUT_CODE=$?
     local OUTPUT_EXPECTED=$4
     local OUTPUT_CODE_EXPECTED=$5
+    rm -f $BIN
 
     if [ "$OUTPUT" != "$OUTPUT_EXPECTED" ]; then
       echo -e "${RED}[FAIL]${NC}: $1"
@@ -79,15 +91,13 @@ testFile() {
       FAILURES=$(($FAILURES + 1))
       return 1
     fi
-    rm -f $BIN
   fi
   echo -e "${GREEN}[PASS]${NC}: $1"
 }
 
-testFile examples/error.fg "[line 3; pos 1] Error at '}': Expect ';' after expression." 1
-testFile examples/helloworld.fg "OK" 0 "hello world" 0
+allTests
 
-if [ "$TOTAL" -ne "0" ]; then
+if (($TOTAL != 0)); then
   echo -e '\n\n----------Failure Results--------------\n'
   echo -e "$ERRORS"
   echo "${FAILURES} of ${TOTAL} tests failed."
