@@ -148,17 +148,8 @@ static AST* variable(bool canAssign) {
     return AST_NEW(AST_ASSIGNMENT, variable, expr);
   }
   return variable;
-  /*
-
-  STRING* string = copyString(parser.previous.start, parser.previous.length);
-  AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, string);
-  if (canAssign && match(TOKEN_EQUAL)) {
-    AST* expr = expression();
-    variable = AST_NEW(AST_ASSIGNMENT, variable, expr);
-  }
-  return variable;
-  */
 }
+
 static AST* character(bool canAssign) {
   // copy the character to memory
   Value value = CHAR(unesc(parser.previous.start + 1, parser.previous.length - 3));
@@ -369,7 +360,6 @@ static AST* parseType() {
     return typeFn();
   } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
-    // components needs to be null
     return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
   } else {
     errorAtCurrent("Expecting a type declaration.");
@@ -771,9 +761,6 @@ static AST* topLevel() {
     advance();
     error("Could not find a declaration at the top level.");
   }
-    /*
-  } else {
-    */
   if (parser.panicMode) synchronize();
   return decl;
 }

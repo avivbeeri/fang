@@ -35,6 +35,7 @@ testFile() {
       echo "[FAIL]: $1 - Program"
       return 1
     fi
+    rm -f $BIN
   fi
   echo "[PASS]: $1"
 }
