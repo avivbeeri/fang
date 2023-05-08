@@ -1,0 +1,6 @@
+#!/bin/bash
+
+./fgcc $1
+as -g -o file.o file.S
+ld -o $2 file.o -lSystem -syslibroot `xcrun -sdk macosx --show-sdk-path` -e _start -arch arm64
+

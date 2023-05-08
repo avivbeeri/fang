@@ -1,0 +1,23 @@
+fn syscall_write(c: char): void {
+  asm {
+    "MOV X0, #1" // STDOUT
+    "ADD X1, FP, #16" // PTR (FP+16) // function argument
+    "MOV X2, 1"
+    "MOV X16, #4"
+    "SVC 0"
+   };
+}
+
+fn main(): void {
+  syscall_write('h');
+  syscall_write('e');
+  syscall_write('l');
+  syscall_write('l');
+  syscall_write('o');
+  syscall_write(' ');
+  syscall_write('w');
+  syscall_write('o');
+  syscall_write('r');
+  syscall_write('l');
+  syscall_write('d');
+}

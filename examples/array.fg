@@ -1,0 +1,30 @@
+fn syscall_write(c: char): void {
+  asm {
+    "MOV X0, #1" // STDOUT
+    "ADD X1, FP, #16" // PTR (FP+16) // function argument
+    "MOV X2, 1"
+    "MOV X16, #4"
+    "SVC 0"
+   };
+}
+
+fn write(c : ^char, len: u8): void {
+  for (var i: u8 = 0; i < 5; i = i + 1) {
+    syscall_write(c[i]);
+  }
+}
+
+fn main(): i8 {
+  var len: u8 = 5;
+  var g: [5]char;
+
+  g[0] = 'h';
+  g[1] = 'e';
+  g[2] = 'l';
+  g[3] = 'l';
+  g[4] = 'o';
+  @(g+4) = 'x';
+  write(g, len);
+
+  return 0;
+}

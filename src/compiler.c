@@ -36,19 +36,25 @@
 #include "dump.h"
 #include "emit.h"
 #include "eval.h"
+#include "options.h"
 
 bool compile(const char* source) {
-  // testScanner(source);
+  if (options.scanTest) {
+    testScanner(source);
+  }
   TYPE_TABLE_init();
   CONST_TABLE_init();
   initScanner(source);
   AST* ast = parse(source);
   bool result = true;
   if (ast != NULL) {
-    printTree(ast);
+    if (options.printAst) {
+      printTree(ast);
+    }
+    if (options.dumpAst) {
+     dumpTree(ast);
+    }
     if (resolveTree(ast)) {
-      printf("Resolved successfully.\n");
-      // dumpTree(ast);
       emitTree(ast);
       // evalTree(ast);
     } else {

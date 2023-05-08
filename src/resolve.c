@@ -31,6 +31,7 @@
 #include "const_table.h"
 #include "type_table.h"
 #include "symbol_table.h"
+#include "options.h"
 
 uint32_t* rvalueStack = NULL;
 uint32_t* typeStack = NULL;
@@ -151,7 +152,6 @@ static int resolveType(AST* ptr) {
       {
         // Arrays are basically just pointers with some runtime allocation
         // semantics
-        printf("Resolving array\n");
         struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
         traverse(data.length);
         int lenType = data.length->type;
@@ -162,7 +162,6 @@ static int resolveType(AST* ptr) {
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
         ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
-        printf("type: %i\n", ptr->type);
         return ptr->type;
       }
   }
@@ -272,7 +271,6 @@ static bool traverse(AST* ptr) {
         }
         bool r = traverse(data.value);
         if (data.value->type != PEEK(typeStack)) {
-          printf("%i vs %i\n", data.value->type, PEEK(typeStack));
           return false;
         }
         return r;
@@ -789,14 +787,13 @@ static bool traverse(AST* ptr) {
             printf("term 4\n");
             return false;
           }
-          printf("%i vs %i\n", fnType.fields[i].typeIndex, data.arguments[i]->type);
           if (fnType.fields[i].typeIndex != data.arguments[i]->type) {
+            printf("%i vs %i\n", fnType.fields[i].typeIndex, data.arguments[i]->type);
             printf("term 5\n");
             return false;
           }
         }
         ptr->type = typeTable[leftType].returnType;
-        printf("term 6\n");
         return true;
       }
     default:
@@ -815,17 +812,27 @@ bool resolveTree(AST* ptr) {
   SYMBOL_TABLE_init();
   bool success = resolveTopLevel(ptr);
   if (!success) {
-    printf("topLevel resolution failure\n");
-    return false;
+    goto cleanup;
   }
   success &= traverse(ptr);
-  success &= TYPE_TABLE_calculateSizes();
-  SYMBOL_TABLE_closeScope();
-  SYMBOL_TABLE_report();
-  TYPE_TABLE_report();
   if (!success) {
-    printf("resolution failure\n");
-    return false;
+    goto cleanup;
+  }
+  SYMBOL_TABLE_closeScope();
+  success &= TYPE_TABLE_calculateSizes();
+  if (!success) {
+    goto cleanup;
+  }
+
+
+cleanup:
+  if (options.report) {
+    SYMBOL_TABLE_report();
+    TYPE_TABLE_report();
+  }
+
+  if (!success) {
+    printf("Compilation failed.\n");
   }
   arrfree(rvalueStack);
   arrfree(typeStack);

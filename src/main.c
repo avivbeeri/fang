@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #include "common.h"
 #include "compiler.h"
+#include "options.h"
 
 static char* readFile(const char* path) {
   FILE* file = fopen(path, "rb");
@@ -57,6 +58,15 @@ static char* readFile(const char* path) {
   return buffer;
 }
 
+
+void OPTIONS_init(void) {
+  options.toTerminal = true;
+  options.report = false;
+  options.scanTest = false;
+  options.printAst = false;
+  options.dumpAst = false;
+}
+
 int main(int argc, const char* argv[]) {
    struct timeval t1, t2;
   double elapsedTime;
@@ -70,7 +80,6 @@ int main(int argc, const char* argv[]) {
   }
 
   char* source = readFile(path);
-
   bool success = compile(source);
   free(source);
 

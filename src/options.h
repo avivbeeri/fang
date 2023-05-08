@@ -23,13 +23,15 @@
   SOFTWARE.
 */
 
-#ifndef fang_common_h
-#define fang_common_h
+#include "common.h"
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
+typedef struct {
+  bool toTerminal;
+  bool printAst;
+  bool dumpAst;
+  bool scanTest;
+  bool report;
+  char* backend;
+} FANG_OPTIONS;
 
-#include "ds.h"
-
-#endif
+extern FANG_OPTIONS options;
