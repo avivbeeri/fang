@@ -13,6 +13,7 @@ allTests() {
   testFile examples/helloworld.fg "OK" 0 "hello world" 0
   testFile examples/empty.fg "OK" 0 "" 0
   testFile examples/return.fg "OK" 0 "" 42
+  testFile examples/arithmetic.fg "OK" 0 "" 1
 }
 
 
