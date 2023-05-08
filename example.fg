@@ -8,23 +8,22 @@ fn syscall_write(c: char): void {
    };
 }
 
-fn write(c : ^u16, len: u8): void {
+fn write(c : ^char, len: u8): void {
   for (var i: u8 = 0; i < 5; i = i + 1) {
-    syscall_write(c[i] as char);
-//    syscall_write('A' + i as char);
+    syscall_write(c[i]);
   }
 }
 
 fn main(): i8 {
   var len: u8 = 5;
-  var g: [5]u16;
+  var g: [5]char;
 
-  g[0] = 'h' as u16;
-  g[1] = 'e' as u16;
-  g[2] = 'l' as u16;
-  g[3] = 'l' as u16;
-  g[4] = 'o' as u16;
-  @(g+4) = 'x' as u16;
+  g[0] = 'h';
+  g[1] = 'e';
+  g[2] = 'l';
+  g[3] = 'l';
+  g[4] = 'o';
+  @(g+4) = 'x';
   write(g, len);
 
   return 0;
