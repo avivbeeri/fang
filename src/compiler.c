@@ -68,6 +68,5 @@ bool compile(const char* source) {
   CONST_TABLE_free();
   TYPE_TABLE_free();
   SYMBOL_TABLE_free();
-  printf("\n");
   return result;
 }

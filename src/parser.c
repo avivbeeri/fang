@@ -423,6 +423,9 @@ static AST* block() {
   AST** declList = NULL;
   while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
     arrput(declList, declaration());
+    if (declList[arrlen(declList)-1]->tag == AST_ERROR) {
+      return AST_NEW(AST_ERROR, 0);
+    }
   }
 
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
@@ -626,11 +629,15 @@ static void synchronize() {
     switch (parser.current.type) {
       case TOKEN_TYPE:
       case TOKEN_FN:
+      case TOKEN_ASM:
+      case TOKEN_ENUM:
       case TOKEN_EXT:
+      case TOKEN_CONST:
       case TOKEN_VAR:
       case TOKEN_FOR:
       case TOKEN_IF:
       case TOKEN_WHILE:
+      case TOKEN_RIGHT_BRACE:
       case TOKEN_RETURN:
         return;
 
@@ -724,6 +731,7 @@ static AST* statement() {
   } else {
     expr = expressionStatement();
   }
+  if (parser.panicMode) synchronize();
   return expr;
 }
 
@@ -804,13 +812,16 @@ AST* parse(const char* source) {
     if (decl->tag == AST_ERROR) {
       break;
     }
-    if (decl)
-    arrput(declList, decl);
+    if (decl) {
+      arrput(declList, decl);
+    }
   }
 
   list = AST_NEW(AST_LIST, declList);
 
-  consume(TOKEN_EOF, "Expect end of expression.");
+  if (!parser.hadError) {
+    consume(TOKEN_EOF, "Expect end of expression.");
+  }
   if (parser.hadError) {
     ast_free(list);
     return NULL;

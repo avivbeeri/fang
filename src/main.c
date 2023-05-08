@@ -60,16 +60,19 @@ static char* readFile(const char* path) {
 
 
 void OPTIONS_init(void) {
-  options.toTerminal = true;
+  options.toTerminal = false;
   options.report = false;
   options.scanTest = false;
   options.printAst = false;
   options.dumpAst = false;
+  options.timeRun = false;
 }
 
 int main(int argc, const char* argv[]) {
-   struct timeval t1, t2;
+  struct timeval t1, t2;
   double elapsedTime;
+
+  OPTIONS_init();
 
   // start timer
   gettimeofday(&t1, NULL);
@@ -88,7 +91,11 @@ int main(int argc, const char* argv[]) {
   elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0;      // sec to ms
   elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0;   // us to ms
 
-  printf("Completed in %f milliseconds.\n", elapsedTime);
-
+  if (options.timeRun) {
+    printf("Completed in %f milliseconds.\n", elapsedTime);
+  }
+  if (success) {
+    printf("OK\n");
+  }
   return success ? 0 : 1;
 }

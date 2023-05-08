@@ -460,6 +460,8 @@ void emitTree(AST* ptr) {
   fprintf(f, "\n");
   if (!options.toTerminal) {
     fclose(f);
+  } else {
+    fflush(stdout);
   }
 
   PLATFORM_shutdown();

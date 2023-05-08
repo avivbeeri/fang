@@ -4,8 +4,6 @@
 #include "symbol_table.h"
 #include "const_table.h"
 
-#define emitf(fmt, ...) do { fprintf(f, fmt, ##__VA_ARGS__); } while(0)
-
 static int labelId = 0;
 static bool freereg[4];
 static char *storeRegList[4] = { "W8", "W9", "W10", "W11" };
@@ -61,52 +59,52 @@ static int allocateRegister() {
 }
 
 static void genMacros(FILE* f) {
-  emitf(" .macro PUSH1 register\n");
-  emitf("        STR \\register, [SP, #-16]!\n");
-  emitf(" .endm\n");
-  emitf(" .macro POP1 register\n");
-  emitf("        LDR \\register, [SP], #16\n");
-  emitf(" .endm\n");
-  emitf(" .macro PUSH2 register1, register2\n");
-  emitf("        STP \\register1, \\register2, [SP, #-16]!\n");
-  emitf(" .endm\n");
-  emitf(" .macro POP2 register1, register2\n");
-  emitf("        LDP \\register1, \\register2, [SP], #16\n");
-  emitf(" .endm\n");
+  fprintf(f, " .macro PUSH1 register\n");
+  fprintf(f, "        STR \\register, [SP, #-16]!\n");
+  fprintf(f, " .endm\n");
+  fprintf(f, " .macro POP1 register\n");
+  fprintf(f, "        LDR \\register, [SP], #16\n");
+  fprintf(f, " .endm\n");
+  fprintf(f, " .macro PUSH2 register1, register2\n");
+  fprintf(f, "        STP \\register1, \\register2, [SP, #-16]!\n");
+  fprintf(f, " .endm\n");
+  fprintf(f, " .macro POP2 register1, register2\n");
+  fprintf(f, "        LDP \\register1, \\register2, [SP], #16\n");
+  fprintf(f, " .endm\n");
 }
 
 static void genLabel(FILE* f, int label) {
-  emitf("%s:\n", labelPrint(label));
+  fprintf(f, "%s:\n", labelPrint(label));
 }
 static void genJump(FILE* f, int label) {
-  emitf("  B %s\n", labelPrint(label));
+  fprintf(f, "  B %s\n", labelPrint(label));
 }
 
 static int genLoad(FILE* f, int i) {
   // Load i into a register
   // return the register index
   int r = allocateRegister();
-  emitf("  MOV %s, #%i\n", regList[r], i);
+  fprintf(f, "  MOV %s, #%i\n", regList[r], i);
   return r;
 }
 static void genCmp(FILE* f, int r, int jumpLabel) {
-  emitf("  CMP %s, #0\n", regList[r]);
-  emitf("  BEQ %s\n", labelPrint(jumpLabel));
+  fprintf(f, "  CMP %s, #0\n", regList[r]);
+  fprintf(f, "  BEQ %s\n", labelPrint(jumpLabel));
   freeRegister(r);
 }
 static void genCmpNotEqual(FILE* f, int r, int jumpLabel) {
-  emitf("  CMP %s, #0\n", regList[r]);
-  emitf("  BNE %s\n", labelPrint(jumpLabel));
+  fprintf(f, "  CMP %s, #0\n", regList[r]);
+  fprintf(f, "  BNE %s\n", labelPrint(jumpLabel));
   freeRegister(r);
 }
 
 static int genAllocStack(FILE* f, int storage) {
   char* store = regList[storage];
-  emitf("  ADD %s, %s, #15 ; storage\n", store, store);
-  emitf("  LSR %s, %s, #4\n", store, store);
-  emitf("  LSL %s, %s, #4\n", store, store);
-  emitf("  SUB SP, SP, %s\n", store);
-  emitf("  MOV %s, SP\n", store);
+  fprintf(f, "  ADD %s, %s, #15 ; storage\n", store, store);
+  fprintf(f, "  LSR %s, %s, #4\n", store, store);
+  fprintf(f, "  LSL %s, %s, #4\n", store, store);
+  fprintf(f, "  SUB SP, SP, %s\n", store);
+  fprintf(f, "  MOV %s, SP\n", store);
   return storage;
 }
 
@@ -172,7 +170,7 @@ static int genLoadRegister(FILE* f, int i, int r) {
   // Load i into a register
   // return the register index
   r = r == -1 ? allocateRegister() : r;
-  emitf("  MOV %s, #%i\n", regList[r], i);
+  fprintf(f, "  MOV %s, #%i\n", regList[r], i);
   return r;
 }
 
@@ -180,21 +178,21 @@ static int genLoadRegister(FILE* f, int i, int r) {
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    emitf("  ADD %s, FP, #%i\n", regList[r], (entry.paramOrdinal + 1) * 16);
+    fprintf(f, "  ADD %s, FP, #%i\n", regList[r], (entry.paramOrdinal + 1) * 16);
   } else if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-    emitf("  ADR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
   } else {
     uint32_t offset = getStackOrdinal(entry);
-    emitf("  ADD %s, FP, #%i\n", regList[r], -offset * 16);
+    fprintf(f, "  ADD %s, FP, #%i\n", regList[r], -offset * 16);
   }
   return r;
 }
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-    emitf("  ADR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
   } else {
-    emitf("  LDR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
   }
   return r;
 }
@@ -203,17 +201,17 @@ static int genRef(FILE* f, int leftReg) {
   return leftReg;
 }
 static int genDeref(FILE* f, int leftReg) {
-  emitf("  LDR %s, [%s]\n", regList[leftReg], regList[leftReg]);
+  fprintf(f, "  LDR %s, [%s]\n", regList[leftReg], regList[leftReg]);
   return leftReg;
 }
 
 static int genIndexAddr(FILE* f, int leftReg, int index, int dataSize) {
   if (dataSize > 1) {
     int temp = genLoad(f, dataSize);
-    emitf("  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
+    fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
     freeRegister(temp);
   }
-  emitf("  ADD %s, %s, %s; index address\n", regList[leftReg], regList[leftReg], regList[index]);
+  fprintf(f, "  ADD %s, %s, %s; index address\n", regList[leftReg], regList[leftReg], regList[index]);
   freeRegister(index);
   return leftReg;
 }
@@ -221,10 +219,10 @@ static int genIndexAddr(FILE* f, int leftReg, int index, int dataSize) {
 static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
   if (dataSize > 1) {
     int temp = genLoad(f, dataSize);
-    emitf("  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
+    fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
     freeRegister(temp);
   }
-  emitf("  LDR %s, [%s, %s] ; index read\n", regList[leftReg], regList[leftReg], regList[index]);
+  fprintf(f, "  LDR %s, [%s, %s] ; index read\n", regList[leftReg], regList[leftReg], regList[index]);
   freeRegister(index);
   return leftReg;
 }
@@ -238,32 +236,32 @@ static void genPreamble(FILE* f) {
       continue;
     }
     if (bytes % 4 != 0) {
-      emitf(".align %lu\n", 4 - bytes % 4);
+      fprintf(f, ".align %lu\n", 4 - bytes % 4);
     }
-    emitf("const_%i: ", i);
-    emitf(".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length) % 256);
-    emitf(".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
+    fprintf(f, "const_%i: ", i);
+    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length) % 256);
+    fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
-  emitf(".global _start\n");
-  emitf(".align 2\n");
-  emitf("_start:\n");
-  emitf("  MOV X28, #0\n");
-  emitf("  MOV X0, #0\n");
-  emitf("  BL _fang_main\n");
+  fprintf(f, ".global _start\n");
+  fprintf(f, ".align 2\n");
+  fprintf(f, "_start:\n");
+  fprintf(f, "  MOV X28, #0\n");
+  fprintf(f, "  MOV X0, #0\n");
+  fprintf(f, "  BL _fang_main\n");
 }
 static void genSimpleExit(FILE* f) {
   // Returns 0;
-  // emitf("mov X0, #0\n");
-  emitf("  MOV X16, #1\n");
-  emitf("  SVC 0\n");
+  // fprintf(f, "mov X0, #0\n");
+  fprintf(f, "  MOV X16, #1\n");
+  fprintf(f, "  SVC 0\n");
 }
 
 static void genExit(FILE* f, int r) {
   // Assumes return code is in reg r.
-  emitf("  MOV X0, %s\n", regList[r]);
-  emitf("  MOV X16, #1\n");
-  emitf("  SVC 0\n");
+  fprintf(f, "  MOV X0, %s\n", regList[r]);
+  fprintf(f, "  MOV X16, #1\n");
+  fprintf(f, "  SVC 0\n");
 }
 
 static void genFunction(FILE* f, STRING* name) {
@@ -272,84 +270,84 @@ static void genFunction(FILE* f, STRING* name) {
   // TODO: Allocate based on function local scopes
   int p = 3 * 16;
 
-  emitf("\n_fang_%s:\n", name->chars);
-  emitf("  PUSH2 LR, FP\n"); // push LR onto stack
-  emitf("  MOV FP, SP\n"); // create stack frame
-  emitf("  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
+  fprintf(f, "\n_fang_%s:\n", name->chars);
+  fprintf(f, "  PUSH2 LR, FP\n"); // push LR onto stack
+  fprintf(f, "  MOV FP, SP\n"); // create stack frame
+  fprintf(f, "  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
 }
 
 static void genFunctionEpilogue(FILE* f, STRING* name) {
   // get max function scope offset
   // and round to next 16
-  emitf("\n_fang_ep_%s:\n", name->chars);
+  fprintf(f, "\n_fang_ep_%s:\n", name->chars);
 
-  emitf("  MOV SP, FP\n");
-  emitf("  POP2 LR, FP\n"); // pop LR from stack
-  emitf("  RET\n");
+  fprintf(f, "  MOV SP, FP\n");
+  fprintf(f, "  POP2 LR, FP\n"); // pop LR from stack
+  fprintf(f, "  RET\n");
 }
 
 static void genReturn(FILE* f, STRING* name, int r) {
   if (r != -1) {
-    emitf("  MOV X0, %s\n", regList[r]);
+    fprintf(f, "  MOV X0, %s\n", regList[r]);
     freeRegister(r);
   }
-  emitf("  B _fang_ep_%s\n", name->chars);
+  fprintf(f, "  B _fang_ep_%s\n", name->chars);
 }
 
 static void genRaw(FILE* f, const char* str) {
-  emitf("  %s\n", str);
+  fprintf(f, "  %s\n", str);
 }
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // allocate stack memory?
   }
-  emitf("  STR %s, %s\n", regList[rvalue], symbol(entry));
+  fprintf(f, "  STR %s, %s\n", regList[rvalue], symbol(entry));
   return rvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue) {
-  emitf("  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
+  fprintf(f, "  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
   freeRegister(lvalue);
   return rvalue;
 }
 
 static int genBitwiseNot(FILE* f, int leftReg) {
-  emitf("  MVN %s, %s\n", regList[leftReg], regList[leftReg]);
+  fprintf(f, "  MVN %s, %s\n", regList[leftReg], regList[leftReg]);
   return leftReg;
 }
 static int genBitwiseXor(FILE* f, int leftReg, int rightReg) {
-  emitf("  EOR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  EOR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
 static int genBitwiseOr(FILE* f, int leftReg, int rightReg) {
-  emitf("  ORR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  ORR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
 static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
-  emitf("  AND %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  AND %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
 static int genAdd(FILE* f, int leftReg, int rightReg) {
-  emitf("  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
 
 static int genSub(FILE* f, int leftReg, int rightReg) {
-  emitf("  SUB %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  SUB %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
 
 static int genMul(FILE* f, int leftReg, int rightReg) {
-  emitf("  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
 static int genDiv(FILE* f, int leftReg, int rightReg) {
-  emitf("  UDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  UDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
@@ -368,22 +366,22 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
         }
       }
       if (!found) {
-        emitf("  PUSH1 %s\n", regList[i]);
+        fprintf(f, "  PUSH1 %s\n", regList[i]);
         arrput(snapshot, i);
       }
     }
   }
 
   for (int i = arrlen(params) - 1; i >= 0; i--) {
-    // emitf("  STR %s, [SP, %li]\n", regList[params[i]], (arrlen(params) - i - 1));
-    emitf("  PUSH1 %s\n", regList[params[i]]);
+    // fprintf(f, "  STR %s, [SP, %li]\n", regList[params[i]], (arrlen(params) - i - 1));
+    fprintf(f, "  PUSH1 %s\n", regList[params[i]]);
     freeRegister(params[i]);
   }
-  emitf("  BLR %s\n", regList[callable]);
-  emitf("  MOV %s, X0\n", regList[callable]);
-  emitf("  ADD SP, SP, #%li\n", (arrlen(params)) * 16);
+  fprintf(f, "  BLR %s\n", regList[callable]);
+  fprintf(f, "  MOV %s, X0\n", regList[callable]);
+  fprintf(f, "  ADD SP, SP, #%li\n", (arrlen(params)) * 16);
   for (int i = arrlen(snapshot) - 1; i >= 0; i--) {
-    emitf("  POP1 %s\n", regList[i]);
+    fprintf(f, "  POP1 %s\n", regList[i]);
   }
   arrfree(snapshot);
 
@@ -392,60 +390,60 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
 
 static int genMod(FILE* f, int leftReg, int rightReg) {
   int r = allocateRegister();
-  emitf("  UDIV %s, %s, %s\n", regList[r], regList[leftReg], regList[rightReg]);
-  emitf("  MSUB %s, %s, %s, %s\n", regList[leftReg], regList[r], regList[rightReg], regList[leftReg]);
+  fprintf(f, "  UDIV %s, %s, %s\n", regList[r], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  MSUB %s, %s, %s, %s\n", regList[leftReg], regList[r], regList[rightReg], regList[leftReg]);
   freeRegister(r);
   freeRegister(rightReg);
   return leftReg;
 }
 static int genShiftLeft(FILE* f, int leftReg, int rightReg) {
-  emitf("  LSL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  LSL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
 static int genShiftRight(FILE* f, int leftReg, int rightReg) {
-  emitf("  LSR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  fprintf(f, "  LSR %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   freeRegister(rightReg);
   return leftReg;
 }
 
 static int genNeg(FILE* f, int valueReg) {
-  emitf("  NEG %s, %s\n", regList[valueReg], regList[valueReg]);
+  fprintf(f, "  NEG %s, %s\n", regList[valueReg], regList[valueReg]);
   return valueReg;
 }
 
 static int genGreaterThan(FILE* f, int left, int right) {
-  emitf("  CMP %s, %s\n", regList[left], regList[right]);
+  fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
-  emitf("  CSET %s, gt\n", regList[left]);
-  emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
+  fprintf(f, "  CSET %s, gt\n", regList[left]);
+  fprintf(f, "  AND %s, %s, 255\n", regList[left], regList[left]);
   return left;
 }
 static int genEqualGreaterThan(FILE* f, int left, int right) {
-  emitf("  CMP %s, %s\n", regList[left], regList[right]);
+  fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
-  emitf("  CSET %s, ge\n", regList[left]);
-  emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
+  fprintf(f, "  CSET %s, ge\n", regList[left]);
+  fprintf(f, "  AND %s, %s, 255\n", regList[left], regList[left]);
   return left;
 }
 static int genEqualLessThan(FILE* f, int left, int right) {
-  emitf("  CMP %s, %s\n", regList[left], regList[right]);
+  fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
-  emitf("  CSET %s, le\n", regList[left]);
-  emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
+  fprintf(f, "  CSET %s, le\n", regList[left]);
+  fprintf(f, "  AND %s, %s, 255\n", regList[left], regList[left]);
   return left;
 }
 
 static int genLessThan(FILE* f, int left, int right) {
-  emitf("  CMP %s, %s\n", regList[left], regList[right]);
-  emitf("  CSET %s, lt\n", regList[left]);
-  emitf("  AND %s, %s, 255\n", regList[left], regList[left]);
+  fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
+  fprintf(f, "  CSET %s, lt\n", regList[left]);
+  fprintf(f, "  AND %s, %s, 255\n", regList[left], regList[left]);
   return left;
 }
 static int genLogicalNot(FILE* f, int valueReg) {
-  emitf("  CMP %s, #0\n", regList[valueReg]);
-  emitf("  CSET %s, eq\n", regList[valueReg]);
-  emitf("  AND %s, %s, 255\n", regList[valueReg], regList[valueReg]);
+  fprintf(f, "  CMP %s, #0\n", regList[valueReg]);
+  fprintf(f, "  CSET %s, eq\n", regList[valueReg]);
+  fprintf(f, "  AND %s, %s, 255\n", regList[valueReg], regList[valueReg]);
   return valueReg;
 }
 

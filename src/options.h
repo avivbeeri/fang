@@ -31,6 +31,7 @@ typedef struct {
   bool dumpAst;
   bool scanTest;
   bool report;
+  bool timeRun;
   char* backend;
 } FANG_OPTIONS;
 
