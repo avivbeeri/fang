@@ -1,44 +1,97 @@
 #!/bin/bash
 
+ERRORS=""
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+TOTAL=0
+FAILURES=0
 testFile() {
   local FILENAME=$1
   local BIN=${FILENAME%.*}
 
-  local COMPILER=$(./fgc $1 ${FILENAME%.*})
-  local COMPILER_RESULT=$?
+  local COMPILER
+  COMPILER=$(./fgc $FILENAME $BIN)
+  local COMPILER_CODE=$?
 
   local COMPILER_EXPECT=$2
   
-  local COMPILER_EXPECT_RESULT=0
+  local COMPILER_CODE_EXPECTED=$3
+  TOTAL=$(($TOTAL + 1))
 
   if [ "$COMPILER" != "$COMPILER_EXPECT" ]; then
-    echo "Compiler - Expected: $COMPILER_EXPECT"
-    echo "Compiler - Actual: \"$COMPILER \""
-    echo "[FAIL]: $1 - Compiler"
+    echo -e "${RED}[FAIL]${NC}: $1"
+    ERRORS+="${RED}[FAIL]${NC}: $1 - Compiler Output"
+    ERRORS+=$'\n'
+    ERRORS+="        Expected: $COMPILER_EXPECT"
+    ERRORS+=$'\n'
+    ERRORS+="        Actual: \"$COMPILER \""
+    ERRORS+=$'\n\n'
+    ERRORS+="---------------------------------------"
+    ERRORS+=$'\n'
+    FAILURES=$(($FAILURES + 1))
     return 1
   fi
 
-  if [ "$COMPILER_RESULT" != "$COMPILER_EXPECT_RESULT" ]; then
-    echo "Compiler Exit Code - Expected: $COMPILER_EXPECT_RESULT"
-    echo "Compiler Exit Code - Actual: $COMPILER_RESULT"
-    echo "[FAIL]: $1 - Compiler exit code"
+  if [ "$COMPILER_CODE" != "$COMPILER_CODE_EXPECTED" ]; then
+    echo -e "${RED}[FAIL]${NC}: $1"
+    ERRORS+="${RED}[FAIL]${NC}: $1 - Compiler Exit Code"
+    ERRORS+=$'\n'
+    ERRORS+="        Expected: $COMPILER_CODE_EXPECTED"
+    ERRORS+=$'\n'
+    ERRORS+="        Actual: $COMPILER_CODE"
+    ERRORS+=$'\n\n'
+    ERRORS+="---------------------------------------"
+    ERRORS+=$'\n'
+    FAILURES=$(($FAILURES + 1))
     return 1
   fi
   
   if test -f $BIN; then
     local OUTPUT=$($BIN)
-    local OUTPUT_EXPECTED=$3
+    local OUTPUT_CODE=$?
+    local OUTPUT_EXPECTED=$4
+    local OUTPUT_CODE_EXPECTED=$5
 
     if [ "$OUTPUT" != "$OUTPUT_EXPECTED" ]; then
-      echo "Expected Output: $OUTPUT_EXPECTED"
-      echo "Program Output: $OUTPUT"
-      echo "[FAIL]: $1 - Program"
+      echo -e "${RED}[FAIL]${NC}: $1"
+      ERRORS+="${RED}[FAIL]${NC}: $1 - Program output"
+      ERRORS+=$'\n'
+      ERRORS+="        Expected: $OUTPUT_EXPECTED"
+      ERRORS+=$'\n'
+      ERRORS+="        Actual: \"$OUTPUT\""
+      ERRORS+=$'\n\n'
+      ERRORS+="---------------------------------------"
+      ERRORS+=$'\n'
+      FAILURES=$(($FAILURES + 1))
+      return 1
+    fi
+    if [ "$OUTPUT_CODE" != "$OUTPUT_CODE_EXPECTED" ]; then
+      echo -e "${RED}[FAIL]${NC}: $1"
+      ERRORS+="${RED}[FAIL]${NC}: $1 - Program Exit Code"
+      ERRORS+=$'\n'
+      ERRORS+="        Expected: $OUTPUT_CODE_EXPECTED"
+      ERRORS+=$'\n'
+      ERRORS+="        Actual: $OUTPUT_CODE"
+      ERRORS+=$'\n'
+      ERRORS+="---------------------------------------"
+      ERRORS+=$'\n'
+      FAILURES=$(($FAILURES + 1))
       return 1
     fi
     rm -f $BIN
   fi
-  echo "[PASS]: $1"
+  echo -e "${GREEN}[PASS]${NC}: $1"
 }
 
-testFile examples/error.fg "[line 3; pos 1] Error at '}': Expect ';' after expression."
-testFile examples/helloworld.fg "OK" "hello world"
+testFile examples/error.fg "[line 3; pos 1] Error at '}': Expect ';' after expression." 1
+testFile examples/helloworld.fg "OK" 0 "hello world" 0
+
+if [ "$TOTAL" -ne "0" ]; then
+  echo -e '\n\n----------Failure Results--------------\n'
+  echo -e "$ERRORS"
+  echo "${FAILURES} of ${TOTAL} tests failed."
+else
+  echo "All tests passed."
+fi
+

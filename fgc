@@ -1,18 +1,14 @@
 #!/bin/bash
-
-
 rm -f file.S
 rm -f file.o
 rm -f $2
 
-./fgcc $1 2>&1 || exit $?
+./fgcc $1 2>&1
 
 if test -f "file.S"; then
-  set -e
   as -g -o file.o file.S || exit $?
   ld -o $2 file.o -lSystem -syslibroot `xcrun -sdk macosx --show-sdk-path` -e _start -arch arm64 || exit $?
-else 
+  exit 0
+else
   exit 1
 fi
-exit
-
