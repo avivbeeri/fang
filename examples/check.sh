@@ -37,7 +37,7 @@ testFile() {
     ERRORS+="        Expected: $COMPILER_EXPECT"
     ERRORS+=$'\n'
     ERRORS+="        Actual: \"$COMPILER \""
-    ERRORS+=$'\n\n'
+    ERRORS+=$'\n'
     ERRORS+="---------------------------------------"
     ERRORS+=$'\n'
     FAILURES=$(($FAILURES + 1))
@@ -51,7 +51,7 @@ testFile() {
     ERRORS+="        Expected: $COMPILER_CODE_EXPECTED"
     ERRORS+=$'\n'
     ERRORS+="        Actual: $COMPILER_CODE"
-    ERRORS+=$'\n\n'
+    ERRORS+=$'\n'
     ERRORS+="---------------------------------------"
     ERRORS+=$'\n'
     FAILURES=$(($FAILURES + 1))
@@ -73,7 +73,7 @@ testFile() {
       ERRORS+="        Expected: $OUTPUT_EXPECTED"
       ERRORS+=$'\n'
       ERRORS+="        Actual: \"$OUTPUT\""
-      ERRORS+=$'\n\n'
+      ERRORS+=$'\n'
       ERRORS+="---------------------------------------"
       ERRORS+=$'\n'
       FAILURES=$(($FAILURES + 1))
@@ -99,9 +99,10 @@ testFile() {
 allTests
 
 if (($TOTAL != 0)); then
-  echo -e '\n\n----------Failure Results--------------\n'
+  echo -e '\n----------Failure Results--------------'
   echo -e "$ERRORS"
   echo "${FAILURES} of ${TOTAL} tests failed."
+  exit 1;
 else
   echo "All tests passed."
 fi
