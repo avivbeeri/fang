@@ -51,6 +51,7 @@ fn main(): u8 {
     writeU8(42);
     writeChar('\n');
     writeU8(0);
+    writeChar('\n');
     writeI8(-54);
   }
   return 0;
