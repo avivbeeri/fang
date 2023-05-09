@@ -1,8 +1,3 @@
-fn write(c : ^char, len: u8): void {
-  for (var i: u8 = 0; i < 5; i = i + 1) {
-    syscall_write(c[i]);
-  }
-}
 
 fn main(): i8 {
   var len: u8 = 5;

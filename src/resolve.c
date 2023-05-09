@@ -354,6 +354,10 @@ static bool traverse(AST* ptr) {
           printf("Variable initialisation: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
         }
         //(leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
+        if (SYMBOL_TABLE_getCurrent(identifier).defined) {
+          printf("[Error] variable \"%s\" is already defined.\n", data.identifier->chars);
+          return false;
+        }
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
         ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
@@ -366,6 +370,10 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.type);
         int typeIndex = data.type->type;
         ptr->type = typeIndex;
+        if (SYMBOL_TABLE_getCurrent(identifier).defined) {
+          printf("[Error] variable \"%s\" is already defined.\n", data.identifier->chars);
+          return false;
+        }
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, typeIndex);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
@@ -388,6 +396,10 @@ static bool traverse(AST* ptr) {
        // (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        if (SYMBOL_TABLE_getCurrent(identifier).defined) {
+          printf("[Error] variable \"%s\" is already defined.\n", data.identifier->chars);
+          return false;
+        }
         if (ptr->scopeIndex <= 1) {
           SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
         } else {

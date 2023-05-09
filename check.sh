@@ -8,7 +8,7 @@ FAILURES=0
 
 # Tests are defined here so make adding them easier
 allTests() {
-  testFile examples/error.fg "[line 51; pos 1] Error at '}': Expect ';' after expression." 1
+  testFile examples/error.fg "[line 57; pos 1] Error at '}': Expect ';' after expression." 1
   testFile examples/empty.fg "OK" 1 
   testFile examples/helloworld.fg "OK" 0 "hello world" 0
   testFile examples/minimal.fg "OK" 0 "" 0
@@ -16,6 +16,7 @@ allTests() {
   testFile examples/arithmetic.fg "OK" 0 "" 1
   testFile examples/controlflow.fg "OK" 0 "42"$'\n'"0"$'\n'"-54" 0
   testFile examples/array.fg "OK" 0 "hellx" 0
+  testFile examples/variables.fg "OK" 0 "60" 0
 }
 
 testFile() {
