@@ -86,7 +86,21 @@ static int traverse(FILE* f, AST* ptr) {
         p.genFunction(f, data.identifier);
         arrput(fnStack, data.identifier);
         traverse(f, data.body);
+
+        if (strcmp(data.identifier->chars, "main") == 0) {
+          struct AST_BLOCK block = data.body->data.AST_BLOCK;
+          struct AST_LIST bodyList = block.body->data.AST_LIST;
+          if (arrlen(bodyList.decls) > 0) {
+            size_t index = arrlen(bodyList.decls) - 1;
+            if (bodyList.decls[index]->tag != AST_RETURN) {
+              int a = p.genLoad(f, 0);
+              p.genReturn(f, fnStack[0], a);
+            }
+          }
+        }
+
         arrdel(fnStack, 0);
+
         p.genFunctionEpilogue(f, data.identifier);
         break;
       }

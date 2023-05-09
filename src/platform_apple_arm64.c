@@ -290,6 +290,8 @@ static void genReturn(FILE* f, STRING* name, int r) {
   if (r != -1) {
     fprintf(f, "  MOV W0, %s\n", storeRegList[r]);
     freeRegister(r);
+  } else {
+    fprintf(f, "  MOV W0, WZR\n");
   }
   fprintf(f, "  B _fang_ep_%s\n", name->chars);
 }
