@@ -93,8 +93,7 @@ static int traverse(FILE* f, AST* ptr) {
           if (arrlen(bodyList.decls) > 0) {
             size_t index = arrlen(bodyList.decls) - 1;
             if (bodyList.decls[index]->tag != AST_RETURN) {
-              int a = p.genLoad(f, 0);
-              p.genReturn(f, fnStack[0], a);
+              p.genReturn(f, fnStack[0], -1);
             }
           }
         }
