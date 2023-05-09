@@ -20,7 +20,9 @@ allTests() {
 
 testFile() {
   local FILENAME=$1
-  local BIN=${FILENAME%.*}
+  local BIN="${FILENAME##*/}"
+  local BIN=obj/${BIN%.*}
+
 
   local COMPILER
   COMPILER=$(./fgc $FILENAME $BIN)
