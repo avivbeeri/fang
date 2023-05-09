@@ -29,6 +29,7 @@ file.S: fgcc example.fg
 
 test: $(TEST)/bin $(TESTBINS) $(OBJECTS)
 	for test in $(TESTBINS) ; do ./$$test --verbose ; done
+	./check.sh
 
 $(TEST)/bin/%: $(TEST)/%.c
 	$(CC) $(shell pkg-config --cflags --libs criterion) -I$(SRC) $(CFLAGS) $< $(OBJS) -o $@ -lcriterion 

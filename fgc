@@ -6,8 +6,8 @@ rm -f $2
 ./fgcc $1 2>&1
 
 if test -f "file.S"; then
-  as -g -o file.o file.S || exit $?
-  ld -o $2 file.o -lSystem -syslibroot `xcrun -sdk macosx --show-sdk-path` -e _start -arch arm64 || exit $?
+  as -g -o file.o file.S 2>/dev/null || exit $?
+  ld -o $2 file.o -lSystem -syslibroot `xcrun -sdk macosx --show-sdk-path` -e _start -arch arm64 2>/dev/null || exit $?
   exit 0
 else
   exit 1

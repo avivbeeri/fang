@@ -1,5 +1,4 @@
 #!/bin/bash
-
 ERRORS=""
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -10,13 +9,14 @@ FAILURES=0
 # Tests are defined here so make adding them easier
 allTests() {
   testFile examples/error.fg "[line 3; pos 1] Error at '}': Expect ';' after expression." 1
+  testFile examples/empty.fg "OK" 1 
   testFile examples/helloworld.fg "OK" 0 "hello world" 0
-  testFile examples/empty.fg "OK" 0 "" 0
+  testFile examples/minimal.fg "OK" 0 "" 0
   testFile examples/return.fg "OK" 0 "" 42
   testFile examples/arithmetic.fg "OK" 0 "" 1
   testFile examples/controlflow.fg "OK" 0 "42"$'\n'"0"$'\n'"-54" 0
+  testFile examples/array.fg "OK" 0 "hellx" 0
 }
-
 
 testFile() {
   local FILENAME=$1
@@ -25,11 +25,11 @@ testFile() {
 
 
   local COMPILER
+  local COMPILER_CODE
   COMPILER=$(./fgc $FILENAME $BIN)
-  local COMPILER_CODE=$?
+  COMPILER_CODE=$?
 
   local COMPILER_EXPECT=$2
-  
   local COMPILER_CODE_EXPECTED=$3
   TOTAL=$(($TOTAL + 1))
 
@@ -101,7 +101,7 @@ testFile() {
 
 allTests
 
-if (($TOTAL != 0)); then
+if (($FAILURES != 0)); then
   echo -e '\n----------Failure Results--------------'
   echo -e "$ERRORS"
   echo "${FAILURES} of ${TOTAL} tests failed."
