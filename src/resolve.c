@@ -255,6 +255,10 @@ static bool resolveTopLevel(AST* ptr) {
       {
         struct AST_FN data = ast.data.AST_FN;
         ptr->type = resolveType(data.fnType);
+        if (SYMBOL_TABLE_getCurrent(data.identifier).defined) {
+          printf("[Error] function \"%s\" is already defined.\n", data.identifier->chars);
+          return false;
+        }
         SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type);
         return true;
       }

@@ -1,0 +1,7 @@
+
+fn main(): void {
+  var a: i8;
+  var b: i8 = 56;
+  var c: i8 = a + b;
+  return;
+}
