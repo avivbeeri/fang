@@ -14,7 +14,7 @@ allTests() {
   testFile examples/empty.fg "OK" 0 "" 0
   testFile examples/return.fg "OK" 0 "" 42
   testFile examples/arithmetic.fg "OK" 0 "" 1
-  testFile examples/controlflow.fg "OK" 0 "42" 0
+  testFile examples/controlflow.fg "OK" 0 "42"$'\n'"0" 0
 }
 
 
@@ -71,7 +71,7 @@ testFile() {
       echo -e "${RED}[FAIL]${NC}: $1"
       ERRORS+="${RED}[FAIL]${NC}: $1 - Program output"
       ERRORS+=$'\n'
-      ERRORS+="        Expected: $OUTPUT_EXPECTED"
+      ERRORS+="        Expected: \"$OUTPUT_EXPECTED\""
       ERRORS+=$'\n'
       ERRORS+="        Actual: \"$OUTPUT\""
       ERRORS+=$'\n'

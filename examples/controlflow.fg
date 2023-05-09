@@ -13,30 +13,45 @@ fn writeChar(c: char): void {
 }
 
 fn writeU8(num: u8): void {
-  var div: u8 = 0;
-  for (div = 1; div <= num; div = div * 10);
-
-  while (num) {
-    div = div / 10;
+  var div: u8 = 1;
+  var digit_count: u8 = 1;
+  while ( div <= num / 10 ) {
+    digit_count = digit_count + 1;
+    div = div * 10;
+  }
+  while ( digit_count > 0 ) {
     syscall_write(((num / div) + 0x30) as char);
     num = num % div;
+    div = div / 10;
+    digit_count = digit_count - 1;
   }
 }
 
 fn writeI8(num: i8): void {
-  var div: i8 = 0;
-  for (div = 1; div <= num; div = div * 10);
-
-  while (num) {
-    div = div / 10;
+  if (num < 0) {
+    syscall_write('-');
+    num = num * -1;
+  }
+  var div: i8 = 1;
+  var digit_count: i8 = 1;
+  while ( div <= num / 10 ) {
+    digit_count = digit_count + 1;
+    div = div * 10;
+  }
+  while ( digit_count > 0 ) {
     syscall_write(((num / div) + 0x30) as char);
     num = num % div;
+    div = div / 10;
+    digit_count = digit_count - 1;
   }
 }
 
 fn main(): u8 {
   if (true) {
     writeU8(42);
+    writeChar('\n');
+    writeU8(0);
+    writeI8(-54);
   }
   return 0;
 }

@@ -817,15 +817,17 @@ static bool traverse(AST* ptr) {
 
         for (int i = 0; i < arrlen(data.arguments); i++) {
           PUSH(rvalueStack, true);
+          PUSH(typeStack, data.arguments[i]->type);
           r = traverse(data.arguments[i]);
+          POP(typeStack);
           POP(rvalueStack);
           if (!r) {
             printf("term 4\n");
             return false;
           }
           if (!isCompatible(fnType.fields[i].typeIndex, data.arguments[i]->type)) {
-            printf("%i vs %i\n", fnType.fields[i].typeIndex, data.arguments[i]->type);
             printf("%s\n", fnType.name->chars);
+            printf("%s vs %s\n", typeTable[fnType.fields[i].typeIndex].name->chars, typeTable[data.arguments[i]->type].name->chars);
             printf("term 5\n");
             return false;
           }
