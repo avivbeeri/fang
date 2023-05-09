@@ -124,6 +124,15 @@ SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scopeIndex, STRING* name) {
   }
   return (SYMBOL_TABLE_ENTRY){0};
 }
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STRING* name) {
+  uint32_t current = scopeStack[arrlen(scopeStack) - 1];
+  SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
+  SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
+  if (entry.defined) {
+    return entry;
+  }
+  return (SYMBOL_TABLE_ENTRY){0};
+}
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STRING* name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   while (current > 0) {

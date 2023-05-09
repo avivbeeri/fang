@@ -110,6 +110,8 @@ int main(int argc, const char* argv[]) {
   }
   if (success) {
     printf("OK\n");
+  } else {
+    printf("Fail\n");
   }
   return success ? 0 : 1;
 }

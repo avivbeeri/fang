@@ -58,7 +58,6 @@ bool compile(const char* source) {
       emitTree(ast);
       // evalTree(ast);
     } else {
-      printf("Failed to compile program.\n");
       result = false;
     }
     ast_free(ast);
