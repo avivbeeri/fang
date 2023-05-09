@@ -662,7 +662,10 @@ static AST* whileStatement() {
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
   AST* condition = expression();
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
-  AST* body = statement();
+  AST* body = NULL;
+  if (!match(TOKEN_SEMICOLON)) {
+    body = statement();
+  }
 
   return AST_NEW(AST_WHILE, condition, body);
 }
@@ -690,7 +693,10 @@ static AST* forStatement() {
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
   }
 
-  AST* body = statement();
+  AST* body = NULL;
+  if (!match(TOKEN_SEMICOLON)) {
+    body = statement();
+  }
 
   return AST_NEW(AST_FOR, initializer, condition, increment, body);
 }

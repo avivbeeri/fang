@@ -1,0 +1,42 @@
+fn syscall_write(c: char): void {
+  asm {
+    "MOV X0, #1" // STDOUT
+    "ADD X1, FP, #16" // PTR (FP+16) // function argument
+    "MOV X2, 1"
+    "MOV X16, #4"
+    "SVC 0"
+   };
+}
+
+fn writeChar(c: char): void {
+  syscall_write(c);
+}
+
+fn writeU8(num: u8): void {
+  var div: u8 = 0;
+  for (div = 1; div <= num; div = div * 10);
+
+  while (num) {
+    div = div / 10;
+    syscall_write(((num / div) + 0x30) as char);
+    num = num % div;
+  }
+}
+
+fn writeI8(num: i8): void {
+  var div: i8 = 0;
+  for (div = 1; div <= num; div = div * 10);
+
+  while (num) {
+    div = div / 10;
+    syscall_write(((num / div) + 0x30) as char);
+    num = num % div;
+  }
+}
+
+fn main(): u8 {
+  if (true) {
+    writeU8(42);
+  }
+  return 0;
+}

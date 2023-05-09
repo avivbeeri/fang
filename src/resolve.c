@@ -47,9 +47,11 @@ uint32_t* typeStack = NULL;
 #define I16_INDEX 6
 #define NUMERICAL_INDEX 7
 #define FN_INDEX 9
+
 static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
 }
+
 
 static bool isPointer(int type) {
   return typeTable[type].entryType == ENTRY_TYPE_POINTER;
@@ -64,6 +66,23 @@ static bool isCompatible(int type1, int type2) {
     || (isLiteral(type1) && isNumeric(type2))
     || (isLiteral(type1) && isLiteral(type2));
 }
+static int coerceType(int type1, int type2) {
+  if (type1 == type2) {
+    return type1;
+  }
+  if (isNumeric(type1) && isNumeric(type2)) {
+    return type1;
+  }
+  if (isNumeric(type1) && isLiteral(type2)) {
+    return type1;
+  }
+  if (isLiteral(type1) && isNumeric(type2)) {
+    return type2;
+  }
+
+  return NUMERICAL_INDEX;
+}
+
 
 static int valueToType(Value value) {
   switch (value.type) {
@@ -326,7 +345,11 @@ static bool traverse(AST* ptr) {
           return false;
         }
 
-        bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
+        bool result = r && isCompatible(leftType, rightType);
+        if (!isCompatible(leftType, rightType)) {
+          printf("Variable initialisation: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+        }
+        //(leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
         ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
@@ -354,7 +377,11 @@ static bool traverse(AST* ptr) {
         int rightType = data.expr->type;
         POP(typeStack);
 
-        bool result = r && (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
+        bool result = r && isCompatible(leftType, rightType);
+        if (!isCompatible(leftType, rightType)) {
+          printf("Constant initialisation: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+        }
+       // (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         if (ptr->scopeIndex <= 1) {
@@ -382,6 +409,10 @@ static bool traverse(AST* ptr) {
           return false;
         }
         ptr->type = data.lvalue->type;
+        if (!isCompatible(leftType, rightType)) {
+          printf("%i vs %i\n", leftType, rightType);
+          printf("Assignment: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+        }
         return isCompatible(leftType, rightType);
       }
     case AST_ASM:
@@ -565,6 +596,13 @@ static bool traverse(AST* ptr) {
           case OP_DIV:
           case OP_MUL:
             {
+              if (!isCompatible(leftType, rightType)) {
+                compatible = false;
+                printf("Arithmetic: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+              } else {
+                ptr->type = coerceType(leftType, rightType);
+              }
+              /*
               if (!isNumeric(leftType) || !isNumeric(rightType)) {
                 compatible = false;
               }
@@ -583,6 +621,7 @@ static bool traverse(AST* ptr) {
                 // Hopefully, constant-folding removes this node
                 ptr->type = NUMERICAL_INDEX;
               }
+              */
               break;
             }
 
@@ -602,6 +641,7 @@ static bool traverse(AST* ptr) {
                 ptr->type = rightType;
               } else {
                 compatible = false;
+                printf("Bitwise: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
               }
               break;
             }
@@ -616,9 +656,10 @@ static bool traverse(AST* ptr) {
           case OP_COMPARE_EQUAL:
           case OP_NOT_EQUAL:
             {
-              if (isNumeric(leftType) && leftType == rightType) {
+              if (isCompatible(leftType, rightType)) {
                 ptr->type = BOOL_INDEX;
               } else {
+                printf("Comparison: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
                 compatible = false;
               }
               break;
@@ -628,16 +669,11 @@ static bool traverse(AST* ptr) {
           case OP_GREATER:
           case OP_LESS:
             {
-              if (isNumeric(leftType) && leftType == rightType) {
-                ptr->type = BOOL_INDEX;
-              } else if (isNumeric(leftType) && isLiteral(rightType)) {
-                ptr->type = BOOL_INDEX;
-              } else if (isLiteral(leftType) && isNumeric(rightType)) {
-                ptr->type = BOOL_INDEX;
-              } else if (isLiteral(leftType) && isLiteral(rightType)) {
+              if (isCompatible(leftType, rightType)) {
                 ptr->type = BOOL_INDEX;
               } else {
                 compatible = false;
+                printf("Comparison: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
               }
               break;
             }
@@ -787,8 +823,9 @@ static bool traverse(AST* ptr) {
             printf("term 4\n");
             return false;
           }
-          if (fnType.fields[i].typeIndex != data.arguments[i]->type) {
+          if (!isCompatible(fnType.fields[i].typeIndex, data.arguments[i]->type)) {
             printf("%i vs %i\n", fnType.fields[i].typeIndex, data.arguments[i]->type);
+            printf("%s\n", fnType.name->chars);
             printf("term 5\n");
             return false;
           }

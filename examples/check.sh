@@ -14,6 +14,7 @@ allTests() {
   testFile examples/empty.fg "OK" 0 "" 0
   testFile examples/return.fg "OK" 0 "" 42
   testFile examples/arithmetic.fg "OK" 0 "" 1
+  testFile examples/controlflow.fg "OK" 0 "42" 0
 }
 
 
