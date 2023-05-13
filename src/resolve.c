@@ -444,12 +444,10 @@ static bool traverse(AST* ptr) {
         int rightType = data.expr->type;
 
         if (!(ident && expr)) {
-          printf("[Unknown] Assignment trap\n");
           return false;
         }
         ptr->type = leftType;
         if (!isCompatible(leftType, rightType)) {
-          // printf("Assignment: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
           int indent = compileError(data.expr->token, "Incompatible assignment for variable '");
           printTree(data.lvalue);
           printf("'\n");
@@ -554,7 +552,6 @@ static bool traverse(AST* ptr) {
             r = traverse(data.assignments[i]);
             POP(typeStack);
             if (!r) {
-              printf("failed\n");
               return false;
             }
             if (!isCompatible(data.assignments[i]->type, subType)) {
@@ -660,7 +657,9 @@ static bool traverse(AST* ptr) {
             {
               if (!isCompatible(leftType, rightType)) {
                 compatible = false;
-                printf("Arithmetic: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+                int indent = compileError(ast.token, "Invalid operands to arithmetic operator '%.*s'\n", ast.token.length, ast.token.start);
+                printf("%*s", indent, "");
+                printf("Operands were of type '%s' and '%s', which are incompatible.\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
               } else {
                 ptr->type = coerceType(leftType, rightType);
               }
@@ -683,7 +682,9 @@ static bool traverse(AST* ptr) {
                 ptr->type = rightType;
               } else {
                 compatible = false;
-                printf("Bitwise: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+                int indent = compileError(ast.token, "Invalid operands to bitwise operator '%.*s'\n", ast.token.length, ast.token.start);
+                printf("%*s", indent, "");
+                printf("Operands were of type '%s' and '%s', which are incompatible.\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
               }
               break;
             }
