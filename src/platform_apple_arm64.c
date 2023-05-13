@@ -151,7 +151,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
     snprintf(buffer, sizeof(buffer), "_fang_%s", entry.key);
     return buffer;
   } else if (scope.parent == 0) {
-    snprintf(buffer, sizeof(buffer), "%s", entry.key);
+    snprintf(buffer, sizeof(buffer), "_fang_var_%s", entry.key);
     return buffer;
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
     snprintf(buffer, sizeof(buffer), "[FP, #%i]", (entry.paramOrdinal + 1) * 16);
@@ -268,11 +268,30 @@ static void genPreamble(FILE* f) {
     fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(1);
+  for (int i = 0; i < hmlen(scope.table); i++) {
+    SYMBOL_TABLE_ENTRY entry = scope.table[i];
+    if (!entry.defined) {
+      continue;
+    }
+    if (entry.entryType == SYMBOL_TYPE_VARIABLE || entry.entryType == SYMBOL_TYPE_CONSTANT) {
+      // Allocates global memory slots
+      //
+      uint32_t size = typeTable[entry.typeIndex].byteSize;
+      if (size > 16) {
+        fprintf(f, "_fang_var_%s: .fill %i, %i, %i\n", entry.key, (((size + 15) >> 4) << 4), 16, 0);
+      } else {
+        fprintf(f, "_fang_var_%s: .octa %i\n", entry.key, 0);
+      }
+    }
+  }
   fprintf(f, ".global _start\n");
   fprintf(f, ".align 2\n");
   fprintf(f, "_start:\n");
-  fprintf(f, "  MOV X28, #0\n");
-  fprintf(f, "  MOV X0, #0\n");
+}
+
+static void genRunMain(FILE* f) {
+  fprintf(f, "  MOV X0, XZR\n");
   fprintf(f, "  BL _fang_main\n");
 }
 static void genSimpleExit(FILE* f) {
@@ -327,6 +346,10 @@ static void genRaw(FILE* f, const char* str) {
 }
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   if (entry.scopeIndex <= 1) {
+    int r = allocateRegister();
+    fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  STR %s, [%s]\n", regList[rvalue], regList[r]);
+    freeRegister(r);
     return rvalue;
   }
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
@@ -488,6 +511,7 @@ PLATFORM platform_apple_arm64 = {
   .freeAllRegisters = freeAllRegisters,
   .genPreamble = genPreamble,
   .genExit = genExit,
+  .genRunMain = genRunMain,
   .genSimpleExit = genSimpleExit,
   .genFunction = genFunction,
   .genFunctionEpilogue = genFunctionEpilogue,

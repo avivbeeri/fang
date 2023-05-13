@@ -54,8 +54,23 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_MAIN data = ast.data.AST_MAIN;
         p.genPreamble(f);
+
+        struct AST_LIST body = data.body->data.AST_LIST;
+        int* deferred = NULL;
+        for (int i = 0; i < arrlen(body.decls); i++) {
+          if (body.decls[i]->tag == AST_FN) {
+            arrput(deferred, i);
+          } else {
+            traverse(f, body.decls[i]);
+            p.freeAllRegisters();
+          }
+        }
+        p.genRunMain(f);
         p.genSimpleExit(f);
-        traverse(f, data.body);
+        for (int i = 0; i < arrlen(deferred); i++) {
+          traverse(f, body.decls[deferred[i]]);
+        }
+
         return 0;
       }
     case AST_LIST:

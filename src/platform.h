@@ -68,6 +68,7 @@ typedef struct {
   int (*genAllocStack)(FILE* f, int, int);
   int (*genFunctionCall)(FILE* f, int, int*);
   int (*genInitSymbol)(FILE* f, SYMBOL_TABLE_ENTRY, int);
+  void (*genRunMain)(FILE* f);
   void (*genSimpleExit)(FILE* f);
   void (*genExit)(FILE* f, int);
   void (*genRaw)(FILE* f, const char*);
