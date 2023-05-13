@@ -2,5 +2,12 @@ fn main(): void {
   var i: i8 = 0;
   {
     var i: u8 = 4;
+    writeU8(i);
   }
+  writeI8(i);
+  {
+    var i: u8 = 2;
+    writeU8(i);
+  }
+  writeI8(i);
 }

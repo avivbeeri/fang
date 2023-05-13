@@ -73,18 +73,24 @@ void SYMBOL_TABLE_closeScope() {
   SYMBOL_TABLE_SCOPE closingScope = SYMBOL_TABLE_getScope(current);
   SYMBOL_TABLE_SCOPE parent = SYMBOL_TABLE_getScope(closingScope.parent);
 
-  uint32_t scopeTotal = closingScope.nestedSize;
-  for (int i = 0; i < hmlen(closingScope.table); i++) {
+  uint32_t scopeCount = hmlen(closingScope.table);
+  /*
+  uint32_t scopeSize = 0;
+  for (int i = 0; i < scopeCount; i++) {
     SYMBOL_TABLE_ENTRY entry = closingScope.table[i];
     if (entry.defined) {
-      scopeTotal += typeTable[entry.typeIndex].byteSize;
+      scopeSize += typeTable[entry.typeIndex].byteSize;
     }
   }
-  closingScope.tableAllocationCount = hmlen(closingScope.table) + closingScope.nestedCount;
-  closingScope.tableAllocationSize = scopeTotal + closingScope.nestedSize;
+  closingScope.tableAllocationSize = scopeSize + closingScope.nestedSize;
+  parent.nestedSize = fmax(parent.nestedSize, scopeSize);
+  */
+
+
+  closingScope.tableAllocationCount = scopeCount + closingScope.nestedCount;
+  parent.nestedCount = fmax(parent.nestedCount, closingScope.tableAllocationCount);
+
   hmputs(scopes, closingScope);
-  parent.nestedSize = fmax(parent.nestedSize, scopeTotal);
-  parent.nestedCount = fmax(parent.nestedCount, (uint32_t)(hmlen(closingScope.table)));
   hmputs(scopes, parent);
   arrdel(scopeStack, arrlen(scopeStack) - 1);
 }

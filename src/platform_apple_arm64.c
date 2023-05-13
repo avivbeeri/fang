@@ -286,7 +286,7 @@ static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   // get max function scope offset
   // and round to next 16
   // TODO: Allocate based on function local scopes
-  int p = 3 * 16;// (scope.tableAllocationCount + 1) * 16;
+  int p = (scope.tableAllocationCount + 1) * 16;
 
 
   fprintf(f, "\n_fang_%s:\n", name->chars);

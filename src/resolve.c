@@ -456,6 +456,7 @@ static bool traverse(AST* ptr) {
         bool r = true;
 
         SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         for (int i = 0; i < arrlen(data.params); i++) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
           STRING* paramName = param.identifier;
