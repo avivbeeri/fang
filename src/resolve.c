@@ -27,6 +27,7 @@
 #include "common.h"
 #include "parser.h"
 #include "ast.h"
+#include "error.h"
 #include "print.h"
 #include "const_table.h"
 #include "type_table.h"
@@ -256,7 +257,7 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_FN data = ast.data.AST_FN;
         ptr->type = resolveType(data.fnType);
         if (SYMBOL_TABLE_getCurrent(data.identifier).defined) {
-          printf("[Error] function \"%s\" is already defined.\n", data.identifier->chars);
+          runtimeError(ast.token, "function \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
         SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type);
@@ -857,8 +858,9 @@ static bool traverse(AST* ptr) {
           }
           if (!isCompatible(fnType.fields[i].typeIndex, data.arguments[i]->type)) {
             printf("%s\n", fnType.name->chars);
-            printf("%s vs %s\n", typeTable[fnType.fields[i].typeIndex].name->chars, typeTable[data.arguments[i]->type].name->chars);
-            printf("term 5\n");
+            runtimeError(data.arguments[i]->token, "Incompatible type for argument %i of '", i + 1);
+            printTree(data.identifier);
+            printf("'\n  Expected type '%s' but instead found '%s'\n", typeTable[fnType.fields[i].typeIndex].name->chars, typeTable[data.arguments[i]->type].name->chars);
             return false;
           }
         }

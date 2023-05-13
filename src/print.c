@@ -385,5 +385,4 @@ static void traverse(AST* ptr, int level) {
 }
 void printTree(AST* ptr) {
   traverse(ptr, 1);
-  printf("\n");
 }

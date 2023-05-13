@@ -179,7 +179,7 @@ static AST* array() {
 
 static AST* subscript(bool canAssign, AST* left) {
   AST* value = expression();
-  AST* expr = AST_NEW(AST_SUBSCRIPT, left, value);
+  AST* expr = AST_NEW_T(AST_SUBSCRIPT, parser.previous, left, value);
   consume(TOKEN_RIGHT_BRACKET, "Expect ']' after a subscript.");
 
   if (canAssign && match(TOKEN_EQUAL)) {

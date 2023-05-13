@@ -1,8 +1,6 @@
 fn main(): void {
   var c: [3]u8 = [ 65, 66, 67 ];
-  writeU8(c[0]);
-//  writeI8(c[1]);
- // writeI8(c[2]);
+  writeI8(c[0]);
   return;
 }
 
