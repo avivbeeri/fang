@@ -404,7 +404,7 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "constant \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        if (ptr->scopeIndex <= 1) {
+        if (ptr->scopeIndex <= 1 || ast.tag == AST_CONST_DECL) {
           SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
         } else {
           SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
@@ -415,6 +415,15 @@ static bool traverse(AST* ptr) {
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         PUSH(rvalueStack, false);
+
+        if (data.lvalue->tag == AST_IDENTIFIER) {
+          SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_getCurrent(data.lvalue->data.AST_IDENTIFIER.identifier);
+          if (entry.defined && entry.entryType == SYMBOL_TYPE_CONSTANT) {
+            compileError(ast.token, "attempting to assign to read-only constant \"%s\".\n", data.lvalue->data.AST_IDENTIFIER.identifier->chars);
+            return false;
+          }
+        }
+
         bool ident = traverse(data.lvalue);
         POP(rvalueStack);
         int leftType = data.lvalue->type;

@@ -143,9 +143,10 @@ static AST* variable(bool canAssign) {
   STRING* string = copyString(parser.previous.start, parser.previous.length);
   AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, string);
   if (canAssign && match(TOKEN_EQUAL)) {
+    Token token = parser.previous;
     AST* expr = expression();
     expr->rvalue = true;
-    return AST_NEW(AST_ASSIGNMENT, variable, expr);
+    return AST_NEW_T(AST_ASSIGNMENT, token, variable, expr);
   }
   return variable;
 }

@@ -1,0 +1,5 @@
+
+fn main(): void {
+  const i: i8 = 0;
+  i = 5;
+}
