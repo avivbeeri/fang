@@ -6,6 +6,8 @@
 
 static int labelId = 0;
 static int freereg[4];
+
+static char *storeRegList[4] = { "W8", "W9", "W10", "W11" };
 static char *regList[4] = { "X8", "X9", "X10", "X11" };
 static char *paramRegList[8] = { "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7" };
 static int MAX_PARAM_REG = 8;
@@ -43,14 +45,14 @@ static void freeRegister(int r) {
     exit(1);
   }
   freereg[r] -= 1;
-  printf("free %s = %i\n", regList[r], freereg[r]);
+  //printf("free %s = %i\n", regList[r], freereg[r]);
 }
 
 static int allocateRegister() {
   for (int i = 0; i < sizeof(freereg); i++) {
     if (freereg[i] == 0) {
       freereg[i] += 1;
-      printf("allocate %s = %i\n", regList[i], freereg[i]);
+      //printf("allocate %s = %i\n", regList[i], freereg[i]);
       return i;
     }
   }
@@ -61,11 +63,17 @@ static int allocateRegister() {
 
 static int holdRegister(int r) {
   freereg[r]++;
-  printf("hold %s = %i\n", regList[r], freereg[r]);
+  // printf("hold %s = %i\n", regList[r], freereg[r]);
   return r;
 }
 
 static void genMacros(FILE* f) {
+  fprintf(f, " .macro PUSHB1 register\n");
+  fprintf(f, "        STRB \\register, [SP, #-16]!\n");
+  fprintf(f, " .endm\n");
+  fprintf(f, " .macro POPB1 register\n");
+  fprintf(f, "        LDRSB \\register, [SP], #16\n");
+  fprintf(f, " .endm\n");
   fprintf(f, " .macro PUSH1 register\n");
   fprintf(f, "        STR \\register, [SP, #-16]!\n");
   fprintf(f, " .endm\n");
@@ -105,9 +113,13 @@ static void genCmpNotEqual(FILE* f, int r, int jumpLabel) {
   freeRegister(r);
 }
 
-static int genAllocStack(FILE* f, int storage) {
+static int genAllocStack(FILE* f, int storage, int cellSize) {
   char* store = regList[storage];
+  if (cellSize > 1) {
+    fprintf(f, "  LSL %s, %s, #%i\n", store, store, cellSize);
+  }
   fprintf(f, "  ADD %s, %s, #15 ; storage\n", store, store);
+  // ARM64 stack has to align to 16 bytes
   fprintf(f, "  LSR %s, %s, #4\n", store, store);
   fprintf(f, "  LSL %s, %s, #4\n", store, store);
   fprintf(f, "  SUB SP, SP, %s\n", store);

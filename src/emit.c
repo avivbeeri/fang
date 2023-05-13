@@ -211,7 +211,7 @@ static int traverse(FILE* f, AST* ptr) {
         int rvalue;
         int storage = traverse(f, data.type);
         if (storage != -1) {
-          rvalue = p.genAllocStack(f, storage);
+          rvalue = p.genAllocStack(f, storage, 4);
         } else {
           rvalue = p.genLoad(f, 0);
         }
@@ -227,9 +227,9 @@ static int traverse(FILE* f, AST* ptr) {
         int rvalue;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         if (data.expr->tag == AST_INITIALIZER) {
-          int offset = typeTable[typeTable[data.type->type].parent].byteSize;
+          int offset = typeTable[typeTable[data.type->type].parent].byteSize * 16;
           int storageReg = traverse(f, data.type);
-          rvalue = p.genAllocStack(f, storageReg);
+          rvalue = p.genAllocStack(f, storageReg, 4);
           // TODO: initialiser
           struct AST_INITIALIZER init = data.expr->data.AST_INITIALIZER;
 
@@ -440,7 +440,7 @@ static int traverse(FILE* f, AST* ptr) {
         int index = traverse(f, data.index);
         int left = traverse(f, data.left);
         TYPE_TABLE_ENTRY type = typeTable[data.left->type];
-        int offset = typeTable[type.parent].byteSize;
+        int offset = typeTable[type.parent].byteSize * 16;
         if (ast.rvalue) {
           return p.genIndexRead(f, left, index, offset);
         } else {
