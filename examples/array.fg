@@ -1,13 +1,14 @@
 
 fn main(): i8 {
   var len: u8 = 5;
-  var g: [5]char;
-
+  var g: [5]char = [ 'w', 'o', 'r','l','d' ];
+  write(g, len);
   g[0] = 'h';
   g[1] = 'e';
   g[2] = 'l';
   g[3] = 'l';
   g[4] = 'o';
+  write(g, len);
   @(g+4) = 'x';
   write(g, len);
 

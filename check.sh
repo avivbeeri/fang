@@ -15,7 +15,7 @@ allTests() {
   testFile examples/return.fg "OK" 0 "" 42
   testFile examples/arithmetic.fg "OK" 0 "" 1
   testFile examples/controlflow.fg "OK" 0 "42"$'\n'"0"$'\n'"-54" 0
-  testFile examples/array.fg "OK" 0 "hellx" 0
+  testFile examples/array.fg "OK" 0 "worldhellohellx" 0
   testFile examples/variables.fg "OK" 0 "60" 0
   testFile examples/duplicate.fg "[Error] variable \"i\" is already defined."$'\n'"Fail" 1 
   testFile examples/duplicate_functions.fg "[Error] function \"main\" is already defined."$'\n'"Fail" 1 
