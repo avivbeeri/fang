@@ -702,6 +702,7 @@ static bool traverse(AST* ptr) {
               if (isCompatible(leftType, rightType)) {
                 ptr->type = BOOL_INDEX;
               } else {
+                // TODO
                 printf("Comparison: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
                 compatible = false;
               }
@@ -716,6 +717,7 @@ static bool traverse(AST* ptr) {
                 ptr->type = BOOL_INDEX;
               } else {
                 compatible = false;
+                // TODO
                 printf("Comparison: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
               }
               break;
