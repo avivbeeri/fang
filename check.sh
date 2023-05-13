@@ -20,6 +20,7 @@ allTests() {
   testFile examples/duplicate.fg "[Error] variable \"i\" is already defined."$'\n'"Fail" 1 
   testFile examples/duplicate_functions.fg "[Error] function \"main\" is already defined."$'\n'"Fail" 1 
   testFile examples/nestblock.fg "OK" 0 "" 0
+  testFile examples/init-array.fg "OK" 0 "656667" 0
 }
 
 testFile() {

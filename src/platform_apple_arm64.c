@@ -5,7 +5,7 @@
 #include "const_table.h"
 
 static int labelId = 0;
-static bool freereg[4];
+static int freereg[4];
 static char *regList[4] = { "X8", "X9", "X10", "X11" };
 static char *paramRegList[8] = { "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7" };
 static int MAX_PARAM_REG = 8;
@@ -33,28 +33,36 @@ const char* labelPrint(int i) {
 
 static void freeAllRegisters() {
   for (int i = 0; i < sizeof(freereg); i++) {
-    freereg[i] = true;
+    freereg[i] = 0;
   }
 }
 
 static void freeRegister(int r) {
-  if (freereg[r]) {
+  if (freereg[r] <= 0) {
     printf("Double-freeing register, abort to check");
     exit(1);
   }
-  freereg[r] = true;
+  freereg[r] -= 1;
+  printf("free %s = %i\n", regList[r], freereg[r]);
 }
 
 static int allocateRegister() {
   for (int i = 0; i < sizeof(freereg); i++) {
-    if (freereg[i]) {
-      freereg[i] = false;
+    if (freereg[i] == 0) {
+      freereg[i] += 1;
+      printf("allocate %s = %i\n", regList[i], freereg[i]);
       return i;
     }
   }
   printf("\n");
   printf("Out of registers, abort\n");
   exit(1);
+}
+
+static int holdRegister(int r) {
+  freereg[r]++;
+  printf("hold %s = %i\n", regList[r], freereg[r]);
+  return r;
 }
 
 static void genMacros(FILE* f) {
@@ -206,13 +214,15 @@ static int genDeref(FILE* f, int leftReg) {
   return leftReg;
 }
 
-static int genIndexAddr(FILE* f, int leftReg, int index, int dataSize) {
+static int genIndexAddr(FILE* f, int baseReg, int index, int dataSize) {
   if (dataSize > 1) {
     int temp = genLoad(f, dataSize);
     fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
     freeRegister(temp);
   }
-  fprintf(f, "  ADD %s, %s, %s; index address\n", regList[leftReg], regList[leftReg], regList[index]);
+  freeRegister(baseReg);
+  int leftReg = allocateRegister();
+  fprintf(f, "  ADD %s, %s, %s; index address\n", regList[leftReg], regList[baseReg], regList[index]);
   freeRegister(index);
   return leftReg;
 }
@@ -360,7 +370,7 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
   // non-params first
   int* snapshot = NULL;
   for (int i = 0; i < 4; i++) {
-    if (!freereg[i] && i != callable) {
+    if (freereg[i] > 0 && i != callable) {
       bool found = false;
       for (int j = arrlen(params) - 1; j >= 0; j--) {
         if (params[j] == i) {
@@ -456,6 +466,7 @@ PLATFORM platform_apple_arm64 = {
   .init = init,
   .complete = complete,
   .freeRegister = freeRegister,
+  .holdRegister = holdRegister,
   .freeAllRegisters = freeAllRegisters,
   .genPreamble = genPreamble,
   .genExit = genExit,

@@ -165,7 +165,7 @@ static AST* string(bool canAssign) {
   return AST_NEW_T(AST_LITERAL, parser.previous, index);
 }
 
-static AST* array(bool canAssign) {
+static AST* array() {
   AST** values = NULL;
   if (!check(TOKEN_RIGHT_BRACKET)) {
     do {
@@ -190,7 +190,7 @@ static AST* subscript(bool canAssign, AST* left) {
   return expr;
 }
 
-static AST* record(bool canAssign) {
+static AST* record() {
   AST** assignments = NULL;
   Token start = parser.previous;
   if (!check(TOKEN_RIGHT_BRACE)) {
@@ -489,7 +489,14 @@ static AST* varDecl() {
 
   AST* decl = NULL;
   if (match(TOKEN_EQUAL)) {
-    AST* value = expression();
+    AST* value = NULL;
+    if (match(TOKEN_LEFT_BRACE)) {
+      value = record();
+    } else if (match(TOKEN_LEFT_BRACKET)) {
+      value = array();
+    } else {
+      value = expression();
+    }
     decl = AST_NEW(AST_VAR_INIT, global, varType, value);
   } else {
     decl = AST_NEW(AST_VAR_DECL, global, varType);
@@ -528,9 +535,9 @@ static AST* fnDecl() {
 ParseRule rules[] = {
   [TOKEN_LEFT_PAREN]      = {grouping, call,   PREC_CALL},
   [TOKEN_RIGHT_PAREN]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LEFT_BRACE]      = {record,   NULL,   PREC_NONE},
+  [TOKEN_LEFT_BRACE]      = {NULL,     NULL,   PREC_NONE},
   [TOKEN_RIGHT_BRACE]     = {NULL,     NULL,   PREC_NONE},
-  [TOKEN_LEFT_BRACKET]    = {array,    subscript, PREC_SUBSCRIPT},
+  [TOKEN_LEFT_BRACKET]    = {NULL,     subscript, PREC_SUBSCRIPT},
   [TOKEN_RIGHT_BRACKET]   = {NULL,     NULL,   PREC_NONE},
   [TOKEN_MINUS]           = {unary,    binary, PREC_TERM},
   [TOKEN_PLUS]            = {NULL,     binary, PREC_TERM},

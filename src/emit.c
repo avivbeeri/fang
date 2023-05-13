@@ -226,12 +226,22 @@ static int traverse(FILE* f, AST* ptr) {
         // otherwise treat it as a variable initialisation
         int rvalue;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
-          int storage = traverse(f, data.type);
-          rvalue = p.genAllocStack(f, storage);
+        if (data.expr->tag == AST_INITIALIZER) {
+          int offset = typeTable[typeTable[data.type->type].parent].byteSize;
+          int storageReg = traverse(f, data.type);
+          rvalue = p.genAllocStack(f, storageReg);
           // TODO: initialiser
-          printf("Array initialisers aren't supported yet.");
-          exit(1);
+          struct AST_INITIALIZER init = data.expr->data.AST_INITIALIZER;
+
+          for (int i = 0; i < arrlen(init.assignments); i++) {
+            p.holdRegister(rvalue);
+            int value = traverse(f, init.assignments[i]);
+            int index = p.genLoad(f, i);
+            int slot = p.genIndexAddr(f, rvalue, index, offset);
+            int assign = p.genAssign(f, slot, value);
+            p.freeRegister(assign);
+          }
+          p.freeRegister(rvalue);
         } else {
           rvalue = traverse(f, data.expr);
         }

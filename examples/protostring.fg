@@ -1,0 +1,14 @@
+fn main(): i8 {
+  var len: u8 = 5;
+  var g: [5]char;
+
+  g[0] = 'h';
+  g[1] = 'e';
+  g[2] = 'l';
+  g[3] = 'l';
+  g[4] = 'o';
+  @(g+4) = 'x';
+  write(g, len);
+
+  return 0;
+}

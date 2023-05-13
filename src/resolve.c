@@ -54,7 +54,7 @@ static bool isLiteral(int type) {
 
 
 static bool isPointer(int type) {
-  return typeTable[type].entryType == ENTRY_TYPE_POINTER;
+  return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY;
 }
 static bool isNumeric(int type) {
   return (type <= NUMERICAL_INDEX && type > BOOL_INDEX) || isPointer(type);
@@ -180,7 +180,7 @@ static int resolveType(AST* ptr) {
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
-        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
+        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, 2, subType, NULL);
         return ptr->type;
       }
   }
@@ -499,20 +499,33 @@ static bool traverse(AST* ptr) {
       {
         struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
         TYPE_TABLE_ENTRY entry = typeTable[PEEK(typeStack)];
+        ptr->type = PEEK(typeStack);
+        /*
         if ((data.initType == INIT_TYPE_RECORD && entry.entryType != ENTRY_TYPE_RECORD)
-            || (data.initType == INIT_TYPE_ARRAY && entry.entryType != ENTRY_TYPE_ARRAY)) {
+            || (data.initType == INIT_TYPE_ARRAY && !isPointer(entry.entryType))) {
+
+
+          printf("mismatched initializer for type %s\n", entry.name->chars);
+          printf("%s\n", typeTable[ptr->type].name->chars);
+          printf("%s\n", data.initType == INIT_TYPE_ARRAY ? "INIT ARRAY" : "INIT NOT ARRAY");
+          printf("%s\n", entry.entryType == ENTRY_TYPE_ARRAY ? "ARRAY" : "NOT ARRAY");
           return false;
         }
-        ptr->type = PEEK(typeStack);
+        */
+        int subType = typeTable[ptr->type].parent;
         bool r = true;
         for (int i = 0; i < arrlen(data.assignments); i++) {
           if (entry.entryType == ENTRY_TYPE_ARRAY) {
+
+            PUSH(typeStack, subType);
             r = traverse(data.assignments[i]);
+            POP(typeStack);
             if (!r) {
+              printf("failed\n");
               return false;
             }
-
-            if (!isCompatible(data.assignments[i]->type, entry.parent)) {
+            if (!isCompatible(data.assignments[i]->type, subType)) {
+              printf("Initializer doesn't assign correct type %s vs %s\n.", typeTable[data.assignments[i]->type].name->chars, typeTable[subType].name->chars);
               return false;
             }
           }
@@ -884,6 +897,11 @@ cleanup:
   if (options.report) {
     SYMBOL_TABLE_report();
     TYPE_TABLE_report();
+    if (success) {
+      printf("Resolution successful.\n");
+    } else {
+      printf("Resolution failed.\n");
+    }
   }
 
   arrfree(rvalueStack);

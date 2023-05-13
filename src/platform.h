@@ -36,7 +36,9 @@ typedef struct {
   void (*init)();
   void (*complete)();
   void (*freeRegister)(int r);
+  int (*holdRegister)(int r);
   void (*freeAllRegisters)(void);
+
   void (*genPreamble)(FILE* f);
   void (*genFunction)(FILE* f, STRING* name);
   void (*genFunctionEpilogue)(FILE* f, STRING* name);
