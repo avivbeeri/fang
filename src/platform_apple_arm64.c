@@ -22,6 +22,9 @@ static int MAX_PARAM_REG = 8;
 static bool isNumeric(int type) {
   return type <= NUMERICAL_INDEX && type >= BOOL_INDEX;
 }
+static bool isPointer(int type) {
+  return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY;
+}
 
 static int labelCreate() {
   return labelId++;
@@ -140,21 +143,6 @@ static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
   }
   return ordinal + 1; // offset by 1 from frame pointer
 }
-/*
-static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
-  uint32_t offset = entry.offset;
-  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
-  uint32_t index = entry.scopeIndex;
-
-  SYMBOL_TABLE_SCOPE current = scope;
-  while (current.scopeType != SCOPE_TYPE_FUNCTION) {
-    index = current.parent;
-    current = SYMBOL_TABLE_getScope(index);
-    offset += current.localOffset;
-  }
-  return offset;
-}
-*/
 
 static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   static char buffer[128];
@@ -210,10 +198,12 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
-  } else if (typeTable[entry.typeIndex].parent == U16_INDEX) {
+  } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex)) {
+    fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
+  } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
     fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
   } else {
-    fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  LDRSB %s, %s\n", storeRegList[r], symbol(entry));
   }
   return r;
 }
@@ -222,6 +212,7 @@ static int genRef(FILE* f, int leftReg) {
   return leftReg;
 }
 static int genDeref(FILE* f, int leftReg) {
+  // TODO: handle different types here
   fprintf(f, "  LDR %s, [%s]\n", regList[leftReg], regList[leftReg]);
   return leftReg;
 }
@@ -245,7 +236,11 @@ static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
     fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
     freeRegister(temp);
   }
-  fprintf(f, "  LDR %s, [%s, %s] ; index read\n", regList[leftReg], regList[leftReg], regList[index]);
+  if (dataSize == 1) {
+    fprintf(f, "  LDRSB %s, [%s, %s] ; index read\n", storeRegList[leftReg], regList[leftReg], regList[index]);
+  } else {
+    fprintf(f, "  LDR %s, [%s, %s] ; index read\n", regList[leftReg], regList[leftReg], regList[index]);
+  }
   freeRegister(index);
   return leftReg;
 }
@@ -330,7 +325,7 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   return rvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue) {
-  fprintf(f, "  STR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
+  fprintf(f, "  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
   freeRegister(lvalue);
   return rvalue;
 }
@@ -398,7 +393,6 @@ static int genFunctionCall(FILE* f, int callable, int* params) {
   }
 
   for (int i = arrlen(params) - 1; i >= 0; i--) {
-    // fprintf(f, "  STR %s, [SP, %li]\n", regList[params[i]], (arrlen(params) - i - 1));
     fprintf(f, "  PUSH1 %s\n", regList[params[i]]);
     freeRegister(params[i]);
   }
