@@ -25,6 +25,9 @@ allTests() {
   testFile examples/incompatible-assignment.fg "[line 57; pos 9] Incompatible assignment for variable 'i'"$'\n'"                 Expected type 'i8' but instead found 'u8'"$'\n'"Fail" 1 
   testFile examples/nestblock.fg "OK" 0 "4020" 0
   testFile examples/init-array.fg "OK" 0 "656667" 0
+  testFile examples/incompatible-assignment.fg "[line 57; pos 9] Incompatible assignment for variable 'i'"$'\n'"                 Expected type 'i8' but instead found 'u8'"$'\n'"Fail" 1 
+  testFile examples/wrong-init-array.fg "[line 57; pos 20] Incompatible record initializer for an array of 'u8'."$'\n'"Fail" 1 
+  testFile examples/wrong-init-literal.fg "[line 57; pos 7] Attempting to initialize []u8 using literal '2345'."$'\n'"Fail" 1 
 }
 
 testFile() {

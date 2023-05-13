@@ -180,7 +180,7 @@ static int resolveType(AST* ptr) {
         }
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
-        STRING* typeName = STRING_prepend(name, "^");
+        STRING* typeName = STRING_prepend(name, "[]");
         ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, 2, subType, NULL);
         return ptr->type;
       }
@@ -351,12 +351,21 @@ static bool traverse(AST* ptr) {
         }
 
         bool result = r && isCompatible(leftType, rightType);
+        if ((typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD)
+            && data.expr->tag != AST_INITIALIZER) {
+
+          char* initType = data.expr->data.AST_INITIALIZER.initType == INIT_TYPE_ARRAY ? "array" : "record";
+          compileError(ast.token, "Attempting to initialize %s using literal '", typeTable[leftType].name->chars);
+          printTree(data.expr);
+          printf("'.\n");
+          return false;
+        }
         if (!isCompatible(leftType, rightType)) {
           int indent = compileError(data.expr->token, "Incompatible initialization for variable '%s'", data.identifier->chars);
           printf("%*s", indent, "");
           printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          return false;
         }
-        //(leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         if (SYMBOL_TABLE_getCurrentOnly(identifier).defined) {
           compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
@@ -504,7 +513,7 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool result = SYMBOL_TABLE_scopeHas(identifier);
         if (!result) {
-          errorAt(&ast.token, "Identifier was not found.");
+          compileError(ast.token, "identifier '%s' has not yet been defined in this scope.", identifier->chars);
           return false;
         }
         SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_getCurrent(identifier);
@@ -519,18 +528,23 @@ static bool traverse(AST* ptr) {
         struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
         TYPE_TABLE_ENTRY entry = typeTable[PEEK(typeStack)];
         ptr->type = PEEK(typeStack);
-        /*
         if ((data.initType == INIT_TYPE_RECORD && entry.entryType != ENTRY_TYPE_RECORD)
-            || (data.initType == INIT_TYPE_ARRAY && !isPointer(entry.entryType))) {
+            || (data.initType == INIT_TYPE_ARRAY && entry.entryType != ENTRY_TYPE_ARRAY)) {
 
-
-          printf("mismatched initializer for type %s\n", entry.name->chars);
-          printf("%s\n", typeTable[ptr->type].name->chars);
-          printf("%s\n", data.initType == INIT_TYPE_ARRAY ? "INIT ARRAY" : "INIT NOT ARRAY");
-          printf("%s\n", entry.entryType == ENTRY_TYPE_ARRAY ? "ARRAY" : "NOT ARRAY");
+          char* initType = data.initType == INIT_TYPE_ARRAY ? "array" : "record";
+          char* subType;
+          if (entry.entryType == ENTRY_TYPE_ARRAY) {
+            subType = typeTable[entry.parent].name->chars;
+            compileError(ast.token, "Incompatible %s initializer for an array of '%s'.\n", initType, subType);
+          } else if (entry.entryType == ENTRY_TYPE_RECORD) {
+            subType = typeTable[ptr->type].name->chars;
+            compileError(ast.token, "Incompatible %s initializer for an record of '%s'.\n", initType, subType);
+          } else {
+            printf("Impossible initializer type.\n");
+            exit(1);
+          }
           return false;
         }
-        */
         int subType = typeTable[ptr->type].parent;
         bool r = true;
         for (int i = 0; i < arrlen(data.assignments); i++) {
