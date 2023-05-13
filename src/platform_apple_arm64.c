@@ -325,7 +325,8 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   return rvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue) {
-  fprintf(f, "  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
+  fprintf(f, "  STR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
+  //fprintf(f, "  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
   freeRegister(lvalue);
   return rvalue;
 }
