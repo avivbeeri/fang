@@ -150,7 +150,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     snprintf(buffer, sizeof(buffer), "_fang_%s", entry.key);
     return buffer;
-  } else if (entry.entryType == SYMBOL_TYPE_CONSTANT && scope.parent == 0) {
+  } else if (scope.parent == 0) {
     snprintf(buffer, sizeof(buffer), "%s", entry.key);
     return buffer;
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
@@ -184,10 +184,13 @@ static int genLoadRegister(FILE* f, int i, int r) {
 
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
     fprintf(f, "  ADD %s, FP, #%i\n", regList[r], (entry.paramOrdinal + 1) * 16);
   } else if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+  } else if (scope.parent == 0) {
+    fprintf(f, "  ADR %s, %s\n", regList[r], entry.key);
   } else {
     uint32_t offset = getStackOrdinal(entry);
     fprintf(f, "  ADD %s, FP, #%i\n", regList[r], -offset * 16);
@@ -196,8 +199,12 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
 }
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+  } else if (scope.parent == 0) {
+    fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  LDR %s, [%s]\n", regList[r], regList[r]);
   } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex)) {
     fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
@@ -319,6 +326,9 @@ static void genRaw(FILE* f, const char* str) {
   fprintf(f, "  %s\n", str);
 }
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
+  if (entry.scopeIndex <= 1) {
+    return rvalue;
+  }
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // allocate stack memory?
   }
