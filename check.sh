@@ -18,8 +18,10 @@ allTests() {
   testFile examples/controlflow.fg "OK" 0 "42"$'\n'"0"$'\n'"-54" 0
   testFile examples/array.fg "OK" 0 "worldhellohellx" 0
   testFile examples/variables.fg "OK" 0 "60" 0
-  testFile examples/duplicate.fg "[Error] variable \"i\" is already defined."$'\n'"Fail" 1 
-  testFile examples/duplicate_functions.fg "[line 57; pos 7] function \"main\" is already defined."$'\n'"Fail" 1 
+  testFile examples/duplicate.fg "[line 58; pos 7] variable \"i\" is already defined."$'\n'"Fail" 1 
+  testFile examples/duplicate-constant.fg "[line 58; pos 9] constant \"i\" is already defined."$'\n'"Fail" 1 
+  testFile examples/duplicate-functions.fg "[line 57; pos 7] function \"main\" is already defined."$'\n'"Fail" 1 
+  testFile examples/incompatible-assignment.fg "[line 57; pos 9] Incompatible assignment for variable 'i'"$'\n'"                 Expected type 'i8' but instead found 'u8'"$'\n'"Fail" 1 
   testFile examples/nestblock.fg "OK" 0 "4020" 0
   testFile examples/init-array.fg "OK" 0 "656667" 0
 }

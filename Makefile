@@ -27,7 +27,7 @@ file.o: file.S
 file.S: fgcc example.fg
 	./fgcc 
 
-test: $(TEST)/bin $(TESTBINS) $(OBJECTS)
+test: $(TEST)/bin $(TESTBINS) $(OBJECTS) fgcc
 	for test in $(TESTBINS) ; do ./$$test --verbose ; done
 	./check.sh
 

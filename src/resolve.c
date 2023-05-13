@@ -358,7 +358,7 @@ static bool traverse(AST* ptr) {
         }
         //(leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         if (SYMBOL_TABLE_getCurrentOnly(identifier).defined) {
-          printf("[Error] variable \"%s\" is already defined.\n", data.identifier->chars);
+          compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
@@ -374,7 +374,7 @@ static bool traverse(AST* ptr) {
         int typeIndex = data.type->type;
         ptr->type = typeIndex;
         if (SYMBOL_TABLE_getCurrentOnly(identifier).defined) {
-          printf("[Error] variable \"%s\" is already defined.\n", data.identifier->chars);
+          compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
         SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, typeIndex);
@@ -394,13 +394,14 @@ static bool traverse(AST* ptr) {
 
         bool result = r && isCompatible(leftType, rightType);
         if (!isCompatible(leftType, rightType)) {
-          printf("Constant initialisation: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          int indent = compileError(data.expr->token, "Incompatible initialization for constant value '%s'", data.identifier->chars);
+          printf("%*s", indent, "");
+          printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
         }
-       // (leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         if (SYMBOL_TABLE_getCurrentOnly(identifier).defined) {
-          printf("[Error] constant \"%s\" is already defined.\n", data.identifier->chars);
+          compileError(ast.token, "constant \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
         if (ptr->scopeIndex <= 1) {
@@ -425,12 +426,17 @@ static bool traverse(AST* ptr) {
         int rightType = data.expr->type;
 
         if (!(ident && expr)) {
+          printf("[Unknown] Assignment trap\n");
           return false;
         }
-        ptr->type = data.lvalue->type;
+        ptr->type = leftType;
         if (!isCompatible(leftType, rightType)) {
-          printf("%i vs %i\n", leftType, rightType);
-          printf("Assignment: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          // printf("Assignment: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          int indent = compileError(data.expr->token, "Incompatible assignment for variable '");
+          printTree(data.lvalue);
+          printf("'\n");
+          printf("%*s", indent, "");
+          printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
         }
         return isCompatible(leftType, rightType);
       }
@@ -635,26 +641,6 @@ static bool traverse(AST* ptr) {
               } else {
                 ptr->type = coerceType(leftType, rightType);
               }
-              /*
-              if (!isNumeric(leftType) || !isNumeric(rightType)) {
-                compatible = false;
-              }
-
-              if (isNumeric(leftType) && leftType == rightType) {
-                ptr->type = leftType;
-              }
-              if (isNumeric(leftType) && isLiteral(rightType)) {
-                ptr->type = leftType;
-              }
-              if (isLiteral(leftType) && isNumeric(rightType)) {
-                ptr->type = rightType;
-              }
-              if (isLiteral(leftType) && isLiteral(rightType)) {
-                // should compute largest type to fit both values
-                // Hopefully, constant-folding removes this node
-                ptr->type = NUMERICAL_INDEX;
-              }
-              */
               break;
             }
 

@@ -472,6 +472,7 @@ static AST** fieldList() {
 
 static AST* constDecl() {
   STRING* global = parseVariable("Expect constant name.");
+  Token token = parser.previous;
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type();
 
@@ -479,11 +480,12 @@ static AST* constDecl() {
   AST* value = expression();
 
   consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
-  return AST_NEW(AST_CONST_DECL, global, varType, value);
+  return AST_NEW_T(AST_CONST_DECL, token, global, varType, value);
 }
 
 static AST* varDecl() {
   STRING* global = parseVariable("Expect variable name");
+  Token token = parser.previous;
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type();
 
@@ -497,9 +499,9 @@ static AST* varDecl() {
     } else {
       value = expression();
     }
-    decl = AST_NEW(AST_VAR_INIT, global, varType, value);
+    decl = AST_NEW_T(AST_VAR_INIT, token, global, varType, value);
   } else {
-    decl = AST_NEW(AST_VAR_DECL, global, varType);
+    decl = AST_NEW_T(AST_VAR_DECL, token, global, varType);
   }
 
   consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
