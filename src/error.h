@@ -27,7 +27,7 @@
 #define error_h
 
 #include "scanner.h"
-void runtimeError(Token token, const char* format, ...);
+int compileError(Token token, const char* format, ...);
 
 #endif
 

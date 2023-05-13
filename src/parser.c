@@ -508,6 +508,7 @@ static AST* varDecl() {
 
 static AST* fnDecl() {
   STRING* identifier = parseVariable("Expect function identifier");
+  Token token = parser.previous;
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
 
   AST** params = NULL;
@@ -529,7 +530,7 @@ static AST* fnDecl() {
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
 
   AST* fnType = AST_NEW(AST_TYPE_FN, paramTypes, returnType);
-  return AST_NEW(AST_FN, identifier, params, returnType, block(), fnType);
+  return AST_NEW_T(AST_FN, token, identifier, params, returnType, block(), fnType);
 }
 
 ParseRule rules[] = {

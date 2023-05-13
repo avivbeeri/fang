@@ -257,7 +257,7 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_FN data = ast.data.AST_FN;
         ptr->type = resolveType(data.fnType);
         if (SYMBOL_TABLE_getCurrent(data.identifier).defined) {
-          runtimeError(ast.token, "function \"%s\" is already defined.\n", data.identifier->chars);
+          compileError(ast.token, "function \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
         SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type);
@@ -352,7 +352,9 @@ static bool traverse(AST* ptr) {
 
         bool result = r && isCompatible(leftType, rightType);
         if (!isCompatible(leftType, rightType)) {
-          printf("Variable initialisation: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          int indent = compileError(data.expr->token, "Incompatible initialization for variable '%s'", data.identifier->chars);
+          printf("%*s", indent, "");
+          printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
         }
         //(leftType == rightType || (isNumeric(leftType) && isLiteral(rightType)));
         if (SYMBOL_TABLE_getCurrentOnly(identifier).defined) {
@@ -829,20 +831,33 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.identifier);
         POP(rvalueStack);
         if (!r) {
-          printf("failed to call left\n");
           return false;
         }
         // resolve data.identifier to string
         uint32_t leftType = data.identifier->type;
         TYPE_TABLE_ENTRY fnType = typeTable[leftType];
         if (fnType.parent != FN_INDEX) {
-          printf("trying to call not-a-function\n");
+          compileError(data.identifier->token, "Attempting to call '");
+          printTree(data.identifier);
+          printf("' but it is not a function.\n");
           return false;
         }
 
         // Call should contain it's arguments
-        if (arrlen(fnType.fields) != arrlen(data.arguments)) {
-          printf("term 3\n");
+        if (arrlen(fnType.fields) < arrlen(data.arguments)) {
+          int indent = compileError(data.identifier->token, "Too few arguments for function call of '");
+          printTree(data.identifier);
+          printf("'\n");
+          printf("%*s", indent, "");
+          printf("Expected %li argument(s) but instead found %li argument(s)\n", arrlen(data.arguments), arrlen(fnType.fields));
+          return false;
+        }
+        if (arrlen(fnType.fields) > arrlen(data.arguments)) {
+          int indent = compileError(data.identifier->token, "Too many arguments for function call of '");
+          printTree(data.identifier);
+          printf("'\n");
+          printf("%*s", indent, "");
+          printf("Expected %li argument(s) but instead found %li argument(s)\n", arrlen(data.arguments), arrlen(fnType.fields));
           return false;
         }
 
@@ -853,14 +868,14 @@ static bool traverse(AST* ptr) {
           POP(typeStack);
           POP(rvalueStack);
           if (!r) {
-            printf("term 4\n");
             return false;
           }
           if (!isCompatible(fnType.fields[i].typeIndex, data.arguments[i]->type)) {
-            printf("%s\n", fnType.name->chars);
-            runtimeError(data.arguments[i]->token, "Incompatible type for argument %i of '", i + 1);
+            int indent = compileError(data.arguments[i]->token, "Incompatible type for argument %i of '", i + 1);
             printTree(data.identifier);
-            printf("'\n  Expected type '%s' but instead found '%s'\n", typeTable[fnType.fields[i].typeIndex].name->chars, typeTable[data.arguments[i]->type].name->chars);
+            printf("'\n");
+            printf("%*s", indent, "");
+            printf("Expected type '%s' but instead found '%s'\n", typeTable[fnType.fields[i].typeIndex].name->chars, typeTable[data.arguments[i]->type].name->chars);
             return false;
           }
         }

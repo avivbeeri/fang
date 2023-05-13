@@ -28,11 +28,12 @@
 #include "scanner.h"
 #include "common.h"
 
-void runtimeError(Token token, const char* format, ...) {
-  fprintf(stderr, "[line %d; pos %d] ", token.line, token.pos);
+int compileError(Token token, const char* format, ...) {
+  int indent = fprintf(stderr, "[line %d; pos %d] ", token.line, token.pos);
   va_list args;
   va_start(args, format);
   vfprintf(stderr, format, args);
   va_end(args);
+  return indent;
 }
 
