@@ -282,11 +282,12 @@ static void genExit(FILE* f, int r) {
   fprintf(f, "  SVC 0\n");
 }
 
-static void genFunction(FILE* f, STRING* name) {
+static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   // get max function scope offset
   // and round to next 16
   // TODO: Allocate based on function local scopes
-  int p = 3 * 16;
+  int p = 3 * 16;// (scope.tableAllocationCount + 1) * 16;
+
 
   fprintf(f, "\n_fang_%s:\n", name->chars);
   fprintf(f, "  PUSH2 LR, FP\n"); // push LR onto stack

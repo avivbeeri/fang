@@ -28,6 +28,7 @@
 #include "memory.h"
 #include "type_table.h"
 #include "symbol_table.h"
+#include <math.h>
 
 uint32_t scopeId = 1;
 int* scopeStack = NULL;
@@ -39,7 +40,18 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   if (scopeStack != NULL) {
     parent = scopeStack[arrlen(scopeStack) - 1];
   }
-  hmputs(scopes, ((SYMBOL_TABLE_SCOPE){ scopeId, parent, scopeType, NULL, 0, 0, 0, 0 }));
+  hmputs(scopes, ((SYMBOL_TABLE_SCOPE){
+        scopeId,
+        parent,
+        scopeType,
+        NULL,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+  }));
   arrput(scopeStack, scopeId);
   scopeId++;
 }
@@ -57,6 +69,23 @@ bool SYMBOL_TABLE_scopeHas(STRING* name) {
 }
 
 void SYMBOL_TABLE_closeScope() {
+  uint32_t current = SYMBOL_TABLE_getCurrentScopeIndex();
+  SYMBOL_TABLE_SCOPE closingScope = SYMBOL_TABLE_getScope(current);
+  SYMBOL_TABLE_SCOPE parent = SYMBOL_TABLE_getScope(closingScope.parent);
+
+  uint32_t scopeTotal = closingScope.nestedSize;
+  for (int i = 0; i < hmlen(closingScope.table); i++) {
+    SYMBOL_TABLE_ENTRY entry = closingScope.table[i];
+    if (entry.defined) {
+      scopeTotal += typeTable[entry.typeIndex].byteSize;
+    }
+  }
+  closingScope.tableAllocationCount = hmlen(closingScope.table) + closingScope.nestedCount;
+  closingScope.tableAllocationSize = scopeTotal + closingScope.nestedSize;
+  hmputs(scopes, closingScope);
+  parent.nestedSize = fmax(parent.nestedSize, scopeTotal);
+  parent.nestedCount = fmax(parent.nestedCount, (uint32_t)(hmlen(closingScope.table)));
+  hmputs(scopes, parent);
   arrdel(scopeStack, arrlen(scopeStack) - 1);
 }
 
@@ -151,6 +180,9 @@ void SYMBOL_TABLE_report(void) {
   for (int i = 0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
     printf("Scope %u (parent %u):\n", scope.key, scope.parent);
+    if (scope.scopeType == SCOPE_TYPE_FUNCTION) {
+      printf(" (stack required %u):\n", scope.tableAllocationCount);
+    }
     for (int j = 0; j < hmlen(scope.table); j++) {
       SYMBOL_TABLE_ENTRY entry = scope.table[j];
 

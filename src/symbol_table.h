@@ -67,6 +67,10 @@ typedef struct {
   uint32_t paramOrdinal;
   uint32_t localOffset;
   uint32_t paramOffset;
+  uint32_t nestedSize;
+  uint32_t nestedCount;
+  uint32_t tableAllocationSize;
+  uint32_t tableAllocationCount;
 } SYMBOL_TABLE_SCOPE;
 
 // 0 - LANGUAGE

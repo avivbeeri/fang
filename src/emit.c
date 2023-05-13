@@ -83,7 +83,8 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_FN:
       {
         struct AST_FN data = ast.data.AST_FN;
-        p.genFunction(f, data.identifier);
+        SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(ast.scopeIndex);
+        p.genFunction(f, data.identifier, scope);
         arrput(fnStack, data.identifier);
         traverse(f, data.body);
 
