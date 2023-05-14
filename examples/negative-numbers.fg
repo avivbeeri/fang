@@ -3,5 +3,7 @@ fn main(): u8 {
   writeI8(-54);
   writeChar(' ');
   writeI8(135); // Should display as negative
+  writeChar(' ');
+  writeI8(64 - 76); // Should display as negative
   return 0;
 }
