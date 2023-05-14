@@ -32,6 +32,7 @@
 #include "value.h"
 #include "type_table.h"
 #include "const_table.h"
+#include "const_eval.h"
 #include "platform.h"
 #include "options.h"
 
@@ -39,6 +40,34 @@ PLATFORM p;
 
 STRING** fnStack = NULL;
 bool lvalue = false;
+
+static void emitGlobal(FILE* f, AST* ptr) {
+  AST ast = *ptr;
+  switch(ast.tag) {
+    case AST_ERROR:
+      {
+        break;
+      }
+    case AST_VAR_DECL:
+      {
+        struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
+        STRING* identifier = data.identifier;
+        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
+        p.genGlobalVariable(f, symbol, EMPTY());
+        break;
+      }
+    case AST_VAR_INIT:
+      {
+        struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
+        STRING* identifier = data.identifier;
+        Value value = evalConstTree(data.expr);
+        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
+        p.genGlobalVariable(f, symbol, value);
+        break;
+      }
+  }
+}
+
 
 static int traverse(FILE* f, AST* ptr) {
   if (ptr == NULL) {
@@ -60,6 +89,12 @@ static int traverse(FILE* f, AST* ptr) {
         for (int i = 0; i < arrlen(body.decls); i++) {
           if (body.decls[i]->tag == AST_FN) {
             arrput(deferred, i);
+          } else if (body.decls[i]->tag == AST_VAR_INIT) {
+            emitGlobal(f, body.decls[i]);
+          } else if (body.decls[i]->tag == AST_VAR_DECL) {
+            emitGlobal(f, body.decls[i]);
+          } else if (body.decls[i]->tag == AST_CONST_DECL) {
+            emitGlobal(f, body.decls[i]);
           } else {
             traverse(f, body.decls[i]);
             p.freeAllRegisters();
@@ -70,7 +105,7 @@ static int traverse(FILE* f, AST* ptr) {
         for (int i = 0; i < arrlen(deferred); i++) {
           traverse(f, body.decls[deferred[i]]);
         }
-
+        arrfree(deferred);
         return 0;
       }
     case AST_LIST:

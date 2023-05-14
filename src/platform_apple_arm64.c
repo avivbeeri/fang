@@ -266,11 +266,12 @@ static void genPreamble(FILE* f) {
     if (bytes % 4 != 0) {
       fprintf(f, ".align %lu\n", 4 - bytes % 4);
     }
-    fprintf(f, "const_%i: ", i);
+    fprintf(f, "_fang_const_%i: ", i);
     fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length) % 256);
     fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
+  /*
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(1);
   for (int i = 0; i < hmlen(scope.table); i++) {
     SYMBOL_TABLE_ENTRY entry = scope.table[i];
@@ -281,20 +282,45 @@ static void genPreamble(FILE* f) {
       // Allocates global memory slots
       //
       uint32_t size = typeTable[entry.typeIndex].byteSize;
-      if (size > 16) {
+      if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+        fprintf(f, "_fang_var_%s: .fill %i, %i, %i\n", entry.key, (((size + 15) >> 4) << 4), 16, 0);
+      } else if (size > 16) {
         fprintf(f, "_fang_var_%s: .fill %i, %i, %i\n", entry.key, (((size + 15) >> 4) << 4), 16, 0);
       } else {
         fprintf(f, "_fang_var_%s: .octa %i\n", entry.key, 0);
       }
     }
   }
+  */
+}
+
+static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value) {
+}
+static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value) {
+  uint32_t size = typeTable[entry.typeIndex].byteSize;
+  fprintf(f, "_fang_var_%s: ", entry.key);
+  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+    // RECORD too
+    if (IS_EMPTY(value)) {
+      fprintf(f, ".fill %i, 8, 0\n", size);
+    } else {
+    }
+  } else {
+    if (IS_EMPTY(value)) {
+      fprintf(f, ".octa 0\n");
+    } else {
+      fprintf(f, ".octa %u\n", AS_U8(value));
+    }
+  }
+  fprintf(f, ".balign 4\n");
+}
+
+static void genRunMain(FILE* f) {
   fprintf(f, ".text\n");
   fprintf(f, ".global _start\n");
   fprintf(f, ".align 2\n");
   fprintf(f, "_start:\n");
-}
 
-static void genRunMain(FILE* f) {
   fprintf(f, "  MOV X0, XZR\n");
   fprintf(f, "  BL _fang_main\n");
 }
@@ -555,7 +581,9 @@ PLATFORM platform_apple_arm64 = {
   .genRef = genRef,
   .genDeref = genDeref,
   .genIndexRead = genIndexRead,
-  .genIndexAddr = genIndexAddr
+  .genIndexAddr = genIndexAddr,
+  .genGlobalVariable = genGlobalVariable,
+  .genGlobalConstant = genGlobalConstant
 
 };
 

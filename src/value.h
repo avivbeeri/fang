@@ -103,6 +103,7 @@ typedef struct Value {
 #define IS_STRING(value)    ((value).type == VAL_STRING)
 #define IS_CHAR(value)    ((value).type == VAL_CHAR)
 #define IS_ERROR(value)    ((value).type == VAL_ERROR)
+#define IS_EMPTY(value)    ((value).type == VAL_UNDEF)
 
 #define IS_NUMERICAL(value) ((value).type <= VAL_PTR)
 
