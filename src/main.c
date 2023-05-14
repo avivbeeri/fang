@@ -61,7 +61,7 @@ static char* readFile(const char* path) {
 
 void OPTIONS_init(void) {
   options.toTerminal = false;
-  options.report = true;
+  options.report = false;
   options.scanTest = false;
   options.printAst = false;
   options.dumpAst = false;

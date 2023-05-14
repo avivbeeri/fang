@@ -30,6 +30,7 @@ allTests() {
   testFile examples/wrong-init-literal.fg "[line 57; pos 7] Attempting to initialize []u8 using literal '2345'."$'\n'"Fail" 1 
   testFile examples/arithmetic-incompatible.fg "[line 57; pos 12] Invalid operands to arithmetic operator '+'"$'\n'"                  Operands were of type 'i8' and 'u8', which are incompatible."$'\n'"Fail" 1 
   testFile examples/bitwise-incompatible.fg "[line 57; pos 12] Invalid operands to bitwise operator '&'"$'\n'"                  Operands were of type 'i8' and 'u8', which are incompatible."$'\n'"Fail" 1 
+  testFile examples/global-var.fg "OK" 0 "554" 0
 }
 
 testFile() {
