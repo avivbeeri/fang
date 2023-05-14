@@ -296,6 +296,7 @@ static bool traverse(AST* ptr) {
         }
         bool r = traverse(data.value);
         if (data.value->type != PEEK(typeStack)) {
+          printf("MISMATCH between return type and expecte\n");
           return false;
         }
         return r;
@@ -501,10 +502,16 @@ static bool traverse(AST* ptr) {
       {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
         Value value = CONST_TABLE_get(data.constantIndex);
-        ptr->type = valueToType(value);
-        if (isCompatible(PEEK(typeStack), ptr->type)) {
-          ptr->type = PEEK(typeStack);
+        int leftType = PEEK(typeStack);
+        int rightType = valueToType(value);
+        if (!isCompatible(PEEK(typeStack), valueToType(value))) {
+          int indent = compileError(ast.token, "Incompatible literal '");
+          printValue(value);
+          printf("%*s", indent, "");
+          printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          return false;
         }
+        ptr->type = PEEK(typeStack);
         return true;
       }
     case AST_IDENTIFIER:
@@ -877,7 +884,7 @@ static bool traverse(AST* ptr) {
 
         for (int i = 0; i < arrlen(data.arguments); i++) {
           PUSH(rvalueStack, true);
-          PUSH(typeStack, data.arguments[i]->type);
+          PUSH(typeStack, fnType.fields[i].typeIndex);
           r = traverse(data.arguments[i]);
           POP(typeStack);
           POP(rvalueStack);

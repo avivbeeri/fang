@@ -33,6 +33,7 @@ allTests() {
   testFile examples/global-var.fg "OK" 0 "554" 0
   testFile examples/global-const.fg "OK" 0 "42AQ"$'\n'"01234" 0
   testFile examples/char-ops.fg "OK" 0 "OO" 0
+  testFile examples/negative-numbers.fg "OK" 0 "-54 -121" 0
 }
 
 testFile() {

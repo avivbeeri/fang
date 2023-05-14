@@ -44,14 +44,14 @@ typedef struct {
   void (*genFunctionEpilogue)(FILE* f, STRING* name);
   void (*genReturn)(FILE* f, STRING*, int);
   int (*genLoadRegister)(FILE* f, int, int);
-  int (*genLoad)(FILE* f, int);
+  int (*genLoad)(FILE* f, int, int);
   int (*genIdentifier)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   int (*genIdentifierAddr)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   int (*genAssign)(FILE* f, int, int);
-  int (*genAdd)(FILE* f, int, int);
+  int (*genAdd)(FILE* f, int, int, int);
   int (*genSub)(FILE* f, int, int);
-  int (*genMul)(FILE* f, int, int);
-  int (*genDiv)(FILE* f, int, int);
+  int (*genMul)(FILE* f, int, int, int);
+  int (*genDiv)(FILE* f, int, int, int);
   int (*genMod)(FILE* f, int, int);
   int (*genBitwiseAnd)(FILE* f, int, int);
   int (*genBitwiseOr)(FILE* f, int, int);

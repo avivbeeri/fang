@@ -276,7 +276,7 @@ static int traverse(FILE* f, AST* ptr) {
         if (storage != -1) {
           rvalue = p.genAllocStack(f, storage, offset);
         } else {
-          rvalue = p.genLoad(f, 0);
+          rvalue = p.genLoad(f, 0, 1);
         }
 
         return p.genInitSymbol(f, symbol, rvalue);
@@ -299,7 +299,7 @@ static int traverse(FILE* f, AST* ptr) {
           for (int i = 0; i < arrlen(init.assignments); i++) {
             p.holdRegister(rvalue);
             int value = traverse(f, init.assignments[i]);
-            int index = p.genLoad(f, i);
+            int index = p.genLoad(f, i, 1);
             int slot = p.genIndexAddr(f, rvalue, index, offset);
             int assign = p.genAssign(f, slot, value);
             p.freeRegister(assign);
@@ -335,7 +335,8 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
         Value v = CONST_TABLE_get(data.constantIndex);
         // TODO handle different value types here
-        int r = p.genLoad(f, AS_LIT_NUM(v));
+        int size = typeTable[ptr->type].byteSize;
+        int r = p.genLoad(f, AS_LIT_NUM(v), size);
         return r;
       }
     case AST_REF:
@@ -384,7 +385,7 @@ static int traverse(FILE* f, AST* ptr) {
           int r = traverse(f, data.right);
           // if (!r) go to done
           p.genCmp(f, r, falseLabel);
-          r = p.genLoad(f, 1);
+          r = p.genLoad(f, 1, 1);
           p.genJump(f, doneLabel);
           p.genLabel(f, falseLabel);
           r = p.genLoadRegister(f, 0, r);
@@ -401,7 +402,7 @@ static int traverse(FILE* f, AST* ptr) {
           int r = traverse(f, data.right);
           // if (r) go to done
           p.genCmpNotEqual(f, r, trueLabel);
-          r = p.genLoad(f, 0);
+          r = p.genLoad(f, 0, 1);
           p.genJump(f, doneLabel);
           p.genLabel(f, trueLabel);
           r = p.genLoadRegister(f, 1, r);
@@ -412,10 +413,11 @@ static int traverse(FILE* f, AST* ptr) {
 
         int l = traverse(f, data.left);
         int r = traverse(f, data.right);
+        int size = typeTable[ptr->type].byteSize;
         switch (data.op) {
           case OP_ADD:
             {
-              return p.genAdd(f, l, r);
+              return p.genAdd(f, l, r, size);
             }
           case OP_SUB:
             {
@@ -423,11 +425,11 @@ static int traverse(FILE* f, AST* ptr) {
             }
           case OP_MUL:
             {
-              return p.genMul(f, l, r);
+              return p.genMul(f, l, r, size);
             }
           case OP_DIV:
             {
-              return p.genDiv(f, l, r);
+              return p.genDiv(f, l, r, size);
             }
           case OP_MOD:
             {
@@ -459,7 +461,7 @@ static int traverse(FILE* f, AST* ptr) {
               int trueLabel = p.labelCreate();
               r = p.genSub(f, l, r);
               p.genCmp(f, r, trueLabel);
-              r = p.genLoad(f, 1);
+              r = p.genLoad(f, 1, 1);
               p.genJump(f, doneLabel);
               p.genLabel(f, trueLabel);
               r = p.genLoadRegister(f, 0, r);
@@ -472,7 +474,7 @@ static int traverse(FILE* f, AST* ptr) {
               int trueLabel = p.labelCreate();
               r = p.genSub(f, l, r);
               p.genCmp(f, r, trueLabel);
-              r = p.genLoad(f, 0);
+              r = p.genLoad(f, 0, 1);
               p.genJump(f, doneLabel);
               p.genLabel(f, trueLabel);
               r = p.genLoadRegister(f, 1, r);

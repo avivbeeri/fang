@@ -139,7 +139,7 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   TYPE_TABLE_registerPrimitive(createString("i8"), 1);
   TYPE_TABLE_registerPrimitive(createString("u16"), 2);
   TYPE_TABLE_registerPrimitive(createString("i16"), 2);
-  TYPE_TABLE_registerPrimitive(createString("literal"), 0);
+  TYPE_TABLE_registerPrimitive(createString("literal"), 4);
   TYPE_TABLE_registerPrimitive(createString("string"), 2);
   TYPE_TABLE_registerPrimitive(createString("fn"), 2);
   TYPE_TABLE_registerPrimitive(createString("char"), 1);

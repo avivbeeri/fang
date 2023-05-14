@@ -98,11 +98,16 @@ static void genJump(FILE* f, int label) {
   fprintf(f, "  B %s\n", labelPrint(label));
 }
 
-static int genLoad(FILE* f, int i) {
+static int genLoad(FILE* f, int i, int size) {
   // Load i into a register
   // return the register index
   int r = allocateRegister();
-  fprintf(f, "  MOV %s, #%i\n", regList[r], i);
+  if (size == 1) {
+    int8_t value = i;
+    fprintf(f, "  MOV %s, #%" PRIi8 "\n", regList[r], value);
+  } else {
+    fprintf(f, "  MOV %s, #%i\n", regList[r], i);
+  }
   return r;
 }
 static void genCmp(FILE* f, int r, int jumpLabel) {
@@ -230,13 +235,13 @@ static int genRef(FILE* f, int leftReg) {
 }
 static int genDeref(FILE* f, int leftReg) {
   // TODO: handle different types here
-  fprintf(f, "  LDR %s, [%s]\n", regList[leftReg], regList[leftReg]);
+  fprintf(f, "  LDRSB %s, [%s]\n", regList[leftReg], regList[leftReg]);
   return leftReg;
 }
 
 static int genIndexAddr(FILE* f, int baseReg, int index, int dataSize) {
   if (dataSize > 1) {
-    int temp = genLoad(f, dataSize);
+    int temp = genLoad(f, dataSize, 8);
     fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
     freeRegister(temp);
   }
@@ -249,7 +254,7 @@ static int genIndexAddr(FILE* f, int baseReg, int index, int dataSize) {
 
 static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
   if (dataSize > 1) {
-    int temp = genLoad(f, dataSize);
+    int temp = genLoad(f, dataSize, 8);
     fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
     freeRegister(temp);
   }
@@ -442,8 +447,13 @@ static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
   freeRegister(rightReg);
   return leftReg;
 }
-static int genAdd(FILE* f, int leftReg, int rightReg) {
+
+static int genAdd(FILE* f, int leftReg, int rightReg, int size) {
   fprintf(f, "  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  if (size == 1) {
+    fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
+  }
+
   freeRegister(rightReg);
   return leftReg;
 }
@@ -454,13 +464,19 @@ static int genSub(FILE* f, int leftReg, int rightReg) {
   return leftReg;
 }
 
-static int genMul(FILE* f, int leftReg, int rightReg) {
+static int genMul(FILE* f, int leftReg, int rightReg, int size) {
   fprintf(f, "  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  if (size == 1) {
+    fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
+  }
   freeRegister(rightReg);
   return leftReg;
 }
-static int genDiv(FILE* f, int leftReg, int rightReg) {
+static int genDiv(FILE* f, int leftReg, int rightReg, int size) {
   fprintf(f, "  SDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  if (size == 1) {
+    fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
+  }
   freeRegister(rightReg);
   return leftReg;
 }
