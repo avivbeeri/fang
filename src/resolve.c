@@ -702,6 +702,7 @@ static bool traverse(AST* ptr) {
           case OP_OR:
           case OP_AND:
             {
+              ptr->type = BOOL_INDEX;
               compatible = true;
               break;
             }
