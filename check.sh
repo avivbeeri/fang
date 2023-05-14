@@ -28,8 +28,8 @@ allTests() {
   testFile examples/incompatible-assignment.fg "[line 57; pos 9] Incompatible assignment for variable 'i'"$'\n'"                 Expected type 'i8' but instead found 'char'"$'\n'"Fail" 1 
   testFile examples/wrong-init-array.fg "[line 57; pos 20] Incompatible record initializer for an array of 'char'."$'\n'"Fail" 1 
   testFile examples/wrong-init-literal.fg "[line 57; pos 7] Attempting to initialize []char using literal '2345'."$'\n'"Fail" 1 
-  testFile examples/arithmetic-incompatible.fg "[line 57; pos 12] Invalid operands to arithmetic operator '+'"$'\n'"                  Operands were of type 'i8' and 'char', which are incompatible."$'\n'"Fail" 1 
-  testFile examples/bitwise-incompatible.fg "[line 57; pos 12] Invalid operands to bitwise operator '&'"$'\n'"                  Operands were of type 'i8' and 'char', which are incompatible."$'\n'"Fail" 1 
+  testFile examples/arithmetic-incompatible.fg "[line 57; pos 12] Invalid operands to arithmetic operator '+'"$'\n'"                  Operands were of type 'number' and 'char', which are incompatible."$'\n'"Fail" 1 
+  testFile examples/bitwise-incompatible.fg "[line 57; pos 12] Invalid operands to bitwise operator '&'"$'\n'"                  Operands were of type 'number' and 'char', which are incompatible."$'\n'"Fail" 1 
   testFile examples/global-var.fg "OK" 0 "554" 0
   testFile examples/global-const.fg "OK" 0 "42AQ"$'\n'"01234" 0
   testFile examples/char-ops.fg "OK" 0 "OO" 0

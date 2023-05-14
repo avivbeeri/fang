@@ -72,14 +72,14 @@ static int coerceType(int type1, int type2) {
   if (type1 == type2) {
     return type1;
   }
-  if (isNumeric(type1) && isNumeric(type2)) {
-    return type1;
-  }
   if (isNumeric(type1) && isLiteral(type2)) {
     return type1;
   }
   if (isLiteral(type1) && isNumeric(type2)) {
     return type2;
+  }
+  if (isNumeric(type1) && isNumeric(type2)) {
+    return typeTable[type1].byteSize > typeTable[type2].byteSize ? type1 : type2;
   }
 
   return NUMERICAL_INDEX;
@@ -295,7 +295,10 @@ static bool traverse(AST* ptr) {
           return PEEK(typeStack) == VOID_INDEX;
         }
         bool r = traverse(data.value);
-        if (data.value->type != PEEK(typeStack)) {
+        if (!r) {
+          return r;
+        }
+        if (!isCompatible(data.value->type, PEEK(typeStack))) {
           printf("MISMATCH between return type and expecte\n");
           return false;
         }
@@ -504,14 +507,7 @@ static bool traverse(AST* ptr) {
         Value value = CONST_TABLE_get(data.constantIndex);
         int leftType = PEEK(typeStack);
         int rightType = valueToType(value);
-        if (!isCompatible(PEEK(typeStack), valueToType(value))) {
-          int indent = compileError(ast.token, "Incompatible literal '");
-          printValue(value);
-          printf("%*s", indent, "");
-          printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
-          return false;
-        }
-        ptr->type = PEEK(typeStack);
+        ptr->type = rightType;
         return true;
       }
     case AST_IDENTIFIER:
