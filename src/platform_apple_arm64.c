@@ -150,6 +150,9 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     snprintf(buffer, sizeof(buffer), "_fang_%s", entry.key);
     return buffer;
+  } else if (scope.parent == 0 && entry.entryType == SYMBOL_TYPE_CONSTANT) {
+    snprintf(buffer, sizeof(buffer), "_fang_const_%s", entry.key);
+    return buffer;
   } else if (scope.parent == 0) {
     snprintf(buffer, sizeof(buffer), "_fang_var_%s", entry.key);
     return buffer;
@@ -206,7 +209,12 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   } else if (scope.parent == 0) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
-    fprintf(f, "  LDR %s, [%s]\n", regList[r], regList[r]);
+    if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY){
+      // Arrays always need to be dereferenced in this generator.
+      // So we do nothing here.
+    } else {
+      fprintf(f, "  LDR %s, [%s]\n", regList[r], regList[r]);
+    }
   } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex)) {
     fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
@@ -256,7 +264,7 @@ static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
 
 static void genPreamble(FILE* f) {
   genMacros(f);
-  fprintf(f, ".data\n");
+  fprintf(f, "\n\n.data\n");
   size_t bytes = 0;
   for (int i = 0; i < arrlen(constTable); i++) {
     Value v = constTable[i].value;
@@ -294,29 +302,48 @@ static void genPreamble(FILE* f) {
   */
 }
 
-static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value) {
+static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
+  uint32_t size = typeTable[entry.typeIndex].byteSize;
+  fprintf(f, "_fang_const_%s: ", entry.key);
+  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+    // RECORD too
+    Value* values = AS_ARRAY(value);
+    // TODO: check for 16bit nums
+    for (int i = 0; i < arrlen(values); i++) {
+      fprintf(f, ".byte %u\n", AS_I8(values[i]));
+    }
+  } else {
+    fprintf(f, ".octa %u\n", AS_U8(value));
+  }
+  fprintf(f, ".balign 4\n");
 }
-static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value) {
+
+static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
   fprintf(f, "_fang_var_%s: ", entry.key);
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // RECORD too
     if (IS_EMPTY(value)) {
-      fprintf(f, ".fill %i, 8, 0\n", size);
+      fprintf(f, ".fill %i, %i, 0\n", AS_U8(count), size);
     } else {
+      Value* values = AS_ARRAY(value);
+      // TODO: check for 16bit nums
+      for (int i = 0; i < arrlen(values); i++) {
+        fprintf(f, ".byte %u\n", AS_I8(values[i]));
+      }
     }
   } else {
     if (IS_EMPTY(value)) {
       fprintf(f, ".octa 0\n");
     } else {
-      fprintf(f, ".octa %u\n", AS_U8(value));
+      fprintf(f, ".octa %u\n", AS_I8(value));
     }
   }
   fprintf(f, ".balign 4\n");
 }
 
 static void genRunMain(FILE* f) {
-  fprintf(f, ".text\n");
+  fprintf(f, "\n\n.text\n");
   fprintf(f, ".global _start\n");
   fprintf(f, ".align 2\n");
   fprintf(f, "_start:\n");

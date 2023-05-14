@@ -53,7 +53,7 @@ static void emitGlobal(FILE* f, AST* ptr) {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         STRING* identifier = data.identifier;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
-        p.genGlobalVariable(f, symbol, EMPTY());
+        p.genGlobalVariable(f, symbol, EMPTY(), EMPTY());
         break;
       }
     case AST_VAR_INIT:
@@ -61,8 +61,19 @@ static void emitGlobal(FILE* f, AST* ptr) {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
         STRING* identifier = data.identifier;
         Value value = evalConstTree(data.expr);
+        Value count = evalConstTree(data.type);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
-        p.genGlobalVariable(f, symbol, value);
+        p.genGlobalVariable(f, symbol, value, count);
+        break;
+      }
+    case AST_CONST_DECL:
+      {
+        struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+        STRING* identifier = data.identifier;
+        Value value = evalConstTree(data.expr);
+        Value count = evalConstTree(data.type);
+        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
+        p.genGlobalConstant(f, symbol, value, count);
         break;
       }
   }

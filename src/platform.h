@@ -81,8 +81,8 @@ typedef struct {
   int (*genDeref)(FILE* f, int);
   int (*genIndexRead)(FILE* f, int, int, int);
   int (*genIndexAddr)(FILE* f, int, int, int);
-  void (*genGlobalConstant)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value);
-  void (*genGlobalVariable)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value);
+  void (*genGlobalConstant)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);
+  void (*genGlobalVariable)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);
 } PLATFORM;
 
 void PLATFORM_init();

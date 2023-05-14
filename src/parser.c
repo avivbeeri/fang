@@ -478,7 +478,14 @@ static AST* constDecl() {
   AST* varType = type();
 
   consume(TOKEN_EQUAL, "Expect '=' after constant declaration.");
-  AST* value = expression();
+  AST* value;
+  if (match(TOKEN_LEFT_BRACE)) {
+    value = record();
+  } else if (match(TOKEN_LEFT_BRACKET)) {
+    value = array();
+  } else {
+    value = expression();
+  }
 
   consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
   return AST_NEW_T(AST_CONST_DECL, token, global, varType, value);

@@ -41,6 +41,7 @@ typedef enum {
   VAL_PTR,
   VAL_STRING,
   VAL_RECORD,
+  VAL_ARRAY,
   VAL_ERROR
 } ValueType;
 
@@ -64,6 +65,7 @@ typedef struct Value {
     unsigned char character;
     uint16_t ptr;
     Record record;
+    struct Value* array;
   } as;
 } Value;
 
@@ -77,6 +79,7 @@ typedef struct Value {
 #define CHAR(value) ((Value){VAL_CHAR, {.character = value}})
 #define PTR(value) ((Value){VAL_PTR, {.ptr = value}})
 #define ERROR(value) ((Value){VAL_ERROR, {.ptr = value}})
+#define ARRAY(values) ((Value){VAL_ARRAY, {.array = values}})
 #define EMPTY() ((Value){VAL_UNDEF, { 0 }})
 
 #define AS_BOOL(value)    ((value).as.boolean)
@@ -90,6 +93,7 @@ typedef struct Value {
 #define AS_CHAR(value)  ((value).as.character)
 #define AS_PTR(value)  ((value).as.ptr)
 #define AS_RECORD(value)  ((value).as.record)
+#define AS_ARRAY(value)  ((value).as.array)
 
 #define AS_NUMBER(value) getNumber(value)
 
@@ -104,6 +108,7 @@ typedef struct Value {
 #define IS_CHAR(value)    ((value).type == VAL_CHAR)
 #define IS_ERROR(value)    ((value).type == VAL_ERROR)
 #define IS_EMPTY(value)    ((value).type == VAL_UNDEF)
+#define IS_ARRAY(value)    ((value).type == VAL_ARRAY)
 
 #define IS_NUMERICAL(value) ((value).type <= VAL_PTR)
 

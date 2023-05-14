@@ -75,13 +75,12 @@ static Value traverse(AST* ptr, Environment* context) {
     }
     case AST_INITIALIZER: {
       struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
-      for (int i = 0; i < arrlen(data.assignments); i++) {
-        // Get name, get value
-        /*
-        if (IS_ERROR(r)) {
-          return r;
+      if (data.initType == INIT_TYPE_ARRAY) {
+        Value* values = NULL;
+        for (int i = 0; i < arrlen(data.assignments); i++) {
+          arrput(values, traverse(data.assignments[i], context));
         }
-        */
+        return ARRAY(values);
       }
       return U8(0);
     }
@@ -224,7 +223,28 @@ static Value traverse(AST* ptr, Environment* context) {
       define(context, identifier->chars, expr, false);
       return expr;
     }
+    case AST_TYPE:
+      {
+        struct AST_TYPE data = ast.data.AST_TYPE;
+        return traverse(data.type, context);
+      }
+    case AST_TYPE_FN:
+    case AST_TYPE_PTR:
+    case AST_TYPE_NAME:
+      {
+        return EMPTY();
+      }
+    case AST_TYPE_ARRAY:
+      {
+        struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
+        return traverse(data.length, context);
+      }
 
+    case AST_CAST:
+      {
+        struct AST_CAST data = ast.data.AST_CAST;
+        return traverse(data.expr, context);
+      }
     case AST_SUBSCRIPT: {
       struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
       Value identifier = traverse(data.left, context);

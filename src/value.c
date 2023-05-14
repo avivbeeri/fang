@@ -68,6 +68,7 @@ void printValueType(Value value) {
     case VAL_STRING: printf("STRING"); break;
     case VAL_ERROR: printf("ERROR"); break;
     case VAL_RECORD: printf("RECORD"); break;
+    case VAL_ARRAY: printf("ARRAY"); break;
     case VAL_UNDEF: printf("0"); break;
   }
 }
@@ -85,6 +86,11 @@ void printValue(Value value) {
     case VAL_STRING: printf("\"%s\"", AS_STRING(value)->chars); break;
     case VAL_ERROR: printf("ERROR(%i)", AS_ERROR(value)); break;
     case VAL_UNDEF: printf("0"); break;
+    case VAL_ARRAY:
+      {
+        printf("ARRAY{ <print content eventually> }");
+        break;
+      }
     case VAL_RECORD:
       {
         printf("RECORD{ <print content eventually> }");
@@ -138,6 +144,7 @@ bool isTruthy(Value value) {
     case VAL_LIT_NUM: return AS_LIT_NUM(value) != 0;
     case VAL_STRING: return (AS_STRING(value)->length) > 0;
     case VAL_RECORD: return true;
+    case VAL_ARRAY: return true;
     case VAL_UNDEF: return false;
     case VAL_ERROR: return false;
   }
