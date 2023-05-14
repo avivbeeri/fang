@@ -1,5 +1,7 @@
 var i:i8 = 5;
 fn main(): void {
   writeI8(i);
+  i = 54;
+  writeI8(i);
 }
 

@@ -190,7 +190,8 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   } else if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
   } else if (scope.parent == 0) {
-    fprintf(f, "  ADR %s, %s\n", regList[r], entry.key);
+    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
+    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
   } else {
     uint32_t offset = getStackOrdinal(entry);
     fprintf(f, "  ADD %s, FP, #%i\n", regList[r], -offset * 16);
@@ -203,7 +204,8 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
   } else if (scope.parent == 0) {
-    fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
+    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
     fprintf(f, "  LDR %s, [%s]\n", regList[r], regList[r]);
   } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex)) {
     fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
@@ -254,6 +256,7 @@ static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
 
 static void genPreamble(FILE* f) {
   genMacros(f);
+  fprintf(f, ".data\n");
   size_t bytes = 0;
   for (int i = 0; i < arrlen(constTable); i++) {
     Value v = constTable[i].value;
@@ -285,6 +288,7 @@ static void genPreamble(FILE* f) {
       }
     }
   }
+  fprintf(f, ".text\n");
   fprintf(f, ".global _start\n");
   fprintf(f, ".align 2\n");
   fprintf(f, "_start:\n");
@@ -347,7 +351,8 @@ static void genRaw(FILE* f, const char* str) {
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   if (entry.scopeIndex <= 1) {
     int r = allocateRegister();
-    fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
+    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
     fprintf(f, "  STR %s, [%s]\n", regList[rvalue], regList[r]);
     freeRegister(r);
     return rvalue;
