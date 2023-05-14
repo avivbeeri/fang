@@ -896,6 +896,7 @@ static bool traverse(AST* ptr) {
             printf("Expected type '%s' but instead found '%s'\n", typeTable[fnType.fields[i].typeIndex].name->chars, typeTable[data.arguments[i]->type].name->chars);
             return false;
           }
+          data.arguments[i]->type = fnType.fields[i].typeIndex;
         }
         ptr->type = typeTable[leftType].returnType;
         return true;
