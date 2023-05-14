@@ -1,0 +1,16 @@
+
+fn main(): void {
+  var i: char = 'A';
+  var j: char = 'J';
+  var z: char = 'Z';
+  if (i < j) {
+    writeChar('O');
+  } else {
+    writeChar('X');
+  }
+  if (z > i) {
+    writeChar('O');
+  } else {
+    writeChar('X');
+  }
+}

@@ -48,6 +48,7 @@ uint32_t* typeStack = NULL;
 #define I16_INDEX 6
 #define NUMERICAL_INDEX 7
 #define FN_INDEX 9
+#define CHAR_INDEX 10
 
 static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
@@ -91,7 +92,7 @@ static int valueToType(Value value) {
     case VAL_UNDEF: return 1; // void
     case VAL_BOOL: return BOOL_INDEX;
 
-    case VAL_CHAR: return U8_INDEX;
+    case VAL_CHAR: return CHAR_INDEX;
     case VAL_U8: return U8_INDEX;
 
     case VAL_I8: return I8_INDEX;
@@ -406,6 +407,7 @@ static bool traverse(AST* ptr) {
           int indent = compileError(data.expr->token, "Incompatible initialization for constant value '%s'", data.identifier->chars);
           printf("%*s", indent, "");
           printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          return false;
         }
         ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();

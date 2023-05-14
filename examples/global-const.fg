@@ -1,0 +1,16 @@
+const word: char = 'Q';
+var n: i8;
+var j: char = 'A';
+
+const i: [5]char = ['0', '1', '2', '3', '4'];
+fn main(): void {
+  n = 42;
+  writeI8(n);
+  writeChar(j);
+  writeChar(word);
+  writeChar('\n');
+  for (var q: u8 = 0; q < 5; q = q + 1) {
+    writeChar(i[q]);
+  }
+}
+

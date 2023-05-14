@@ -126,7 +126,7 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   sh_new_arena(aliasTable);
   shdefault(aliasTable, 0);
   shput(aliasTable, "uint8", 3);
-  shput(aliasTable, "char", 3);
+  //shput(aliasTable, "char", 3);
   shput(aliasTable, "int8", 4);
   shput(aliasTable, "uint16", 5);
   shput(aliasTable, "ptr", 5);
@@ -142,6 +142,7 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   TYPE_TABLE_registerPrimitive(createString("literal"), 0);
   TYPE_TABLE_registerPrimitive(createString("string"), 2);
   TYPE_TABLE_registerPrimitive(createString("fn"), 2);
+  TYPE_TABLE_registerPrimitive(createString("char"), 1);
 
   return typeTable;
 }
