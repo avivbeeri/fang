@@ -1,11 +1,15 @@
-
-fn main(): u8 {
-  writeI8(-1);
+var i: i8 = 5;
+var s: [6]char = ['0', '1', '2', '3', '4', '0'];
+fn main(): void {
+  writeI8(i);
+  i = 54;
+  writeI8(i);
   writeChar(' ');
-  writeI8(-17);
+  s[4] = '5';
+  for (var q: u8 = 0; q < 5; q = q + 1) {
+    writeChar(s[q]);
+  }
   writeChar(' ');
-  writeI8(135); // Should display as negative
-  writeChar(' ');
-  writeI8(64 - 76); // Should display as negative
-  return 0;
+  writeI8(s[6] as i8);
 }
+

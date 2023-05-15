@@ -318,7 +318,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     for (int i = 0; i < arrlen(values); i++) {
       fprintf(f, ".byte %u\n", AS_I8(values[i]));
     }
-    fprintf(f, ".byte %u\n", AS_I8(count));
+    fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
   } else {
     fprintf(f, ".octa %u\n", AS_U8(value));
   }
@@ -339,7 +339,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
         fprintf(f, ".byte %u\n", AS_I8(values[i]));
       }
     }
-    fprintf(f, ".byte %u\n", AS_I8(count));
+    fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
   } else {
     if (IS_EMPTY(value)) {
       fprintf(f, ".octa 0\n");
