@@ -1,7 +1,13 @@
-var i:i8 = 5;
+var i: i8 = 5;
+var s: [5]char = ['0', '1', '2', '3', '4'];
 fn main(): void {
   writeI8(i);
   i = 54;
   writeI8(i);
+  writeChar(' ');
+  s[4] = '5';
+  for (var q: u8 = 0; q < 5; q = q + 1) {
+    writeChar(s[q]);
+  }
 }
 
