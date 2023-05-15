@@ -71,12 +71,6 @@ static int holdRegister(int r) {
 }
 
 static void genMacros(FILE* f) {
-  fprintf(f, " .macro PUSHB1 register\n");
-  fprintf(f, "        STRB \\register, [SP, #-16]!\n");
-  fprintf(f, " .endm\n");
-  fprintf(f, " .macro POPB1 register\n");
-  fprintf(f, "        LDRSB \\register, [SP], #16\n");
-  fprintf(f, " .endm\n");
   fprintf(f, " .macro PUSH1 register\n");
   fprintf(f, "        STR \\register, [SP, #-16]!\n");
   fprintf(f, " .endm\n");
@@ -211,6 +205,13 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+  } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
+    // TODO: handle size
+    if (typeTable[entry.typeIndex].byteSize == 1) {
+      fprintf(f, "  LDRSB %s, %s\n", regList[r], symbol(entry));
+    } else {
+      fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
+    }
   } else if (scope.parent == 0) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
@@ -222,8 +223,8 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
     }
   } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex)) {
     fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
-  } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
+  } else if (typeTable[entry.typeIndex].byteSize == 1) {
+    fprintf(f, "  LDRSB %s, %s\n", storeRegList[r], symbol(entry));
   } else {
     fprintf(f, "  LDRSB %s, %s\n", storeRegList[r], symbol(entry));
   }
@@ -317,6 +318,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     for (int i = 0; i < arrlen(values); i++) {
       fprintf(f, ".byte %u\n", AS_I8(values[i]));
     }
+    fprintf(f, ".byte %u\n", AS_I8(count));
   } else {
     fprintf(f, ".octa %u\n", AS_U8(value));
   }
@@ -337,6 +339,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
         fprintf(f, ".byte %u\n", AS_I8(values[i]));
       }
     }
+    fprintf(f, ".byte %u\n", AS_I8(count));
   } else {
     if (IS_EMPTY(value)) {
       fprintf(f, ".octa 0\n");
@@ -421,9 +424,12 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   fprintf(f, "  STR %s, %s\n", regList[rvalue], symbol(entry));
   return rvalue;
 }
-static int genAssign(FILE* f, int lvalue, int rvalue) {
-  fprintf(f, "  STR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
-  //fprintf(f, "  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
+static int genAssign(FILE* f, int lvalue, int rvalue, int size) {
+  if (size == 1) {
+    fprintf(f, "  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
+  } else {
+    fprintf(f, "  STR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
+  }
   freeRegister(lvalue);
   return rvalue;
 }
@@ -451,7 +457,7 @@ static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
 static int genAdd(FILE* f, int leftReg, int rightReg, int size) {
   fprintf(f, "  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   if (size == 1) {
-    fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
+ //   fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
 
   freeRegister(rightReg);
@@ -467,7 +473,7 @@ static int genSub(FILE* f, int leftReg, int rightReg) {
 static int genMul(FILE* f, int leftReg, int rightReg, int size) {
   fprintf(f, "  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   if (size == 1) {
-    fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
+  //  fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
   return leftReg;
@@ -475,7 +481,7 @@ static int genMul(FILE* f, int leftReg, int rightReg, int size) {
 static int genDiv(FILE* f, int leftReg, int rightReg, int size) {
   fprintf(f, "  SDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   if (size == 1) {
-    fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
+   // fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
   return leftReg;
@@ -544,34 +550,34 @@ static int genGreaterThan(FILE* f, int left, int right) {
   fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
   fprintf(f, "  CSET %s, gt\n", regList[left]);
-  fprintf(f, "  AND %s, %s, 255\n", regList[left], regList[left]);
+  fprintf(f, "  AND %s, %s, #255\n", regList[left], regList[left]);
   return left;
 }
 static int genEqualGreaterThan(FILE* f, int left, int right) {
   fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
   fprintf(f, "  CSET %s, ge\n", regList[left]);
-  fprintf(f, "  AND %s, %s, 255\n", regList[left], regList[left]);
+  fprintf(f, "  AND %s, %s, #255\n", regList[left], regList[left]);
   return left;
 }
 static int genEqualLessThan(FILE* f, int left, int right) {
   fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
   fprintf(f, "  CSET %s, le\n", regList[left]);
-  fprintf(f, "  AND %s, %s, 255\n", regList[left], regList[left]);
+  fprintf(f, "  AND %s, %s, #255\n", regList[left], regList[left]);
   return left;
 }
 
 static int genLessThan(FILE* f, int left, int right) {
   fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   fprintf(f, "  CSET %s, lt\n", regList[left]);
-  fprintf(f, "  AND %s, %s, 255\n", regList[left], regList[left]);
+  fprintf(f, "  AND %s, %s, #255\n", regList[left], regList[left]);
   return left;
 }
 static int genLogicalNot(FILE* f, int valueReg) {
   fprintf(f, "  CMP %s, #0\n", regList[valueReg]);
   fprintf(f, "  CSET %s, eq\n", regList[valueReg]);
-  fprintf(f, "  AND %s, %s, 255\n", regList[valueReg], regList[valueReg]);
+  fprintf(f, "  AND %s, %s, #255\n", regList[valueReg], regList[valueReg]);
   return valueReg;
 }
 

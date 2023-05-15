@@ -301,7 +301,7 @@ static int traverse(FILE* f, AST* ptr) {
             int value = traverse(f, init.assignments[i]);
             int index = p.genLoad(f, i, 1);
             int slot = p.genIndexAddr(f, rvalue, index, offset);
-            int assign = p.genAssign(f, slot, value);
+            int assign = p.genAssign(f, slot, value, offset);
             p.freeRegister(assign);
           }
           p.freeRegister(rvalue);
@@ -316,7 +316,8 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         int r = traverse(f, data.expr);
         int l = traverse(f, data.lvalue);
-        return p.genAssign(f, l, r);
+        int size = typeTable[data.lvalue->type].byteSize;
+        return p.genAssign(f, l, r, size);
       }
     case AST_IDENTIFIER:
       {
