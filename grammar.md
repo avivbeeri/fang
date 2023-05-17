@@ -30,27 +30,34 @@ Reserved for future use: import, ext, enum
 
 ## Grammar
 
-program -> topDecl* EOF
+program -> moduleDecl? topDecl* EOF
 topDecl -> 
+  | importDecl
+  | extDecl
   | typeDecl 
   | enumDecl 
   | fnDecl 
-  | varDecl 
-  | constDecl 
+  | varInit 
+  | constInit 
   | asmDecl;
 
 declaration -> 
-  | varDecl 
-  | constDecl 
+  | varInit 
+  | constInit 
   | asmDecl
   | statement;
 
 typeDecl -> "type" IDENTIFIER "{" fields? "}";
 enumDecl -> "enum" IDENTIFIER "{" IDENTIFER ("=" expression) ("," IDENTIFIER ("=" expression)?)* "}";
 fnDecl -> "fn" function;
-constDecl -> "const" IDENTIFIER ":" type ("=" expression)? ";" ;
-varDecl -> "var" IDENTIFIER ":" type ("=" expression)? ";" ;
+constInit -> constDecl "=" expression ";" ;
+varInit -> varDecl ("=" expression)? ";" ;
+constDecl -> "const" IDENTIFIER ":" type ;
+varDecl -> "var" IDENTIFIER ":" type ;
 asmDecl -> "asm" "{" (STRING ";")* "}" ";";
+extDecl -> "ext" ( varDecl | constDecl | "fn" IDENTIFIER "(" parameters? ")" ":" type ) ";" ;
+importDecl -> "import" STRING ;
+moduleDecl -> "module" STRING ;
 
 statement  -> block
             | ifStmt
@@ -61,7 +68,7 @@ statement  -> block
 
 exprStmt   -> expression ";";
 forStmt    -> "for" "(" 
-              (varDecl | exprStmt | ";")
+              (varInit | exprStmt | ";")
               expression? ";"
               expression? ")" statement;
 
