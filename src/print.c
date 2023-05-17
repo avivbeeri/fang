@@ -219,23 +219,30 @@ static void traverse(AST* ptr, int level) {
       traverse(data.value, 0);
       break;
     }
-    case AST_LIST: {
-      struct AST_LIST data = ast.data.AST_LIST;
+    case AST_MODULE: {
+      struct AST_MODULE data = ast.data.AST_MODULE;
+      printf("------ module --------\n");
+      for (int i = 0; i < arrlen(data.decls); i++) {
+        traverse(data.decls[i], level);
+        printf("\n");
+      }
+      printf("------ complete --------\n");
+      break;
+    }
+    case AST_BLOCK: {
+      struct AST_BLOCK data = ast.data.AST_BLOCK;
       for (int i = 0; i < arrlen(data.decls); i++) {
         traverse(data.decls[i], level);
         printf("\n");
       }
       break;
     }
-    case AST_BLOCK: {
-      struct AST_BLOCK data = ast.data.AST_BLOCK;
-      return traverse(data.body, level);
-    }
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;
-      printf("------ main --------\n");
-      traverse(data.body, level);
-      printf("------ complete --------\n");
+      for (int i = 0; i < arrlen(data.modules); i++) {
+        traverse(data.modules[i], level);
+        printf("\n");
+      }
       break;
     }
     case AST_LITERAL: {

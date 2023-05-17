@@ -94,8 +94,16 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_MAIN data = ast.data.AST_MAIN;
         p.genPreamble(f);
-
-        struct AST_LIST body = data.body->data.AST_LIST;
+        p.genRunMain(f);
+        p.genSimpleExit(f);
+        for (int i = 0; i < arrlen(data.modules); i++) {
+          traverse(f, data.modules[i]);
+        }
+        return 0;
+      }
+    case AST_MODULE:
+      {
+        struct AST_MODULE body = ast.data.AST_MODULE;
         int* deferred = NULL;
         for (int i = 0; i < arrlen(body.decls); i++) {
           if (body.decls[i]->tag == AST_FN) {
@@ -111,35 +119,20 @@ static int traverse(FILE* f, AST* ptr) {
             p.freeAllRegisters();
           }
         }
-        p.genRunMain(f);
-        p.genSimpleExit(f);
         for (int i = 0; i < arrlen(deferred); i++) {
           traverse(f, body.decls[deferred[i]]);
         }
         arrfree(deferred);
         return 0;
       }
-    case AST_LIST:
-      {
-        struct AST_LIST data = ast.data.AST_LIST;
-        int* deferred = NULL;
-        for (int i = 0; i < arrlen(data.decls); i++) {
-          if (data.decls[i]->tag == AST_FN) {
-            arrput(deferred, i);
-          } else {
-            traverse(f, data.decls[i]);
-            p.freeAllRegisters();
-          }
-        }
-        for (int i = 0; i < arrlen(deferred); i++) {
-          traverse(f, data.decls[deferred[i]]);
-        }
-        return 0;
-      }
     case AST_BLOCK:
       {
         struct AST_BLOCK data = ast.data.AST_BLOCK;
-        return traverse(f, data.body);
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          traverse(f, data.decls[i]);
+          p.freeAllRegisters();
+        }
+        return 0;
       }
     case AST_FN:
       {
@@ -151,10 +144,9 @@ static int traverse(FILE* f, AST* ptr) {
 
         if (strcmp(data.identifier->chars, "main") == 0) {
           struct AST_BLOCK block = data.body->data.AST_BLOCK;
-          struct AST_LIST bodyList = block.body->data.AST_LIST;
-          if (arrlen(bodyList.decls) > 0) {
-            size_t index = arrlen(bodyList.decls) - 1;
-            if (bodyList.decls[index]->tag != AST_RETURN) {
+          if (arrlen(block.decls) > 0) {
+            size_t index = arrlen(block.decls) - 1;
+            if (block.decls[index]->tag != AST_RETURN) {
               p.genReturn(f, fnStack[0], -1);
             }
           }

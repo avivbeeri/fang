@@ -94,7 +94,6 @@ typedef enum {
   AST_FN,
   AST_TYPE_DECL,
   AST_PARAM,
-  AST_LIST,
   AST_MODULE,
   AST_MAIN
 } AST_TAG;
@@ -141,10 +140,9 @@ struct AST {
     struct AST_FN { STRING* identifier; AST** params; AST* returnType; AST* body; AST* fnType; int typeIndex; } AST_FN;
     struct AST_TYPE_DECL { STRING* name; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STRING** strings; } AST_ASM;
-    struct AST_BLOCK { AST* body; } AST_BLOCK;
-    struct AST_LIST { AST** decls; } AST_LIST;
-    struct AST_MODULE { AST* body; } AST_MODULE;
-    struct AST_MAIN { AST* body; } AST_MAIN;
+    struct AST_BLOCK { AST** decls; } AST_BLOCK;
+    struct AST_MODULE { AST** decls; } AST_MODULE;
+    struct AST_MAIN { AST** modules; } AST_MAIN;
   } data;
   TYPE_INDEX type;
   Token token;

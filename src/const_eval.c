@@ -43,21 +43,25 @@ static Value traverse(AST* ptr, Environment* context) {
     }
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;
-      return traverse(data.body, context);
+      Value r;
+      for (int i = 0; i < arrlen(data.modules); i++) {
+        Environment env = beginScope(context);
+        r = traverse(data.modules[i], &env);
+        endScope(&env);
+        if (IS_ERROR(r)) {
+          return r;
+        }
+      }
+      return r;
     }
     case AST_RETURN: {
       struct AST_RETURN data = ast.data.AST_RETURN;
       return traverse(data.value, context);
     }
-    case AST_BLOCK: {
-      struct AST_BLOCK data = ast.data.AST_BLOCK;
+    case AST_MODULE: {
+      struct AST_MODULE data = ast.data.AST_MODULE;
       Environment env = beginScope(context);
-      return traverse(data.body, &env);
-      endScope(&env);
-    }
-    case AST_LIST: {
       Value r;
-      struct AST_LIST data = ast.data.AST_LIST;
       for (int i = 0; i < arrlen(data.decls); i++) {
         if (data.decls[i]->tag == AST_FN ||
             data.decls[i]->tag == AST_ASM) {
@@ -68,6 +72,20 @@ static Value traverse(AST* ptr, Environment* context) {
           return r;
         }
       }
+      endScope(&env);
+      return r;
+    }
+    case AST_BLOCK: {
+      struct AST_BLOCK data = ast.data.AST_BLOCK;
+      Environment env = beginScope(context);
+      Value r;
+      for (int i = 0; i < arrlen(data.decls); i++) {
+        r = traverse(data.decls[i], context);
+        if (IS_ERROR(r)) {
+          return r;
+        }
+      }
+      endScope(&env);
       return r;
     }
     case AST_ASM: {

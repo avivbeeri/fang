@@ -181,12 +181,6 @@ void ast_free(AST *ptr) {
     }
     case AST_BLOCK: {
       struct AST_BLOCK data = ast.data.AST_BLOCK;
-      ast_free(data.body);
-      break;
-    }
-    case AST_LIST:
-    {
-      struct AST_LIST data = ast.data.AST_LIST;
       for (int i = 0; i < arrlen(data.decls); i++) {
         ast_free(data.decls[i]);
       }
@@ -195,7 +189,10 @@ void ast_free(AST *ptr) {
     }
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;
-      ast_free(data.body);
+      for (int i = 0; i < arrlen(data.modules); i++) {
+        ast_free(data.modules[i]);
+      }
+      arrfree(data.modules);
       break;
     }
   }
@@ -206,7 +203,6 @@ const char* getNodeTypeName(AST_TAG tag) {
   switch(tag) {
     case AST_ERROR: return "ERROR";
     case AST_MAIN: return "MAIN";
-    case AST_LIST: return "LIST";
     case AST_BLOCK: return "BLOCK";
     case AST_PARAM: return "PARAM";
     case AST_FN: return "FN";

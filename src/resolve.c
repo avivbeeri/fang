@@ -202,12 +202,19 @@ static bool resolveTopLevel(AST* ptr) {
     case AST_MAIN:
       {
         struct AST_MAIN data = ast.data.AST_MAIN;
-        return resolveTopLevel(data.body);
+        bool r = true;
+        for (int i = 0; i < arrlen(data.modules); i++) {
+          r &= resolveTopLevel(data.modules[i]);
+          if (!r) {
+            return false;
+          }
+        }
+        return r;
       }
-    case AST_LIST:
+    case AST_MODULE:
       {
         bool r = true;
-        struct AST_LIST data = ast.data.AST_LIST;
+        struct AST_MODULE data = ast.data.AST_MODULE;
         int* deferred = NULL;
         for (int i = 0; i < arrlen(data.decls); i++) {
           if (data.decls[i]->tag == AST_FN) {
@@ -286,7 +293,14 @@ static bool traverse(AST* ptr) {
     case AST_MAIN:
       {
         struct AST_MAIN data = ast.data.AST_MAIN;
-        return traverse(data.body);
+        bool r = true;
+        for (int i = 0; i < arrlen(data.modules); i++) {
+          r &= traverse(data.modules[i]);
+          if (!r) {
+            return r;
+          }
+        }
+        return r;
       }
     case AST_RETURN:
       {
@@ -308,14 +322,20 @@ static bool traverse(AST* ptr) {
       {
         struct AST_BLOCK data = ast.data.AST_BLOCK;
         SYMBOL_TABLE_openScope(SCOPE_TYPE_BLOCK);
-        bool r = traverse(data.body);
+        bool r = true;
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          r &= traverse(data.decls[i]);
+          if (!r) {
+            break;
+          }
+        }
         SYMBOL_TABLE_closeScope();
         return r;
       }
-    case AST_LIST:
+    case AST_MODULE:
       {
         bool r = true;
-        struct AST_LIST data = ast.data.AST_LIST;
+        struct AST_MODULE data = ast.data.AST_MODULE;
         int* deferred = NULL;
         for (int i = 0; i < arrlen(data.decls); i++) {
           // Hoist FN resolution until after the main code
@@ -495,8 +515,7 @@ static bool traverse(AST* ptr) {
           SYMBOL_TABLE_put(paramName, SYMBOL_TYPE_PARAMETER, index);
         }
         PUSH(typeStack, typeTable[ast.type].returnType);
-        struct AST_BLOCK block = data.body->data.AST_BLOCK;
-        r &= traverse(block.body);
+        r &= traverse(data.body);
         POP(typeStack);
         SYMBOL_TABLE_closeScope();
         return r;

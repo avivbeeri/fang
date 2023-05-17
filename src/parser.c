@@ -420,8 +420,7 @@ static AST* block() {
   }
 
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after block.");
-  AST* list = AST_NEW(AST_LIST, declList);
-  return AST_NEW(AST_BLOCK, list);
+  return AST_NEW(AST_BLOCK, declList);
 }
 
 
@@ -829,9 +828,12 @@ AST* module() {
       arrput(declList, decl);
     }
   }
-  consume(TOKEN_END, "Expect end of file");
+  // consume(TOKEN_END, "Expect end of file");
+  if (check(TOKEN_EOF) || match(TOKEN_END)) {
+  }
 
-  return AST_NEW(AST_LIST, declList);
+
+  return AST_NEW(AST_MODULE, declList);
 }
 
 AST* parse(const char* source) {
@@ -839,42 +841,22 @@ AST* parse(const char* source) {
   parser.panicMode = false;
 
   advance();
-  AST* list = NULL;
-  AST* current = NULL;
-  AST** declList = NULL;
+  AST** moduleList = NULL;
 
   while (!check(TOKEN_EOF)) {
     if (match(TOKEN_BEGIN)) {
-      arrput(declList, module());
+      arrput(moduleList, module());
     }
-
-    /*
-    AST* decl = topLevel();
-    if (decl == NULL) {
-      continue;
-    }
-    if (decl->tag == AST_ERROR) {
-      break;
-    }
-    if (decl) {
-      arrput(declList, decl);
-    }
-    if (match(TOKEN_END) || match(TOKEN_EOF)) {
-      printf("END %.*s\n", parser.previous.length, parser.previous.start);
-    }
-    */
   }
-
-  list = AST_NEW(AST_LIST, declList);
 
   if (!parser.hadError) {
     consume(TOKEN_EOF, "Expect end of expression.");
   }
   if (parser.hadError) {
-    ast_free(list);
+    // ast_free(list);
     return NULL;
   }
-  return AST_NEW(AST_MAIN, list);
+  return AST_NEW(AST_MAIN, moduleList);
 }
 
 void testScanner(const SourceFile* source) {
