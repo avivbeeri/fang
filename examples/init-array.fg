@@ -1,3 +1,4 @@
+import "lib.fg"
 fn main(): void {
   var n: [3]i8 = [ 65, 66, 67 ];
   writeI8(n[0]);

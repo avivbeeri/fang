@@ -1,3 +1,5 @@
+import "lib.fg"
+
 fn main(): void {
   var i: i8 = 0;
   {

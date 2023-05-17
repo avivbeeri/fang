@@ -1,3 +1,4 @@
+import "lib.fg"
 
 fn main(): i8 {
   var len: u8 = 5;

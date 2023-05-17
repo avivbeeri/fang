@@ -67,5 +67,6 @@ STRING* STRING_prepend(STRING* str, const char* prepend);
 STRING* copyString(const char* chars, size_t length);
 STRING* createString(const char* chars);
 void STRING_free(STRING* str);
+char* readFile(const char* path);
 
 #endif

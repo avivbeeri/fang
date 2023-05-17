@@ -1,3 +1,4 @@
+import "lib.fg"
 fn main(): void {
   syscall_write('h');
   syscall_write('e');

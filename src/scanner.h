@@ -26,6 +26,8 @@
 #ifndef scanner_h
 #define scanner_h
 
+#include "compiler.h"
+
 typedef enum {
   // Single-character tokens.
   TOKEN_LEFT_PAREN, TOKEN_RIGHT_PAREN,
@@ -62,14 +64,17 @@ typedef enum {
 typedef struct {
   TokenType type;
   const char* start;
+  const char* fileName;
   int length;
   int line;
   int pos;
 } Token;
 
-void initScanner(const char* source);
+
+void initScanner(const SourceFile* sources);
 Token scanToken();
 const char* getTokenTypeName(TokenType name);
+bool SCANNER_addFile(const char* path);
 
 
 #endif

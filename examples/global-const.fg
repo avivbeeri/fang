@@ -1,3 +1,4 @@
+import "lib.fg"
 const word: char = 'Q';
 var n: i8;
 var j: char = 'A';

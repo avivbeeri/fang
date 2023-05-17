@@ -26,6 +26,12 @@
 #ifndef compiler_h
 #define compiler_h
 
-bool compile(const char* source);
+#include "common.h"
+typedef struct SourceFile {
+  const char* name;
+  const char* source;
+} SourceFile;
+
+bool compile(const SourceFile* sources);
 
 #endif

@@ -1,3 +1,4 @@
+import "lib.fg"
 fn main(): i8 {
   var a: i8 = 1;
   var b: i8 = 2;

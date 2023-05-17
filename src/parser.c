@@ -766,10 +766,20 @@ static AST* typeDecl() {
   return AST_NEW(AST_TYPE_DECL, identifier, fields);
 }
 
+static AST* importDecl() {
+  consume(TOKEN_STRING, "Expect a file path to import");
+  STRING* path = copyString(parser.previous.start + 1, parser.previous.length - 2);
+  SCANNER_addFile(path->chars);
+  // add module namespace to symbol table
+  return NULL;
+}
+
 static AST* topLevel() {
   AST* decl = NULL;
   if (match(TOKEN_TYPE)) {
     decl = typeDecl();
+  } else if (match(TOKEN_IMPORT)) {
+    decl = importDecl();
   } else if (match(TOKEN_ENUM)) {
     //decl = enumDecl();
   } else if (match(TOKEN_FN)) {
@@ -840,7 +850,7 @@ AST* parse(const char* source) {
   return AST_NEW(AST_MAIN, list);
 }
 
-void testScanner(const char* source) {
+void testScanner(const SourceFile* source) {
   initScanner(source);
 
   int line = -1;

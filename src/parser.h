@@ -27,9 +27,10 @@
 #define parser_h
 
 #include "ast.h"
+#include "compiler.h"
 
-AST* parse(const char* source);
+AST* parse(const SourceFile* source);
 void errorAt(Token* token, const char* message);
-void testScanner(const char* source);
+void testScanner(const SourceFile* source);
 
 #endif

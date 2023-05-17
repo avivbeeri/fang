@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include "common.h"
+#include "memory.h"
 #include "scanner.h"
 
 typedef struct {
@@ -35,15 +36,25 @@ typedef struct {
   const char* current;
   int line;
   int pos;
+  int fileIndex;
+  SourceFile* sources;
 } Scanner;
 
 Scanner scanner;
 
-void initScanner(const char* source) {
-  scanner.start = source;
-  scanner.current = source;
+void initScanner(const SourceFile* sources) {
+  scanner.fileIndex = 0;
+  scanner.sources = (SourceFile*)sources;
+  scanner.start = sources[0].source;
+  scanner.current = sources[0].source;
   scanner.pos = 0;
   scanner.line = 1;
+}
+
+bool SCANNER_addFile(const char* path) {
+  const char* fileSource = readFile(path);
+  arrput(scanner.sources, ((SourceFile){ .name=path, .source = fileSource}));
+  return true;
 }
 
 static bool isAlpha(char c) {
@@ -56,6 +67,9 @@ static bool isDigit(char c) {
   return c >= '0' && c <= '9';
 }
 
+static bool isAtEndOfInput() {
+  return *scanner.current == '\0' && scanner.fileIndex < arrlen(scanner.sources) - 1;
+}
 static bool isAtEnd() {
   return *scanner.current == '\0';
 }
@@ -63,6 +77,14 @@ static bool isAtEnd() {
 static char advance() {
   scanner.current++;
   scanner.pos++;
+  if (isAtEndOfInput()) {
+    scanner.fileIndex++;
+    scanner.start = scanner.sources[scanner.fileIndex].source;
+    scanner.current = scanner.sources[scanner.fileIndex].source;
+    scanner.pos = 0;
+    scanner.line = 1;
+    return scanner.current[0];
+  }
   return scanner.current[-1];
 }
 

@@ -1,3 +1,4 @@
+import "lib.fg"
 var i: i8 = 5;
 var s: [5]char = ['0', '1', '2', '3', '4'];
 fn main(): void {

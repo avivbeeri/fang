@@ -38,14 +38,15 @@
 #include "eval.h"
 #include "options.h"
 
-bool compile(const char* source) {
+bool compile(const SourceFile* sources) {
+
   if (options.scanTest) {
-    testScanner(source);
+    testScanner(sources);
   }
   TYPE_TABLE_init();
   CONST_TABLE_init();
-  initScanner(source);
-  AST* ast = parse(source);
+  initScanner(sources);
+  AST* ast = parse(sources);
   bool result = true;
   if (ast != NULL) {
     if (options.printAst) {

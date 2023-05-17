@@ -1,3 +1,4 @@
+import "lib.fg"
 fn main(): u8 {
   if (true) {
     writeU8(42);

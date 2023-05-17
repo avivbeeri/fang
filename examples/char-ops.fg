@@ -1,3 +1,4 @@
+import "lib.fg"
 
 fn main(): void {
   var i: char = 'A';
