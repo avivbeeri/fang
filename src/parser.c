@@ -815,6 +815,25 @@ static AST* declaration() {
   return decl;
 }
 
+AST* module() {
+  AST** declList = NULL;
+  while (!check(TOKEN_EOF) && !check(TOKEN_END)) {
+    AST* decl = topLevel();
+    if (decl == NULL) {
+      continue;
+    }
+    if (decl->tag == AST_ERROR) {
+      break;
+    }
+    if (decl) {
+      arrput(declList, decl);
+    }
+  }
+  consume(TOKEN_END, "Expect end of file");
+
+  return AST_NEW(AST_LIST, declList);
+}
+
 AST* parse(const char* source) {
   parser.hadError = false;
   parser.panicMode = false;
@@ -826,9 +845,10 @@ AST* parse(const char* source) {
 
   while (!check(TOKEN_EOF)) {
     if (match(TOKEN_BEGIN)) {
-      printf("Begin %.*s\n", parser.previous.length, parser.previous.start);
+      arrput(declList, module());
     }
 
+    /*
     AST* decl = topLevel();
     if (decl == NULL) {
       continue;
@@ -842,6 +862,7 @@ AST* parse(const char* source) {
     if (match(TOKEN_END) || match(TOKEN_EOF)) {
       printf("END %.*s\n", parser.previous.length, parser.previous.start);
     }
+    */
   }
 
   list = AST_NEW(AST_LIST, declList);
