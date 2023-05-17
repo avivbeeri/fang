@@ -822,10 +822,13 @@ AST* parse(const char* source) {
   advance();
   AST* list = NULL;
   AST* current = NULL;
-
   AST** declList = NULL;
 
   while (!check(TOKEN_EOF)) {
+    if (match(TOKEN_BEGIN)) {
+      printf("Begin %.*s\n", parser.previous.length, parser.previous.start);
+    }
+
     AST* decl = topLevel();
     if (decl == NULL) {
       continue;
@@ -835,6 +838,9 @@ AST* parse(const char* source) {
     }
     if (decl) {
       arrput(declList, decl);
+    }
+    if (match(TOKEN_END) || match(TOKEN_EOF)) {
+      printf("END %.*s\n", parser.previous.length, parser.previous.start);
     }
   }
 

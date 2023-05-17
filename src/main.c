@@ -65,15 +65,12 @@ int main(int argc, const char* argv[]) {
     path = (char*)argv[1];
   }
 
-  //char* libSource = readFile("lib.fg");
   char* fileSource = readFile(path);
   SourceFile* sources = NULL;
-  //arrput(sources, ((SourceFile){ .name="lib.fg", .source = libSource}));
   arrput(sources, ((SourceFile){ .name=path, .source = fileSource}));
 
   bool success = compile(sources);
   for (int i = 0; i < arrlen(sources); i++) {
-    //free((void*)sources[i].name);
     free((void*)sources[i].source);
   }
   arrfree(sources);

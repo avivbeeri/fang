@@ -38,6 +38,7 @@ typedef struct {
   int pos;
   int fileIndex;
   SourceFile* sources;
+  bool begun;
 } Scanner;
 
 Scanner scanner;
@@ -52,6 +53,11 @@ void initScanner(const SourceFile* sources) {
 }
 
 bool SCANNER_addFile(const char* path) {
+  for (int i = 0; i < arrlen(scanner.sources); i++) {
+    if (strcmp(scanner.sources[i].name, path) == 0) {
+      return true;
+    }
+  }
   const char* fileSource = readFile(path);
   arrput(scanner.sources, ((SourceFile){ .name=path, .source = fileSource}));
   return true;
@@ -67,24 +73,32 @@ static bool isDigit(char c) {
   return c >= '0' && c <= '9';
 }
 
-static bool isAtEndOfInput() {
-  return *scanner.current == '\0' && scanner.fileIndex < arrlen(scanner.sources) - 1;
-}
 static bool isAtEnd() {
   return *scanner.current == '\0';
 }
+static bool isInputComplete() {
+  return isAtEnd() && scanner.fileIndex == arrlen(scanner.sources) - 1;
+}
 
-static char advance() {
-  scanner.current++;
-  scanner.pos++;
-  if (isAtEndOfInput()) {
+static bool isAtBeginning() {
+  return !scanner.begun;
+}
+
+
+static void nextFile() {
+  if (isAtEnd() && !isInputComplete()) {
     scanner.fileIndex++;
     scanner.start = scanner.sources[scanner.fileIndex].source;
     scanner.current = scanner.sources[scanner.fileIndex].source;
     scanner.pos = 0;
     scanner.line = 1;
-    return scanner.current[0];
+    scanner.begun = false;
   }
+}
+
+static char advance() {
+  scanner.current++;
+  scanner.pos++;
   return scanner.current[-1];
 }
 
@@ -105,6 +119,24 @@ static bool match(char expected) {
   return true;
 }
 
+static Token makeEndToken(TokenType type) {
+  Token token;
+  token.type = type;
+  token.start = scanner.sources[scanner.fileIndex].name;
+  token.length = (int)(strlen(token.start));
+  token.line = scanner.line;
+  token.pos = scanner.pos;
+  return token;
+}
+static Token makeBeginToken() {
+  Token token;
+  token.type = TOKEN_BEGIN;
+  token.start = scanner.sources[scanner.fileIndex].name;
+  token.length = (int)(strlen(token.start));
+  token.line = scanner.line;
+  token.pos = scanner.pos;
+  return token;
+}
 static Token makeToken(TokenType type) {
   Token token;
   token.type = type;
@@ -116,7 +148,6 @@ static Token makeToken(TokenType type) {
 }
 
 static Token errorToken(const char* message) {
-  printf("ERROR ");
   Token token;
   token.type = TOKEN_ERROR;
   token.start = message;
@@ -373,10 +404,24 @@ static Token string() {
 }
 
 Token scanToken() {
+  if (isAtBeginning()) {
+    scanner.begun = true;
+    return makeBeginToken();
+  }
+
   skipWhitespace();
   scanner.start = scanner.current;
 
-  if (isAtEnd()) return makeToken(TOKEN_EOF);
+  if (isAtEnd()) {
+    if (isInputComplete()) {
+      return makeEndToken(TOKEN_EOF);
+    } else {
+      Token token = makeEndToken(TOKEN_END);
+      nextFile();
+      return token;
+    }
+  }
+
   char c = advance();
   if (isAlpha(c)) return identifier();
   if (isDigit(c)) return number();
@@ -489,5 +534,7 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_EOF: return "EOF";
     case TOKEN_CHAR: return "CHAR";
     case TOKEN_AS: return "AS";
+    case TOKEN_BEGIN: return "BEGIN";
+    case TOKEN_END: return "END";
   }
 }

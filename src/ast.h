@@ -95,7 +95,8 @@ typedef enum {
   AST_TYPE_DECL,
   AST_PARAM,
   AST_LIST,
-  AST_MAIN,
+  AST_MODULE,
+  AST_MAIN
 } AST_TAG;
 
 typedef enum {
@@ -142,6 +143,7 @@ struct AST {
     struct AST_ASM { STRING** strings; } AST_ASM;
     struct AST_BLOCK { AST* body; } AST_BLOCK;
     struct AST_LIST { AST** decls; } AST_LIST;
+    struct AST_MODULE { AST* body; } AST_MODULE;
     struct AST_MAIN { AST* body; } AST_MAIN;
   } data;
   TYPE_INDEX type;

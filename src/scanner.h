@@ -58,7 +58,7 @@ typedef enum {
   TOKEN_IF, TOKEN_ELSE, TOKEN_THIS,
 
   // Control
-  TOKEN_ERROR, TOKEN_EOF
+  TOKEN_ERROR, TOKEN_EOF, TOKEN_BEGIN, TOKEN_END
 } TokenType;
 
 typedef struct {
