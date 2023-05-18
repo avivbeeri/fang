@@ -203,6 +203,8 @@ const char* getNodeTypeName(AST_TAG tag) {
   switch(tag) {
     case AST_ERROR: return "ERROR";
     case AST_MAIN: return "MAIN";
+    case AST_MODULE: return "MODULE";
+    case AST_MODULE_DECL: return "MODULE_DECL";
     case AST_BLOCK: return "BLOCK";
     case AST_PARAM: return "PARAM";
     case AST_FN: return "FN";

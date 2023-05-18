@@ -52,7 +52,7 @@ typedef struct SYMBOL_TABLE_ENTRY {
 
 typedef enum {
   SCOPE_TYPE_INVALID,
-  SCOPE_TYPE_GLOBAL,
+  SCOPE_TYPE_MODULE,
   SCOPE_TYPE_FUNCTION,
   SCOPE_TYPE_BLOCK,
   SCOPE_TYPE_LOOP,
@@ -61,6 +61,7 @@ typedef enum {
 typedef struct {
   uint32_t key;
   uint32_t parent;
+  STRING* moduleName;
   SYMBOL_TABLE_SCOPE_TYPE scopeType;
   SYMBOL_TABLE_ENTRY* table;
   uint32_t ordinal;
@@ -84,11 +85,15 @@ void SYMBOL_TABLE_report();
 void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 bool SYMBOL_TABLE_scopeHas(STRING* name);
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getCurrentScope();
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STRING* name);
+int SYMBOL_TABLE_getScopeIndexByName(STRING* name);
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scopeIndex);
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STRING* name);
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STRING* name);
 uint32_t SYMBOL_TABLE_getCurrentScopeIndex();
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scope, STRING* name);
+void SYMBOL_TABLE_nameScope(STRING* name);
 void SYMBOL_TABLE_free(void);
 
 #endif

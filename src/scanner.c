@@ -283,6 +283,7 @@ static TokenType identifierType() {
     case 'c': return checkKeyword(1, 4, "onst", TOKEN_CONST);
     case 'r': return checkKeyword(1, 5, "eturn", TOKEN_RETURN);
     case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
+    case 'm': return checkKeyword(1, 5, "odule", TOKEN_MODULE);
     case 'a':
       if (scanner.current - scanner.start > 1) {
         if (checkKeyword(1, 2, "sm", TOKEN_ASM) == TOKEN_ASM) {
@@ -536,5 +537,6 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_AS: return "AS";
     case TOKEN_BEGIN: return "BEGIN";
     case TOKEN_END: return "END";
+    case TOKEN_MODULE: return "MODULE";
   }
 }

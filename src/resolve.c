@@ -201,15 +201,15 @@ static bool resolveTopLevel(AST* ptr) {
       }
     case AST_MAIN:
       {
-        struct AST_MAIN data = ast.data.AST_MAIN;
-        bool r = true;
-        for (int i = 0; i < arrlen(data.modules); i++) {
-          r &= resolveTopLevel(data.modules[i]);
-          if (!r) {
-            return false;
-          }
-        }
-        return r;
+        printf("Shouldn't get to main at top level");
+        return false;
+      }
+    case AST_MODULE_DECL:
+      {
+        struct AST_MODULE_DECL data = ast.data.AST_MODULE_DECL;
+        SYMBOL_TABLE_nameScope(data.name);
+        // TODO check for duplicate
+        return true;
       }
     case AST_MODULE:
       {
@@ -295,7 +295,10 @@ static bool traverse(AST* ptr) {
         struct AST_MAIN data = ast.data.AST_MAIN;
         bool r = true;
         for (int i = 0; i < arrlen(data.modules); i++) {
+          SYMBOL_TABLE_openScope(SCOPE_TYPE_MODULE);
+          r &= resolveTopLevel(data.modules[i]);
           r &= traverse(data.modules[i]);
+          SYMBOL_TABLE_closeScope();
           if (!r) {
             return r;
           }
@@ -533,17 +536,27 @@ static bool traverse(AST* ptr) {
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         STRING* identifier = data.identifier;
-        bool result = SYMBOL_TABLE_scopeHas(identifier);
-        if (!result) {
-          compileError(ast.token, "identifier '%s' has not yet been defined in this scope.", identifier->chars);
+        bool result;
+        SYMBOL_TABLE_ENTRY entry;
+        int scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        if (data.module != NULL) {
+          scopeIndex = SYMBOL_TABLE_getScopeIndexByName(data.module);
+          if (scopeIndex == -1) {
+            compileError(ast.token, "identifier '%s' has not yet been defined\n", identifier->chars);
+            return false;
+          }
+          entry = SYMBOL_TABLE_get(scopeIndex, data.module);
+        } else {
+          entry = SYMBOL_TABLE_getCurrent(identifier);
+        }
+        if (entry.defined) {
+          ptr->scopeIndex = scopeIndex;
+          ptr->type = entry.typeIndex;
+        } else {
+          compileError(ast.token, "identifier '%s' has not yet been defined in this scope.\n", identifier->chars);
           return false;
         }
-        SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_getCurrent(identifier);
-        if (entry.defined) {
-          ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
-          ptr->type = entry.typeIndex;
-        }
-        return result;
+        return true;
       }
     case AST_INITIALIZER:
       {
@@ -932,17 +945,11 @@ static bool traverse(AST* ptr) {
 bool resolveTree(AST* ptr) {
 
   PUSH(rvalueStack, false);
-
   SYMBOL_TABLE_init();
-  bool success = resolveTopLevel(ptr);
+  bool success = traverse(ptr);
   if (!success) {
     goto cleanup;
   }
-  success &= traverse(ptr);
-  if (!success) {
-    goto cleanup;
-  }
-  SYMBOL_TABLE_closeScope();
   success &= TYPE_TABLE_calculateSizes();
   if (!success) {
     goto cleanup;

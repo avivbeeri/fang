@@ -140,8 +140,13 @@ static bool match(TokenType type) {
 
 static AST* variable(bool canAssign) {
   // copy the string to memory
+  STRING* namespace = NULL;
   STRING* string = copyString(parser.previous.start, parser.previous.length);
-  AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, string);
+  if (match(TOKEN_COLON_COLON) && match(TOKEN_IDENTIFIER)) {
+    namespace = string;
+    string = copyString(parser.previous.start, parser.previous.length);
+  }
+  AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, namespace, string);
   if (canAssign && match(TOKEN_EQUAL)) {
     Token token = parser.previous;
     AST* expr = expression();
@@ -470,7 +475,7 @@ static AST** fieldList() {
   return params;
 }
 
-static AST* constDecl() {
+static AST* constInit() {
   STRING* global = parseVariable("Expect constant name.");
   Token token = parser.previous;
   consume(TOKEN_COLON, "Expect ':' after identifier.");
@@ -490,7 +495,7 @@ static AST* constDecl() {
   return AST_NEW_T(AST_CONST_DECL, token, global, varType, value);
 }
 
-static AST* varDecl() {
+static AST* varInit() {
   STRING* global = parseVariable("Expect variable name");
   Token token = parser.previous;
   consume(TOKEN_COLON, "Expect ':' after identifier.");
@@ -516,7 +521,7 @@ static AST* varDecl() {
 }
 
 static AST* fnDecl() {
-  STRING* identifier = parseVariable("Expect function identifier");
+  STRING* identifier = parseVariable("Expect function name.");
   Token token = parser.previous;
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
 
@@ -695,7 +700,7 @@ static AST* forStatement() {
   if (match(TOKEN_SEMICOLON)) {
     // No initializer.
   } else if (match(TOKEN_VAR)) {
-    initializer = varDecl();
+    initializer = varInit();
   } else {
     initializer = expressionStatement();
   }
@@ -772,6 +777,11 @@ static AST* importDecl() {
   // add module namespace to symbol table
   return NULL;
 }
+static AST* moduleDecl() {
+  consume(TOKEN_STRING, "Keyword \"module\" should be followed by a module name");
+  STRING* name = copyString(parser.previous.start + 1, parser.previous.length - 2);
+  return AST_NEW_T(AST_MODULE_DECL, parser.previous, name);
+}
 
 static AST* topLevel() {
   AST* decl = NULL;
@@ -784,9 +794,9 @@ static AST* topLevel() {
   } else if (match(TOKEN_FN)) {
     decl = fnDecl();
   } else if (match(TOKEN_VAR)) {
-    decl = varDecl();
+    decl = varInit();
   } else if (match(TOKEN_CONST)) {
-    decl = constDecl();
+    decl = constInit();
   } else if (match(TOKEN_ASM)) {
     decl = asmDecl();
   } else {
@@ -802,9 +812,9 @@ static AST* declaration() {
   AST* decl = NULL;
   Token next = parser.current;
   if (match(TOKEN_VAR)) {
-    decl = varDecl();
+    decl = varInit();
   } else if (match(TOKEN_CONST)) {
-    decl = constDecl();
+    decl = constInit();
   } else if (match(TOKEN_ASM)) {
     decl = asmDecl();
   } else {
@@ -816,6 +826,9 @@ static AST* declaration() {
 
 AST* module() {
   AST** declList = NULL;
+  if (match(TOKEN_MODULE)) {
+    arrput(declList, moduleDecl());
+  }
   while (!check(TOKEN_EOF) && !check(TOKEN_END)) {
     AST* decl = topLevel();
     if (decl == NULL) {

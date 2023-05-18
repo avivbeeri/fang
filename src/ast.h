@@ -94,6 +94,7 @@ typedef enum {
   AST_FN,
   AST_TYPE_DECL,
   AST_PARAM,
+  AST_MODULE_DECL,
   AST_MODULE,
   AST_MAIN
 } AST_TAG;
@@ -110,7 +111,7 @@ struct AST {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_LITERAL { int constantIndex; } AST_LITERAL;
     struct AST_INITIALIZER { AST** assignments; INIT_TYPE initType; } AST_INITIALIZER;
-    struct AST_IDENTIFIER { STRING* identifier; } AST_IDENTIFIER;
+    struct AST_IDENTIFIER { STRING* module; STRING* identifier; } AST_IDENTIFIER;
 
     struct AST_TYPE { AST* type; } AST_TYPE;
     struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
@@ -141,6 +142,7 @@ struct AST {
     struct AST_TYPE_DECL { STRING* name; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STRING** strings; } AST_ASM;
     struct AST_BLOCK { AST** decls; } AST_BLOCK;
+    struct AST_MODULE_DECL { STRING* name; } AST_MODULE_DECL;
     struct AST_MODULE { AST** decls; } AST_MODULE;
     struct AST_MAIN { AST** modules; } AST_MAIN;
   } data;

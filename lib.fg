@@ -1,3 +1,5 @@
+module "sys"
+
 fn syscall_write(c: char): void {
   asm {
     "MOV X0, #1" // STDOUT

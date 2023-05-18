@@ -40,9 +40,12 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   if (scopeStack != NULL) {
     parent = scopeStack[arrlen(scopeStack) - 1];
   }
+  char buffer[64];
+  snprintf(buffer, 64, "<unnamed %i>", scopeId);
   hmputs(scopes, ((SYMBOL_TABLE_SCOPE){
         scopeId,
         parent,
+        createString(buffer),
         scopeType,
         NULL,
         0,
@@ -143,6 +146,9 @@ void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
   SYMBOL_TABLE_putFn(name, type, typeIndex);
 }
 
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getCurrentScope() {
+  return hmgets(scopes, SYMBOL_TABLE_getCurrentScopeIndex());
+}
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scope) {
   return hmgets(scopes, scope);
 }
@@ -186,12 +192,14 @@ void SYMBOL_TABLE_report(void) {
   for (int i = 0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
     printf("Scope %u (parent %u):\n", scope.key, scope.parent);
+    if (scope.scopeType == SCOPE_TYPE_MODULE) {
+      printf(" (module: %s):\n", scope.moduleName->chars);
+    }
     if (scope.scopeType == SCOPE_TYPE_FUNCTION) {
       printf(" (stack required %u):\n", scope.tableAllocationCount);
     }
     for (int j = 0; j < hmlen(scope.table); j++) {
       SYMBOL_TABLE_ENTRY entry = scope.table[j];
-
 
       printf("%s - ", entry.key);
       printf("%s - ", typeTable[entry.typeIndex].name->chars);
@@ -212,11 +220,36 @@ void SYMBOL_TABLE_report(void) {
   }
 }
 
+void SYMBOL_TABLE_nameScope(STRING* name) {
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getCurrentScope();
+  scope.moduleName = name;
+  hmputs(scopes, scope);
+}
+
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STRING* name) {
+  for (int i = 0; i < hmlen(scopes); i++) {
+    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && STRING_equality(scopes[i].moduleName, name)) {
+      return scopes[i];
+    }
+  }
+  return (SYMBOL_TABLE_SCOPE){};
+}
+int SYMBOL_TABLE_getScopeIndexByName(STRING* name) {
+  for (int i = 0; i < hmlen(scopes); i++) {
+    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && STRING_equality(scopes[i].moduleName, name)) {
+      return scopes[i].key;
+    }
+  }
+  return -1;
+}
+
 void SYMBOL_TABLE_free(void) {
+  SYMBOL_TABLE_closeScope();
   for (int i=0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
     // TODO: free the param list in each scope entry
     shfree(scope.table);
+    STRING_free(scope.moduleName);
   }
   hmfree(scopes);
   arrfree(scopeStack);
