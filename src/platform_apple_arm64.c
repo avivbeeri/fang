@@ -149,10 +149,10 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     snprintf(buffer, sizeof(buffer), "_fang_%s", entry.key);
     return buffer;
-  } else if (scope.parent == 0 && entry.entryType == SYMBOL_TYPE_CONSTANT) {
+  } else if (scope.parent == 1 && entry.entryType == SYMBOL_TYPE_CONSTANT) {
     snprintf(buffer, sizeof(buffer), "_fang_const_%s", entry.key);
     return buffer;
-  } else if (scope.parent == 0) {
+  } else if (scope.parent == 1) {
     snprintf(buffer, sizeof(buffer), "_fang_var_%s", entry.key);
     return buffer;
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
@@ -191,7 +191,7 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
     fprintf(f, "  ADD %s, FP, #%i\n", regList[r], (entry.paramOrdinal + 1) * 16);
   } else if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
-  } else if (scope.parent == 0) {
+  } else if (scope.parent == 1) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
   } else {
@@ -212,7 +212,7 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
     } else {
       fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
     }
-  } else if (scope.parent == 0) {
+  } else if (scope.parent == 1) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
     if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY){

@@ -106,7 +106,7 @@ uint32_t SYMBOL_TABLE_getCurrentScopeIndex() {
 }
 
 void SYMBOL_TABLE_init(void) {
-  SYMBOL_TABLE_openScope(SCOPE_TYPE_GLOBAL);
+  SYMBOL_TABLE_openScope(SCOPE_TYPE_INVALID);
 }
 
 void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
@@ -205,6 +205,7 @@ void SYMBOL_TABLE_report(void) {
       printf("%s - ", typeTable[entry.typeIndex].name->chars);
       switch (entry.entryType) {
         case SYMBOL_TYPE_UNKNOWN: { printf("UNKNOWN"); break; }
+        case SYMBOL_TYPE_MODULE: { printf("MODULE"); break; }
         case SYMBOL_TYPE_KEYWORD: { printf("KEYWORD"); break; }
         case SYMBOL_TYPE_FUNCTION: { printf("FUNCTION"); break; }
         case SYMBOL_TYPE_PARAMETER: { printf("PARAMETER"); break; }
@@ -244,7 +245,7 @@ int SYMBOL_TABLE_getScopeIndexByName(STRING* name) {
 }
 
 void SYMBOL_TABLE_free(void) {
-  SYMBOL_TABLE_closeScope();
+  // SYMBOL_TABLE_closeScope();
   for (int i=0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
     // TODO: free the param list in each scope entry

@@ -79,6 +79,8 @@ static void emitGlobal(FILE* f, AST* ptr) {
   }
 }
 
+AST** globals = NULL;
+AST** functions = NULL;
 
 static int traverse(FILE* f, AST* ptr) {
   if (ptr == NULL) {
@@ -94,35 +96,36 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_MAIN data = ast.data.AST_MAIN;
         p.genPreamble(f);
-        p.genRunMain(f);
-        p.genSimpleExit(f);
         for (int i = 0; i < arrlen(data.modules); i++) {
           traverse(f, data.modules[i]);
         }
+        for (int i = 0; i < arrlen(globals); i++) {
+          emitGlobal(f, globals[i]);
+        }
+        p.genRunMain(f);
+        p.genSimpleExit(f);
+        for (int i = 0; i < arrlen(functions); i++) {
+          traverse(f, functions[i]);
+          p.freeAllRegisters();
+        }
+        arrfree(functions);
+        arrfree(globals);
         return 0;
       }
     case AST_MODULE:
       {
         struct AST_MODULE body = ast.data.AST_MODULE;
-        int* deferred = NULL;
         for (int i = 0; i < arrlen(body.decls); i++) {
           if (body.decls[i]->tag == AST_FN) {
-            arrput(deferred, i);
+            arrput(functions, body.decls[i]);
           } else if (body.decls[i]->tag == AST_VAR_INIT) {
-            emitGlobal(f, body.decls[i]);
+            arrput(globals, body.decls[i]);
           } else if (body.decls[i]->tag == AST_VAR_DECL) {
-            emitGlobal(f, body.decls[i]);
+            arrput(globals, body.decls[i]);
           } else if (body.decls[i]->tag == AST_CONST_DECL) {
-            emitGlobal(f, body.decls[i]);
-          } else {
-            traverse(f, body.decls[i]);
-            p.freeAllRegisters();
+            arrput(globals, body.decls[i]);
           }
         }
-        for (int i = 0; i < arrlen(deferred); i++) {
-          traverse(f, body.decls[deferred[i]]);
-        }
-        arrfree(deferred);
         return 0;
       }
     case AST_BLOCK:

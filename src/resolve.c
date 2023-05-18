@@ -215,6 +215,7 @@ static bool resolveTopLevel(AST* ptr) {
       {
         bool r = true;
         struct AST_MODULE data = ast.data.AST_MODULE;
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         int* deferred = NULL;
         for (int i = 0; i < arrlen(data.decls); i++) {
           if (data.decls[i]->tag == AST_FN) {
@@ -304,6 +305,11 @@ static bool traverse(AST* ptr) {
           }
         }
         return r;
+      }
+    case AST_EXT:
+      {
+        printf("Ext thing\n");
+        return true;
       }
     case AST_RETURN:
       {

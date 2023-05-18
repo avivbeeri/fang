@@ -29,6 +29,7 @@
 #include "scanner.h"
 #include "memory.h"
 #include "value.h"
+#include "symbol_table.h"
 
 
 typedef struct AST AST; // Forward reference
@@ -96,6 +97,7 @@ typedef enum {
   AST_PARAM,
   AST_MODULE_DECL,
   AST_MODULE,
+  AST_EXT,
   AST_MAIN
 } AST_TAG;
 
@@ -143,6 +145,7 @@ struct AST {
     struct AST_ASM { STRING** strings; } AST_ASM;
     struct AST_BLOCK { AST** decls; } AST_BLOCK;
     struct AST_MODULE_DECL { STRING* name; } AST_MODULE_DECL;
+    struct AST_EXT { SYMBOL_TYPE symbolType; STRING* identifier; AST* type; } AST_EXT;
     struct AST_MODULE { AST** decls; } AST_MODULE;
     struct AST_MAIN { AST** modules; } AST_MAIN;
   } data;

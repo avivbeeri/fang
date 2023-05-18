@@ -783,12 +783,60 @@ static AST* moduleDecl() {
   return AST_NEW_T(AST_MODULE_DECL, parser.previous, name);
 }
 
+static AST* extDecl() {
+
+  SYMBOL_TYPE symbolType = SYMBOL_TYPE_UNKNOWN;
+  STRING* identifier;
+  AST* dataType = NULL;
+  if (match(TOKEN_MODULE)) {
+    identifier = parseVariable("Expect identifier");
+    symbolType = SYMBOL_TYPE_MODULE;
+  } else if (match(TOKEN_FN)) {
+    identifier = parseVariable("Expect identifier");
+    symbolType = SYMBOL_TYPE_FUNCTION;
+    AST** params = NULL;
+    AST** paramTypes = NULL;
+    consume(TOKEN_LEFT_PAREN, "'('");
+    if (!check(TOKEN_RIGHT_PAREN)) {
+      do {
+        // TODO: Fix a maximum number of parameters here
+        STRING* identifier = parseVariable("Expect parameter name.");
+        consume(TOKEN_COLON, "Expect ':' after parameter name.");
+        AST* typeName = type();
+        AST* param = AST_NEW(AST_PARAM, identifier, typeName);
+        arrput(params, param);
+        arrput(paramTypes, typeName);
+      } while (match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
+    consume(TOKEN_COLON,"Expect ':' after function parameter list.");
+    AST* returnType = type();
+    dataType = AST_NEW(AST_TYPE_FN, paramTypes, returnType);
+  } else if (match(TOKEN_CONST)) {
+    identifier = parseVariable("Expect identifier");
+    consume(TOKEN_COLON, "Expect ':' after parameter name.");
+    symbolType = SYMBOL_TYPE_CONSTANT;
+    dataType = type();
+  } else if (match(TOKEN_VAR)) {
+    identifier = parseVariable("Expect identifier");
+    consume(TOKEN_COLON, "Expect ':' after parameter name.");
+    symbolType = SYMBOL_TYPE_VARIABLE;
+    dataType = type();
+  } else {
+    return AST_NEW_T(AST_ERROR, parser.previous);
+  }
+  consume(TOKEN_SEMICOLON, "Expect ';' after field in record literal.");
+  return AST_NEW_T(AST_EXT, parser.previous, symbolType, identifier, dataType);
+}
+
 static AST* topLevel() {
   AST* decl = NULL;
   if (match(TOKEN_TYPE)) {
     decl = typeDecl();
   } else if (match(TOKEN_IMPORT)) {
     decl = importDecl();
+  } else if (match(TOKEN_EXT)) {
+    decl = extDecl();
   } else if (match(TOKEN_ENUM)) {
     //decl = enumDecl();
   } else if (match(TOKEN_FN)) {
