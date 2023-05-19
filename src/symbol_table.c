@@ -59,6 +59,13 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   scopeId++;
 }
 
+void SYMBOL_TABLE_pushScope(int index) {
+  arrput(scopeStack, index);
+}
+void SYMBOL_TABLE_popScope() {
+  arrdel(scopeStack, arrlen(scopeStack) - 1);
+}
+
 bool SYMBOL_TABLE_scopeHas(STRING* name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   while (current > 0) {
@@ -173,6 +180,17 @@ SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STRING* name) {
     return entry;
   }
   return (SYMBOL_TABLE_ENTRY){0};
+}
+STRING* SYMBOL_TABLE_getNameFromStart(int start) {
+  uint32_t current = start;
+  while (current > 0) {
+    SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
+    if (scope.moduleName != NULL) {
+      return scope.moduleName;
+    }
+    current = scope.parent;
+  }
+  return NULL;
 }
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STRING* name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];

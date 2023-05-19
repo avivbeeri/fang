@@ -377,8 +377,13 @@ static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   // TODO: Allocate based on function local scopes
   int p = (scope.tableAllocationCount + 1) * 16;
 
-
-  fprintf(f, "\n_fang_%s:\n", name->chars);
+  // get scope name
+  STRING* module = SYMBOL_TABLE_getNameFromStart(scope.key);
+  if (module == NULL) {
+    fprintf(f, "\n_fang_%s:\n", name->chars);
+  } else {
+    fprintf(f, "\n_fang_%s_%s:\n", module->chars, name->chars);
+  }
   fprintf(f, "  PUSH2 LR, FP\n"); // push LR onto stack
   fprintf(f, "  MOV FP, SP\n"); // create stack frame
   fprintf(f, "  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned

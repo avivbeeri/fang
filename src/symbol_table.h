@@ -96,5 +96,8 @@ uint32_t SYMBOL_TABLE_getCurrentScopeIndex();
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scope, STRING* name);
 void SYMBOL_TABLE_nameScope(STRING* name);
 void SYMBOL_TABLE_free(void);
+void SYMBOL_TABLE_pushScope(int index);
+void SYMBOL_TABLE_popScope();
+STRING* SYMBOL_TABLE_getNameFromStart(int start);
 
 #endif
