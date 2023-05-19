@@ -212,6 +212,16 @@ static int traverse(FILE* f, AST* ptr) {
         p.genLabel(f, exitLabel);
         return -1;
       }
+    case AST_DO_WHILE:
+      {
+        struct AST_DO_WHILE data = ast.data.AST_DO_WHILE;
+        int loopLabel = p.labelCreate();
+        p.genLabel(f, loopLabel);
+        int r = traverse(f, data.body);
+        r = traverse(f, data.condition);
+        p.genCmp(f, r, loopLabel);
+        return -1;
+      }
     case AST_WHILE:
       {
         struct AST_WHILE data = ast.data.AST_WHILE;

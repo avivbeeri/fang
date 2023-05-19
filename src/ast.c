@@ -86,6 +86,12 @@ void ast_free(AST *ptr) {
       STRING_free(data.name);
       break;
     }
+    case AST_DO_WHILE: {
+      struct AST_DO_WHILE data = ast.data.AST_DO_WHILE;
+      ast_free(data.condition);
+      ast_free(data.body);
+      break;
+    }
     case AST_WHILE: {
       struct AST_WHILE data = ast.data.AST_WHILE;
       ast_free(data.condition);
@@ -213,6 +219,7 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_RETURN: return "RETURN";
     case AST_FOR: return "FOR";
     case AST_WHILE: return "WHILE";
+    case AST_DO_WHILE: return "DO WHILE";
     case AST_IF: return "IF";
     case AST_ASSIGNMENT: return "ASSIGNMENT";
     case AST_VAR_INIT: return "VAR_INIT";

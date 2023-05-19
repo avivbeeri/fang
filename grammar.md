@@ -24,7 +24,7 @@ Equality Operators: == != >= <= > <
 
 ## Keywords
 const, var, asm, type, fn, void, return, 
-false, true, while, for, if, else, as
+false, true, do, while, for, if, else, as
 
 Reserved for future use: import, ext, enum
 
@@ -63,6 +63,7 @@ statement  -> block
             | ifStmt
             | forStmt
             | returnStmt
+            | doWhileStmt
             | whileStmt
             | exprStmt;
 
@@ -73,6 +74,7 @@ forStmt    -> "for" "("
               expression? ")" statement;
 
 ifStmt     -> "if" "(" expression ")" statement ("else" statement)?;
+doWhileStmt  -> "do" "while" "(" expression ")" statement;
 whileStmt  -> "while" "(" expression ")" statement;
 returnStmt -> "return" (expression)? ";";
 block      -> "{" declaration* "}";

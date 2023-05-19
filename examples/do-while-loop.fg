@@ -1,0 +1,11 @@
+import "lib.fg"
+fn main(): u8 {
+  do while (false) {
+    writeChar('L');
+    writeChar('O');
+    writeChar('O');
+    writeChar('P');
+    writeChar('\n');
+  }
+  return 0;
+}

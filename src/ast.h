@@ -86,6 +86,7 @@ typedef enum {
   AST_ASSIGNMENT,
   AST_IF,
   AST_WHILE,
+  AST_DO_WHILE,
   AST_FOR,
   AST_BLOCK,
   AST_CALL,
@@ -128,6 +129,7 @@ struct AST {
     struct AST_DOT { AST *left; STRING* name; } AST_DOT;
     struct AST_IF { AST* condition; AST* body; AST* elseClause; } AST_IF;
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
+    struct AST_DO_WHILE { AST* condition; AST* body; } AST_DO_WHILE;
     struct AST_FOR { AST* initializer; AST* condition; AST* increment; AST* body; } AST_FOR;
     struct AST_CALL { AST* identifier; AST** arguments; } AST_CALL;
     struct AST_SUBSCRIPT { AST* left; AST* index; } AST_SUBSCRIPT;

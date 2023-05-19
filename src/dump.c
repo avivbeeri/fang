@@ -43,6 +43,12 @@ static void traverse(AST* ptr, int level) {
       printf("An error occurred in the tree");
       break;
     }
+    case AST_DO_WHILE: {
+      struct AST_DO_WHILE data = ast.data.AST_DO_WHILE;
+      traverse(data.condition, level + 1);
+      traverse(data.body, level + 1);
+      break;
+    }
     case AST_WHILE: {
       struct AST_WHILE data = ast.data.AST_WHILE;
       traverse(data.condition, level + 1);
