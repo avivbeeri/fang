@@ -15,6 +15,7 @@ allTests() {
   testFile examples/return.fg "OK" 0 "" 42
   testFile examples/arithmetic.fg "OK" 0 "" 1
   testFile examples/local-allocation.fg "OK" 0 "" 1
+  testFile examples/do-while-loop.fg "OK" 0 "LOOP" 0
   testFile examples/controlflow.fg "OK" 0 "42"$'\n'"0"$'\n'"-54" 0
   testFile examples/array.fg "OK" 0 "worldhellohellx" 0
   testFile examples/variables.fg "OK" 0 "60" 0

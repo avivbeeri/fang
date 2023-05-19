@@ -91,7 +91,7 @@ static void nextFile() {
     scanner.start = scanner.sources[scanner.fileIndex].source;
     scanner.current = scanner.sources[scanner.fileIndex].source;
     scanner.pos = 0;
-    scanner.line = 1;
+    scanner.line = 0;
     scanner.begun = false;
   }
 }

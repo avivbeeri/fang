@@ -296,8 +296,13 @@ static bool traverse(AST* ptr) {
         struct AST_MAIN data = ast.data.AST_MAIN;
         bool r = true;
         for (int i = 0; i < arrlen(data.modules); i++) {
-          SYMBOL_TABLE_openScope(SCOPE_TYPE_MODULE);
           r &= resolveTopLevel(data.modules[i]);
+          if (!r) {
+            return r;
+          }
+        }
+        for (int i = 0; i < arrlen(data.modules); i++) {
+          SYMBOL_TABLE_openScope(SCOPE_TYPE_MODULE);
           r &= traverse(data.modules[i]);
           SYMBOL_TABLE_closeScope();
           if (!r) {
@@ -308,7 +313,8 @@ static bool traverse(AST* ptr) {
       }
     case AST_EXT:
       {
-        printf("Ext thing\n");
+        struct AST_EXT data = ast.data.AST_EXT;
+        printf("Ext thing : %i\n", data.symbolType);
         return true;
       }
     case AST_RETURN:
@@ -788,6 +794,21 @@ static bool traverse(AST* ptr) {
           if (!r) {
             return false;
           }
+        }
+        return true;
+      }
+    case AST_DO_WHILE:
+      {
+        struct AST_DO_WHILE data = ast.data.AST_DO_WHILE;
+        PUSH(rvalueStack, true);
+        bool r = traverse(data.condition);
+        POP(rvalueStack);
+        if (!r) {
+          return false;
+        }
+        r = traverse(data.body);
+        if (!r) {
+          return false;
         }
         return true;
       }

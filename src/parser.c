@@ -756,6 +756,8 @@ static AST* statement() {
     expr = forStatement();
   } else if (match(TOKEN_RETURN)) {
     expr = returnStatement();
+  } else if (match(TOKEN_DO)) {
+    expr = doWhileStatement();
   } else if (match(TOKEN_WHILE)) {
     expr = whileStatement();
   } else {

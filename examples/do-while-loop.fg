@@ -1,6 +1,7 @@
 import "lib.fg"
 fn main(): u8 {
-  do while (false) {
+  var i: u8 = 0;
+  do while (i != 0) {
     writeChar('L');
     writeChar('O');
     writeChar('O');

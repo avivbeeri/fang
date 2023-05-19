@@ -217,9 +217,9 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_DO_WHILE data = ast.data.AST_DO_WHILE;
         int loopLabel = p.labelCreate();
         p.genLabel(f, loopLabel);
-        int r = traverse(f, data.body);
-        r = traverse(f, data.condition);
-        p.genCmp(f, r, loopLabel);
+        traverse(f, data.body);
+        int r = traverse(f, data.condition);
+        p.genCmpNotEqual(f, r, loopLabel);
         return -1;
       }
     case AST_WHILE:
