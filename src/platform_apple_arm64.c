@@ -143,26 +143,27 @@ static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
 
 static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   static char buffer[128];
+  snprintf(buffer, sizeof(buffer), "_fang");
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
+  if (scope.moduleName != NULL) {
+    sprintf(buffer + strlen(buffer), "_%s", scope.moduleName->chars);
+  }
+
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-    snprintf(buffer, sizeof(buffer), "_fang_%s", entry.key);
-    return buffer;
+    sprintf(buffer + strlen(buffer), "_fn_%s", entry.key);
   } else if (scope.parent <= 1 && entry.entryType == SYMBOL_TYPE_CONSTANT) {
-    snprintf(buffer, sizeof(buffer), "_fang_const_%s", entry.key);
-    return buffer;
+    sprintf(buffer + strlen(buffer), "_const_%s", entry.key);
   } else if (scope.parent <= 1) {
-    snprintf(buffer, sizeof(buffer), "_fang_var_%s", entry.key);
-    return buffer;
+    sprintf(buffer + strlen(buffer), "_var_%s", entry.key);
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
     snprintf(buffer, sizeof(buffer), "[FP, #%i]", (entry.paramOrdinal + 1) * 16);
-    return buffer;
   } else {
     // local
     // calculate offset
     uint32_t offset = getStackOrdinal(entry);
     snprintf(buffer, sizeof(buffer), "[FP, #%i]", -offset * 16);
-    return buffer;
   }
+  return buffer;
 }
 
 void init(void) {
@@ -308,7 +309,7 @@ static void genPreamble(FILE* f) {
 
 static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
-  fprintf(f, "_fang_const_%s: ", entry.key);
+  fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // RECORD too
     Value* values = AS_ARRAY(value);
@@ -325,7 +326,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
 
 static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
-  fprintf(f, "_fang_var_%s: ", entry.key);
+  fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // RECORD too
     if (IS_EMPTY(value)) {
@@ -355,7 +356,7 @@ static void genRunMain(FILE* f) {
   fprintf(f, "_start:\n");
 
   fprintf(f, "  MOV X0, XZR\n");
-  fprintf(f, "  BL _fang_main\n");
+  fprintf(f, "  BL _fang_fn_main\n");
 }
 static void genSimpleExit(FILE* f) {
   // Returns 0;
@@ -380,19 +381,24 @@ static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   // get scope name
   STRING* module = SYMBOL_TABLE_getNameFromStart(scope.key);
   if (module == NULL) {
-    fprintf(f, "\n_fang_%s:\n", name->chars);
+    fprintf(f, "\n_fang_fn_%s:\n", name->chars);
   } else {
-    fprintf(f, "\n_fang_%s_%s:\n", module->chars, name->chars);
+    fprintf(f, "\n_fang_%s_fn_%s:\n", module->chars, name->chars);
   }
   fprintf(f, "  PUSH2 LR, FP\n"); // push LR onto stack
   fprintf(f, "  MOV FP, SP\n"); // create stack frame
   fprintf(f, "  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
 }
 
-static void genFunctionEpilogue(FILE* f, STRING* name) {
+static void genFunctionEpilogue(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   // get max function scope offset
   // and round to next 16
-  fprintf(f, "\n_fang_ep_%s:\n", name->chars);
+  STRING* module = SYMBOL_TABLE_getNameFromStart(scope.key);
+  if (module == NULL) {
+    fprintf(f, "\n_fang_fn_ep_%s:\n", name->chars);
+  } else {
+    fprintf(f, "\n_fang_%s_fn_ep_%s:\n", module->chars, name->chars);
+  }
 
   fprintf(f, "  MOV SP, FP\n");
   fprintf(f, "  POP2 LR, FP\n"); // pop LR from stack
@@ -406,7 +412,7 @@ static void genReturn(FILE* f, STRING* name, int r) {
   } else {
     fprintf(f, "  MOV X0, XZR\n");
   }
-  fprintf(f, "  B _fang_ep_%s\n", name->chars);
+  fprintf(f, "  B _fang_fn_ep_%s\n", name->chars);
 }
 
 static void genRaw(FILE* f, const char* str) {

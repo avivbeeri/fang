@@ -40,12 +40,10 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   if (scopeStack != NULL) {
     parent = scopeStack[arrlen(scopeStack) - 1];
   }
-  char buffer[64];
-  snprintf(buffer, 64, "<unnamed %i>", scopeId);
   hmputs(scopes, ((SYMBOL_TABLE_SCOPE){
         scopeId,
         parent,
-        createString(buffer),
+        NULL,
         scopeType,
         NULL,
         0,
@@ -210,7 +208,7 @@ void SYMBOL_TABLE_report(void) {
   for (int i = 0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
     printf("Scope %u (parent %u):\n", scope.key, scope.parent);
-    if (scope.scopeType == SCOPE_TYPE_MODULE) {
+    if (scope.scopeType == SCOPE_TYPE_MODULE && scope.moduleName != NULL) {
       printf(" (module: %s):\n", scope.moduleName->chars);
     }
     if (scope.scopeType == SCOPE_TYPE_FUNCTION) {

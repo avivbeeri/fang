@@ -4,5 +4,5 @@ fn main(): void {
   a = 4;
   var b: i8 = 56;
   const c: i8 = a + b;
-  writeI8(c);
+  sys::writeI8(c);
 }

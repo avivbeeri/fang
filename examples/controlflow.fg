@@ -1,11 +1,11 @@
 import "lib.fg"
 fn main(): u8 {
   if (true) {
-    writeU8(42);
-    writeChar('\n');
-    writeU8(0);
-    writeChar('\n');
-    writeI8(-54);
+    sys::writeU8(42);
+    sys::writeChar('\n');
+    sys::writeU8(0);
+    sys::writeChar('\n');
+    sys::writeI8(-54);
   }
   return 0;
 }

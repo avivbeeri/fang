@@ -2,11 +2,11 @@ import "lib.fg"
 fn main(): u8 {
   var i: u8 = 0;
   do while (i != 0) {
-    writeChar('L');
-    writeChar('O');
-    writeChar('O');
-    writeChar('P');
-    writeChar('\n');
+    sys::writeChar('L');
+    sys::writeChar('O');
+    sys::writeChar('O');
+    sys::writeChar('P');
+    sys::writeChar('\n');
   }
   return 0;
 }

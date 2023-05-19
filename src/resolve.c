@@ -555,7 +555,6 @@ static bool traverse(AST* ptr) {
         SYMBOL_TABLE_ENTRY entry;
         int scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         if (data.module != NULL) {
-          printf("checking other scopes\n");
           scopeIndex = SYMBOL_TABLE_getScopeIndexByName(data.module);
           if (scopeIndex == -1) {
             compileError(ast.token, "identifier '%s' has not yet been defined\n", identifier->chars);

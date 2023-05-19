@@ -3,15 +3,15 @@ import "lib.fg"
 fn main(): i8 {
   var len: u8 = 5;
   var g: [5]char = [ 'w', 'o', 'r','l','d' ];
-  write(g as ^char, len);
+  sys::write(g as ^char, len);
   g[0] = 'h';
   g[1] = 'e';
   g[2] = 'l';
   g[3] = 'l';
   g[4] = 'o';
-  write(g as ^char, len);
+  sys::write(g as ^char, len);
   @(g+4) = 'x';
-  write(g as ^char, len);
+  sys::write(g as ^char, len);
 
   return 0;
 }

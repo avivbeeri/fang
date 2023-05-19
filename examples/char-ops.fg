@@ -5,13 +5,13 @@ fn main(): void {
   var j: char = 'J';
   var z: char = 'Z';
   if (i < j) {
-    writeChar('O');
+    sys::writeChar('O');
   } else {
-    writeChar('X');
+    sys::writeChar('X');
   }
   if (z > i) {
-    writeChar('O');
+    sys::writeChar('O');
   } else {
-    writeChar('X');
+    sys::writeChar('X');
   }
 }

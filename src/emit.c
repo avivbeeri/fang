@@ -157,7 +157,7 @@ static int traverse(FILE* f, AST* ptr) {
 
         arrdel(fnStack, 0);
 
-        p.genFunctionEpilogue(f, data.identifier);
+        p.genFunctionEpilogue(f, data.identifier, scope);
         break;
       }
     case AST_ASM:

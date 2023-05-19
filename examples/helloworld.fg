@@ -1,15 +1,15 @@
 import "lib.fg"
 fn main(): void {
-  syscall_write('h');
-  syscall_write('e');
-  syscall_write('l');
-  syscall_write('l');
-  syscall_write('o');
-  syscall_write(' ');
-  syscall_write('w');
-  syscall_write('o');
-  syscall_write('r');
-  syscall_write('l');
-  syscall_write('d');
+  sys::syscall_write('h');
+  sys::syscall_write('e');
+  sys::syscall_write('l');
+  sys::syscall_write('l');
+  sys::syscall_write('o');
+  sys::syscall_write(' ');
+  sys::syscall_write('w');
+  sys::syscall_write('o');
+  sys::syscall_write('r');
+  sys::syscall_write('l');
+  sys::syscall_write('d');
   return;
 }

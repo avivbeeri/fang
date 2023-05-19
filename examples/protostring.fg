@@ -9,7 +9,7 @@ fn main(): i8 {
   g[3] = 'l';
   g[4] = 'o';
   @(g+4) = 'x';
-  write(g, len);
+  sys::write(g, len);
 
   return 0;
 }

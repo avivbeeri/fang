@@ -104,6 +104,9 @@ static size_t strunesc(const char *dest, const char *str, size_t length) {
 }
 
 bool STRING_equality(STRING* left, STRING* right) {
+  if (left == NULL || right == NULL) {
+    return left == right;
+  }
   if (left->length != right->length) {
     // different lengths, can't be equal
     return false;
