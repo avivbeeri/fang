@@ -792,8 +792,8 @@ static AST* importDecl() {
   return NULL;
 }
 static AST* moduleDecl() {
-  consume(TOKEN_STRING, "Keyword \"module\" should be followed by a module name");
-  STRING* name = copyString(parser.previous.start + 1, parser.previous.length - 2);
+  consume(TOKEN_IDENTIFIER, "Keyword \"module\" should be followed by a module name");
+  STRING* name = copyString(parser.previous.start, parser.previous.length);
   return AST_NEW_T(AST_MODULE_DECL, parser.previous, name);
 }
 
@@ -802,10 +802,7 @@ static AST* extDecl() {
   SYMBOL_TYPE symbolType = SYMBOL_TYPE_UNKNOWN;
   STRING* identifier;
   AST* dataType = NULL;
-  if (match(TOKEN_MODULE)) {
-    identifier = parseVariable("Expect identifier");
-    symbolType = SYMBOL_TYPE_MODULE;
-  } else if (match(TOKEN_FN)) {
+  if (match(TOKEN_FN)) {
     identifier = parseVariable("Expect identifier");
     symbolType = SYMBOL_TYPE_FUNCTION;
     AST** params = NULL;

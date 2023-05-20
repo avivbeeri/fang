@@ -1,4 +1,4 @@
-module "sys"
+module sys
 
 /*
 ext fn syscall_write(c: char): void;

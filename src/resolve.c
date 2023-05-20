@@ -230,7 +230,6 @@ static bool resolveTopLevel(AST* ptr) {
           SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType);
         } else if (data.symbolType == SYMBOL_TYPE_VARIABLE) {
           SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType);
-        } else if (data.symbolType == SYMBOL_TYPE_MODULE) {
         }
         return true;
       }
