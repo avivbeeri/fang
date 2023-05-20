@@ -40,6 +40,7 @@ typedef struct {
   void (*freeAllRegisters)(void);
 
   void (*genPreamble)(FILE* f);
+  void (*genCompletePreamble)(FILE* f);
   void (*genFunction)(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope);
   void (*genFunctionEpilogue)(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope);
   void (*genReturn)(FILE* f, STRING*, int);

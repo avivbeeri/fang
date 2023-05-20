@@ -27,6 +27,12 @@
 #define symbol_table_h
 
 #include "memory.h"
+typedef enum SYMBOL_TABLE_ENTRY_STATUS {
+  SYMBOL_TABLE_STATUS_INVALID,
+  SYMBOL_TABLE_STATUS_DECLARED,
+  SYMBOL_TABLE_STATUS_DEFINED,
+} SYMBOL_TABLE_ENTRY_STATUS;
+
 typedef enum SYMBOL_TYPE {
   SYMBOL_TYPE_UNKNOWN,
   SYMBOL_TYPE_MODULE,
@@ -41,6 +47,7 @@ typedef struct SYMBOL_TABLE_ENTRY {
   char* key;
   SYMBOL_TYPE entryType;
   bool defined;
+  SYMBOL_TABLE_ENTRY_STATUS status;
 
   uint32_t ordinal; // posiiton in scope
   uint32_t paramOrdinal; // posiiton in scope
@@ -99,5 +106,6 @@ void SYMBOL_TABLE_free(void);
 void SYMBOL_TABLE_pushScope(int index);
 void SYMBOL_TABLE_popScope();
 STRING* SYMBOL_TABLE_getNameFromStart(int start);
+void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 
 #endif

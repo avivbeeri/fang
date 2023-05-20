@@ -33,6 +33,7 @@ typedef struct {
   bool report;
   bool timeRun;
   char* backend;
+  char* outfile;
 } FANG_OPTIONS;
 
 extern FANG_OPTIONS options;

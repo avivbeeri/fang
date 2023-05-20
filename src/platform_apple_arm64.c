@@ -188,8 +188,8 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
     fprintf(f, "  ADD %s, FP, #%i\n", regList[r], (entry.paramOrdinal + 1) * 16);
-  } else if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-    fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+//  } else if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
+ //   fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
   } else if (scope.parent <= 1) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
@@ -203,7 +203,8 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-    fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
+    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
+    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
   } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
     // TODO: handle size
     if (typeTable[entry.typeIndex].byteSize == 1) {
@@ -284,31 +285,14 @@ static void genPreamble(FILE* f) {
     fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
-  /*
-  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(1);
-  for (int i = 0; i < hmlen(scope.table); i++) {
-    SYMBOL_TABLE_ENTRY entry = scope.table[i];
-    if (!entry.defined) {
-      continue;
-    }
-    if (entry.entryType == SYMBOL_TYPE_VARIABLE || entry.entryType == SYMBOL_TYPE_CONSTANT) {
-      // Allocates global memory slots
-      //
-      uint32_t size = typeTable[entry.typeIndex].byteSize;
-      if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
-        fprintf(f, "_fang_var_%s: .fill %i, %i, %i\n", entry.key, (((size + 15) >> 4) << 4), 16, 0);
-      } else if (size > 16) {
-        fprintf(f, "_fang_var_%s: .fill %i, %i, %i\n", entry.key, (((size + 15) >> 4) << 4), 16, 0);
-      } else {
-        fprintf(f, "_fang_var_%s: .octa %i\n", entry.key, 0);
-      }
-    }
-  }
-  */
+}
+static void genCompletePreamble(FILE* f) {
+  fprintf(f, ".text");
 }
 
 static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
+  fprintf(f, ".global %s\n", symbol(entry));
   fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // RECORD too
@@ -326,6 +310,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
 
 static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
+  fprintf(f, ".global %s\n ", symbol(entry));
   fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // RECORD too
@@ -350,7 +335,6 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
 }
 
 static void genRunMain(FILE* f) {
-  fprintf(f, "\n\n.text\n");
   fprintf(f, ".global _start\n");
   fprintf(f, ".align 2\n");
   fprintf(f, "_start:\n");
@@ -381,8 +365,13 @@ static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   // get scope name
   STRING* module = SYMBOL_TABLE_getNameFromStart(scope.key);
   if (module == NULL) {
+    fprintf(f, "\n.global _fang_fn_%s\n", name->chars);
+    fprintf(f, "\n.balign 4\n");
+
     fprintf(f, "\n_fang_fn_%s:\n", name->chars);
   } else {
+    fprintf(f, "\n.global _fang_%s_fn_%s\n", module->chars, name->chars);
+    fprintf(f, "\n.balign 4\n");
     fprintf(f, "\n_fang_%s_fn_%s:\n", module->chars, name->chars);
   }
   fprintf(f, "  PUSH2 LR, FP\n"); // push LR onto stack
@@ -599,6 +588,7 @@ PLATFORM platform_apple_arm64 = {
   .holdRegister = holdRegister,
   .freeAllRegisters = freeAllRegisters,
   .genPreamble = genPreamble,
+  .genCompletePreamble = genCompletePreamble,
   .genExit = genExit,
   .genRunMain = genRunMain,
   .genSimpleExit = genSimpleExit,

@@ -102,8 +102,7 @@ static int traverse(FILE* f, AST* ptr) {
         for (int i = 0; i < arrlen(globals); i++) {
           emitGlobal(f, globals[i]);
         }
-        p.genRunMain(f);
-        p.genSimpleExit(f);
+        p.genCompletePreamble(f);
         for (int i = 0; i < arrlen(functions); i++) {
           traverse(f, functions[i]);
           p.freeAllRegisters();
@@ -153,6 +152,8 @@ static int traverse(FILE* f, AST* ptr) {
               p.genReturn(f, fnStack[0], -1);
             }
           }
+          p.genRunMain(f);
+          p.genSimpleExit(f);
         }
 
         arrdel(fnStack, 0);
@@ -539,7 +540,8 @@ void emitTree(AST* ptr) {
 
   FILE* f = stdout;
   if (!options.toTerminal) {
-    f = fopen("file.S", "w");
+    char* filename = options.outfile == NULL ? "file.S" : options.outfile;
+    f = fopen(filename, "w");
 
     if (f == NULL)
     {

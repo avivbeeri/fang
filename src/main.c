@@ -35,11 +35,12 @@
 
 void OPTIONS_init(void) {
   options.toTerminal = false;
-  options.report = false;
+  options.report = true;
   options.scanTest = false;
   options.printAst = false;
   options.dumpAst = false;
   options.timeRun = false;
+  options.outfile = NULL;
 }
 
 char* concat(const char *s1, const char *s2)
@@ -63,6 +64,9 @@ int main(int argc, const char* argv[]) {
   char* path = "example.fg";
   if (argc > 1) {
     path = (char*)argv[1];
+  }
+  if (argc > 2) {
+    options.outfile = (char*)argv[2];
   }
 
   char* fileSource = readFile(path);

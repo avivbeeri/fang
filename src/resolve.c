@@ -220,6 +220,20 @@ static bool resolveTopLevel(AST* ptr) {
         // TODO check for duplicate
         return true;
       }
+    case AST_EXT:
+      {
+        struct AST_EXT data = ast.data.AST_EXT;
+        int resolvedType = resolveType(data.type);
+        if (data.symbolType == SYMBOL_TYPE_FUNCTION) {
+          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType);
+        } else if (data.symbolType == SYMBOL_TYPE_CONSTANT) {
+          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType);
+        } else if (data.symbolType == SYMBOL_TYPE_VARIABLE) {
+          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType);
+        } else if (data.symbolType == SYMBOL_TYPE_MODULE) {
+        }
+        return true;
+      }
     case AST_MODULE:
       {
         bool r = true;
@@ -313,12 +327,6 @@ static bool traverse(AST* ptr) {
           }
         }
         return r;
-      }
-    case AST_EXT:
-      {
-        struct AST_EXT data = ast.data.AST_EXT;
-        printf("Ext thing : %i\n", data.symbolType);
-        return true;
       }
     case AST_RETURN:
       {
