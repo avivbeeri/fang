@@ -216,9 +216,11 @@ static bool resolveTopLevel(AST* ptr) {
     case AST_MODULE_DECL:
       {
         struct AST_MODULE_DECL data = ast.data.AST_MODULE_DECL;
-        SYMBOL_TABLE_nameScope(data.name);
-        // TODO check for duplicate
-        return true;
+        bool result = SYMBOL_TABLE_nameScope(data.name);
+        if (!result) {
+          compileError(ast.token, "module \"%s\" is already defined.\n", data.name->chars);
+        }
+        return result;
       }
     case AST_EXT:
       {
@@ -984,6 +986,9 @@ bool resolveTree(AST* ptr) {
   PUSH(rvalueStack, false);
   SYMBOL_TABLE_init();
   bool success = resolveTopLevel(ptr);
+  if (!success) {
+    goto cleanup;
+  }
   success &= traverse(ptr);
   if (!success) {
     goto cleanup;

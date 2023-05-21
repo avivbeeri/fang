@@ -254,10 +254,20 @@ void SYMBOL_TABLE_report(void) {
   }
 }
 
-void SYMBOL_TABLE_nameScope(STRING* name) {
+bool SYMBOL_TABLE_nameScope(STRING* name) {
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getCurrentScope();
+  if (scope.moduleName != NULL) {
+    return true;
+  }
+  for (int i = 0; i < hmlen(scopes); i++) {
+    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && STRING_equality(scopes[i].moduleName, name)) {
+      return false;
+    }
+  }
+
   scope.moduleName = name;
   hmputs(scopes, scope);
+  return true;
 }
 
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STRING* name) {

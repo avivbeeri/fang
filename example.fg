@@ -1,3 +1,4 @@
+module sys
 import "lib_def.fg"
 
 var i: i8 = 5;
