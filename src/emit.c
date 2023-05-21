@@ -152,13 +152,15 @@ static int traverse(FILE* f, AST* ptr) {
               p.genReturn(f, fnStack[0], -1);
             }
           }
-          p.genRunMain(f);
-          p.genSimpleExit(f);
         }
 
         arrdel(fnStack, 0);
 
         p.genFunctionEpilogue(f, data.identifier, scope);
+        if (strcmp(data.identifier->chars, "main") == 0) {
+          p.genRunMain(f);
+          p.genSimpleExit(f);
+        }
         break;
       }
     case AST_ASM:
