@@ -48,14 +48,12 @@ static void freeRegister(int r) {
     exit(1);
   }
   freereg[r] -= 1;
-  //printf("free %s = %i\n", regList[r], freereg[r]);
 }
 
 static int allocateRegister() {
   for (int i = 0; i < sizeof(freereg); i++) {
     if (freereg[i] == 0) {
       freereg[i] += 1;
-      //printf("allocate %s = %i\n", regList[i], freereg[i]);
       return i;
     }
   }
@@ -66,7 +64,6 @@ static int allocateRegister() {
 
 static int holdRegister(int r) {
   freereg[r]++;
-  // printf("hold %s = %i\n", regList[r], freereg[r]);
   return r;
 }
 
@@ -120,6 +117,8 @@ static int genAllocStack(FILE* f, int storage, int cellSize) {
   }
   fprintf(f, "  ADD %s, %s, #15 ; storage\n", store, store);
   // ARM64 stack has to align to 16 bytes
+  // We add 15, shift right 4 and shift left 4 to round to the next
+  // 16.
   fprintf(f, "  LSR %s, %s, #4\n", store, store);
   fprintf(f, "  LSL %s, %s, #4\n", store, store);
   fprintf(f, "  SUB SP, SP, %s\n", store);
@@ -243,9 +242,12 @@ static int genDeref(FILE* f, int leftReg) {
 static int genIndexAddr(FILE* f, int baseReg, int index, int dataSize) {
   if (dataSize > 1) {
     int temp = genLoad(f, dataSize, 8);
+    // TODO: Convert to MADD
     fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
     freeRegister(temp);
   }
+  // We might still be holding onto the baseReg (for initializations especially)
+  // so we attempt to free add re-allocate to get a destination reg
   freeRegister(baseReg);
   int leftReg = allocateRegister();
   fprintf(f, "  ADD %s, %s, %s; index address\n", regList[leftReg], regList[baseReg], regList[index]);
@@ -255,6 +257,7 @@ static int genIndexAddr(FILE* f, int baseReg, int index, int dataSize) {
 
 static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
   if (dataSize > 1) {
+    // TODO: Convert to MADD
     int temp = genLoad(f, dataSize, 8);
     fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
     freeRegister(temp);
