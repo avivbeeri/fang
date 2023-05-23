@@ -1,18 +1,8 @@
-module sys
 import "lib_def.fg"
-
-var i: i8 = 5;
-var s: [6]char = ['0', '1', '2', '3', '4', '0'];
 fn main(): void {
-  sys::writeChar('Q');
-  i = 54;
-  sys::writeI8(i);
-  sys::writeChar(' ');
-  s[4] = '5';
-  for (var q: u8 = 0; q < 5; q = q + 1) {
+  const s: string = "hello world";
+  for (var q: u8 = 0; q < 11; q = q + 1) {
     sys::writeChar(s[q]);
   }
-  sys::writeChar(' ');
-  sys::writeI8(s[6] as i8);
 }
 

@@ -155,7 +155,7 @@ void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
     .paramOrdinal = scope.paramOrdinal,
     .constantIndex = 0
   };
-  if (type == SYMBOL_TYPE_VARIABLE) {
+  if (type == SYMBOL_TYPE_VARIABLE || type == SYMBOL_TYPE_CONSTANT) {
     scope.ordinal++;
   } else if (type == SYMBOL_TYPE_PARAMETER) {
     scope.paramOrdinal++;
@@ -244,7 +244,6 @@ void SYMBOL_TABLE_report(void) {
         case SYMBOL_TYPE_PARAMETER: { printf("PARAMETER"); break; }
         case SYMBOL_TYPE_VARIABLE: { printf("VARIABLE"); break; }
         case SYMBOL_TYPE_CONSTANT: { printf("CONSTANT"); break; }
-
       }
       printf("\n");
 

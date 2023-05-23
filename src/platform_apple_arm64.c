@@ -18,6 +18,7 @@ static int MAX_PARAM_REG = 8;
 #define U16_INDEX 5
 #define I16_INDEX 6
 #define NUMERICAL_INDEX 7
+#define STRING_INDEX 8
 #define FN_INDEX 9
 static bool isNumeric(int type) {
   return type <= NUMERICAL_INDEX && type >= BOOL_INDEX;
@@ -89,6 +90,15 @@ static void genJump(FILE* f, int label) {
   fprintf(f, "  B %s\n", labelPrint(label));
 }
 
+static int genConstant(FILE* f, int i) {
+  // Load i into a register
+  // return the register index
+  int r = allocateRegister();
+  fprintf(f, "  ADRP %s, _fang_const_%i@PAGE\n", regList[r], i);
+  fprintf(f, "  ADD %s, %s, _fang_const_%i@PAGEOFF\n", regList[r], regList[r], i);
+  fprintf(f, "  ADD %s, %s, #1\n", regList[r], regList[r]);
+  return r;
+}
 static int genLoad(FILE* f, int i, int size) {
   // Load i into a register
   // return the register index
@@ -220,7 +230,7 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
     } else {
       fprintf(f, "  LDR %s, [%s]\n", regList[r], regList[r]);
     }
-  } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex)) {
+  } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex) || entry.typeIndex == STRING_INDEX) {
     fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
   } else if (typeTable[entry.typeIndex].byteSize == 1) {
     fprintf(f, "  LDRSB %s, %s\n", storeRegList[r], symbol(entry));
@@ -274,6 +284,9 @@ static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
 static void genPreamble(FILE* f) {
   genMacros(f);
   fprintf(f, "\n\n.data\n");
+}
+static void genCompletePreamble(FILE* f) {
+  fprintf(f, ".text\n");
   size_t bytes = 0;
   for (int i = 0; i < arrlen(constTable); i++) {
     Value v = constTable[i].value;
@@ -288,9 +301,6 @@ static void genPreamble(FILE* f) {
     fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
-}
-static void genCompletePreamble(FILE* f) {
-  fprintf(f, ".text");
 }
 
 static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
@@ -598,6 +608,7 @@ PLATFORM platform_apple_arm64 = {
   .genFunction = genFunction,
   .genFunctionEpilogue = genFunctionEpilogue,
   .genReturn = genReturn,
+  .genConstant = genConstant,
   .genLoad = genLoad,
   .genLoadRegister = genLoadRegister,
   .genInitSymbol = genInitSymbol,

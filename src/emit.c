@@ -344,8 +344,13 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
         Value v = CONST_TABLE_get(data.constantIndex);
         // TODO handle different value types here
-        int size = typeTable[ptr->type].byteSize;
-        int r = p.genLoad(f, AS_LIT_NUM(v), size);
+        int r = -1;
+        if (IS_STRING(v)) {
+          r = p.genConstant(f, data.constantIndex);
+        } else {
+          int size = typeTable[ptr->type].byteSize;
+          r = p.genLoad(f, AS_LIT_NUM(v), size);
+        }
         return r;
       }
     case AST_REF:

@@ -34,8 +34,10 @@
 #include "symbol_table.h"
 #include "options.h"
 
+uint32_t* assignStack = NULL;
 uint32_t* rvalueStack = NULL;
 uint32_t* typeStack = NULL;
+
 #define PUSH(stack, type) do { arrput(stack, type); } while (false)
 #define POP(stack) do { arrdel(stack, arrlen(stack) - 1); } while (false)
 #define PEEK(stack) (arrlen(stack) == 0 ? 0 : stack[arrlen(stack) - 1])
@@ -47,6 +49,7 @@ uint32_t* typeStack = NULL;
 #define U16_INDEX 5
 #define I16_INDEX 6
 #define NUMERICAL_INDEX 7
+#define STRING_INDEX 8
 #define FN_INDEX 9
 #define CHAR_INDEX 10
 
@@ -54,9 +57,8 @@ static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
 }
 
-
 static bool isPointer(int type) {
-  return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY;
+  return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY || type == STRING_INDEX;
 }
 static bool isNumeric(int type) {
   return (type <= NUMERICAL_INDEX && type > BOOL_INDEX) || isPointer(type);
@@ -102,7 +104,7 @@ static int valueToType(Value value) {
 
     case VAL_I16: return I16_INDEX;
     case VAL_LIT_NUM: return NUMERICAL_INDEX;
-    case VAL_STRING: return 8;
+    case VAL_STRING: return STRING_INDEX;
     case VAL_RECORD: return 0;
     // Open to implicit num casting
   }
@@ -308,8 +310,8 @@ static bool traverse(AST* ptr) {
   if (ptr == NULL) {
     return true;
   }
-  AST ast = *ptr;
   ptr->rvalue = PEEK(rvalueStack);
+  AST ast = *ptr;
   switch(ast.tag) {
     case AST_ERROR:
       {
@@ -394,6 +396,9 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r  = traverse(data.type);
         int leftType = data.type->type;
+        if (leftType == STRING_INDEX) {
+          return false;
+        }
         PUSH(typeStack, leftType);
         r &= traverse(data.expr);
         POP(typeStack);
@@ -433,6 +438,9 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r = traverse(data.type);
         int typeIndex = data.type->type;
+        if (typeIndex == STRING_INDEX) {
+          return false;
+        }
         ptr->type = typeIndex;
         if (SYMBOL_TABLE_getCurrentOnly(identifier).defined) {
           compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
@@ -477,6 +485,7 @@ static bool traverse(AST* ptr) {
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         PUSH(rvalueStack, false);
+        PUSH(assignStack, true);
 
         if (data.lvalue->tag == AST_IDENTIFIER) {
           SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_getCurrent(data.lvalue->data.AST_IDENTIFIER.identifier);
@@ -488,7 +497,9 @@ static bool traverse(AST* ptr) {
 
         bool ident = traverse(data.lvalue);
         POP(rvalueStack);
+        POP(assignStack);
         int leftType = data.lvalue->type;
+
         PUSH(typeStack, leftType);
         PUSH(rvalueStack, true);
         bool expr = traverse(data.expr);
@@ -578,6 +589,10 @@ static bool traverse(AST* ptr) {
           ptr->type = entry.typeIndex;
         } else {
           compileError(ast.token, "identifier '%s' has not yet been defined in this scope.\n", identifier->chars);
+          return false;
+        }
+        if (entry.entryType == SYMBOL_TYPE_CONSTANT && PEEK(assignStack)) {
+          compileError(ast.token, "identifier '%s' is a constant and cannot be assigned to.\n", identifier->chars);
           return false;
         }
         return true;
@@ -695,6 +710,7 @@ static bool traverse(AST* ptr) {
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;
+        PUSH(assignStack, false);
         PUSH(rvalueStack, true);
         bool r = traverse(data.left);
         int leftType = data.left->type;
@@ -702,6 +718,7 @@ static bool traverse(AST* ptr) {
         r &= traverse(data.right);
         POP(typeStack);
         POP(rvalueStack);
+        POP(assignStack);
         int rightType = data.right->type;
         if (!r) {
           return false;
@@ -902,15 +919,20 @@ static bool traverse(AST* ptr) {
         PUSH(rvalueStack, true);
         bool r = traverse(data.left);
         POP(rvalueStack);
+        if (!r) {
+          return false;
+        }
         PUSH(rvalueStack, true);
+        PUSH(assignStack, false);
         r &= traverse(data.index);
+        POP(assignStack);
         POP(rvalueStack);
         if (!r || !isNumeric(data.index->type)) {
           return false;
         }
 
         int arrType = data.left->type;
-        ptr->type = typeTable[arrType].parent;
+        ptr->type = arrType == STRING_INDEX ? CHAR_INDEX : typeTable[arrType].parent;
         return ptr->type != 0;
       }
     case AST_CALL:
