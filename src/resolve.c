@@ -29,7 +29,6 @@
 #include "ast.h"
 #include "error.h"
 #include "print.h"
-#include "const_table.h"
 #include "type_table.h"
 #include "symbol_table.h"
 #include "options.h"
@@ -100,7 +99,7 @@ static int valueToType(Value value) {
     case VAL_I8: return I8_INDEX;
 
     case VAL_U16: return U16_INDEX;
-    case VAL_PTR: return U16_INDEX;
+    case VAL_PTR: return STRING_INDEX;
 
     case VAL_I16: return I16_INDEX;
     case VAL_LIT_NUM: return NUMERICAL_INDEX;
@@ -564,7 +563,7 @@ static bool traverse(AST* ptr) {
     case AST_LITERAL:
       {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
-        Value value = CONST_TABLE_get(data.constantIndex);
+        Value value = data.value; //CONST_TABLE_get(data.constantIndex);
         int leftType = PEEK(typeStack);
         int rightType = valueToType(value);
         ptr->type = rightType;

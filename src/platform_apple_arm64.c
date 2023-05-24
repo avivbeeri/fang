@@ -91,8 +91,8 @@ static int genConstant(FILE* f, int i) {
   // Load i into a register
   // return the register index
   int r = allocateRegister();
-  fprintf(f, "  ADRP %s, _fang_const_%i@PAGE\n", regList[r], i);
-  fprintf(f, "  ADD %s, %s, _fang_const_%i@PAGEOFF\n", regList[r], regList[r], i);
+  fprintf(f, "  ADRP %s, _fang_str_%i@PAGE\n", regList[r], i);
+  fprintf(f, "  ADD %s, %s, _fang_str_%i@PAGEOFF\n", regList[r], regList[r], i);
   // Strings store their length at the front, so nudge the pointer by 1
   fprintf(f, "  ADD %s, %s, #1\n", regList[r], regList[r]);
   return r;
@@ -295,8 +295,8 @@ static void genCompletePreamble(FILE* f) {
       continue;
     }
 
-    fprintf(f, ".balign 4\n");
-    fprintf(f, "_fang_const_%i: ", i);
+    fprintf(f, ".balign 8\n");
+    fprintf(f, "_fang_str_%i: ", i);
     fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length) % 256);
     fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
   }
@@ -306,7 +306,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   uint32_t size = typeTable[entry.typeIndex].byteSize;
   fprintf(f, ".global %s\n", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY && IS_STRING(value)) {
-    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+//    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
@@ -317,7 +317,9 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       Value* values = AS_ARRAY(value);
       // TODO: check for 16bit nums
       for (int i = 0; i < arrlen(values); i++) {
-        if (IS_I8(values[i]) || IS_U8(values[i])) {
+        if (IS_PTR(values[i])) {
+          fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(values[i]));
+        } else if (IS_I8(values[i]) || IS_U8(values[i]) || IS_CHAR(values[i])) {
           fprintf(f, ".byte %u\n", AS_I8(values[i]));
         }
       }
@@ -326,14 +328,14 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   } else {
     fprintf(f, ".octa %u\n", AS_U8(value));
   }
-  fprintf(f, ".balign 4\n");
+  fprintf(f, ".balign 8\n");
 }
 
 static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
   fprintf(f, ".global %s\n ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY && IS_STRING(value)) {
-    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+///    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
@@ -346,7 +348,9 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       Value* values = AS_ARRAY(value);
       // TODO: check for 16bit nums
       for (int i = 0; i < arrlen(values); i++) {
-        if (IS_I8(values[i]) || IS_U8(values[i])) {
+        if (IS_PTR(values[i])) {
+          fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(values[i]));
+        } else if (IS_I8(values[i]) || IS_U8(values[i]) || IS_CHAR(values[i])) {
           fprintf(f, ".byte %u\n", AS_I8(values[i]));
         }
       }
@@ -359,7 +363,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       fprintf(f, ".octa %u\n", AS_I8(value));
     }
   }
-  fprintf(f, ".balign 4\n");
+  fprintf(f, ".balign 8\n");
 }
 
 static void genRunMain(FILE* f) {
@@ -394,12 +398,12 @@ static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   STRING* module = SYMBOL_TABLE_getNameFromStart(scope.key);
   if (module == NULL) {
     fprintf(f, "\n.global _fang_fn_%s\n", name->chars);
-    fprintf(f, "\n.balign 4\n");
+    fprintf(f, "\n.balign 8\n");
 
     fprintf(f, "\n_fang_fn_%s:\n", name->chars);
   } else {
     fprintf(f, "\n.global _fang_%s_fn_%s\n", module->chars, name->chars);
-    fprintf(f, "\n.balign 4\n");
+    fprintf(f, "\n.balign 8\n");
     fprintf(f, "\n_fang_%s_fn_%s:\n", module->chars, name->chars);
   }
   fprintf(f, "  PUSH2 LR, FP\n"); // push LR onto stack

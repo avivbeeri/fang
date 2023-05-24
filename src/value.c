@@ -82,9 +82,9 @@ void printValue(Value value) {
     case VAL_I16: printf("%hi", AS_I16(value)); break;
     case VAL_U16: printf("%hu", AS_U16(value)); break;
     case VAL_LIT_NUM: printf("%i", AS_LIT_NUM(value)); break;
-    case VAL_PTR: printf("$%hu", AS_PTR(value)); break;
+    case VAL_PTR: printf("$%zu", AS_PTR(value)); break;
     case VAL_STRING: printf("\"%s\"", AS_STRING(value)->chars); break;
-    case VAL_ERROR: printf("ERROR(%i)", AS_ERROR(value)); break;
+    case VAL_ERROR: printf("ERROR(%zu)", AS_ERROR(value)); break;
     case VAL_UNDEF: printf("0"); break;
     case VAL_ARRAY:
       {

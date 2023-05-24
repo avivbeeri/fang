@@ -1,0 +1,7 @@
+import "lib.fg"
+const list: [5]string = [ "a", "b", "c", "d", "e"];
+fn main(): void {
+  var s: string = list[0];
+  sys::writeChar(s[2]);
+}
+

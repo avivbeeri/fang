@@ -105,7 +105,7 @@ static Value traverse(AST* ptr, Environment* context) {
     case AST_LITERAL:
       {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
-        return CONST_TABLE_get(data.constantIndex);
+        return data.value;
       }
     case AST_IDENTIFIER:
       {

@@ -161,14 +161,14 @@ static AST* character(bool canAssign) {
   Value value = CHAR(unesc(parser.previous.start + 1, parser.previous.length - 3));
   int index = CONST_TABLE_store(value);
 
-  return AST_NEW_T(AST_LITERAL, parser.previous, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index, value);
 }
 
 static AST* string(bool canAssign) {
   // copy the string to memory
   STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
   int index = CONST_TABLE_store(STRING(string));
-  return AST_NEW_T(AST_LITERAL, parser.previous, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index, PTR(index));
 }
 
 static AST* array() {
@@ -215,8 +215,8 @@ static AST* record() {
 
 static AST* literal(bool canAssign) {
   switch (parser.previous.type) {
-    case TOKEN_FALSE: return AST_NEW_T(AST_LITERAL, parser.previous, 0);
-    case TOKEN_TRUE: return AST_NEW_T(AST_LITERAL, parser.previous, 1);
+    case TOKEN_FALSE: return AST_NEW_T(AST_LITERAL, parser.previous, 0, BOOL_VAL(false));
+    case TOKEN_TRUE: return AST_NEW_T(AST_LITERAL, parser.previous, 1, BOOL_VAL(true));
     default: return AST_NEW(AST_ERROR, 0);
   }
 }
@@ -231,7 +231,7 @@ static AST* number(bool canAssign) {
     value = strtol(start, NULL, 0);
   }
   int index = CONST_TABLE_store(LIT_NUM(value));
-  return AST_NEW_T(AST_LITERAL, parser.previous, index);
+  return AST_NEW_T(AST_LITERAL, parser.previous, index, LIT_NUM(value));
 }
 
 static AST* grouping(bool canAssign) {

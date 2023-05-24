@@ -1,7 +1,4 @@
 import "lib.fg"
-type Value {
-  number: i8;
-}
 fn main(): void {
   const list: [5]string = [ "a", "b", "c", "d", "e"];
   const s: string = "hello world";

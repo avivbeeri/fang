@@ -63,7 +63,7 @@ typedef struct Value {
     int32_t literalNum;
     STRING* string;
     unsigned char character;
-    uint16_t ptr;
+    size_t ptr;
     Record record;
     struct Value* array;
   } as;

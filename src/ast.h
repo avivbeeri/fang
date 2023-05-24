@@ -112,7 +112,7 @@ struct AST {
   AST_TAG tag;
   union {
     struct AST_ERROR { int number; } AST_ERROR;
-    struct AST_LITERAL { int constantIndex; } AST_LITERAL;
+    struct AST_LITERAL { int constantIndex; Value value; } AST_LITERAL;
     struct AST_INITIALIZER { AST** assignments; INIT_TYPE initType; } AST_INITIALIZER;
     struct AST_IDENTIFIER { STRING* module; STRING* identifier; } AST_IDENTIFIER;
 
