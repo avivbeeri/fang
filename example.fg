@@ -1,7 +1,7 @@
 import "lib.fg"
+const s: string = "hello world";
+const list: [5]string = [ "a", "b", "c", "d", "e"];
 fn main(): void {
-  const list: [5]string = [ "a", "b", "c", "d", "e"];
-  const s: string = "hello world";
   for (var q: u8 = 0; q < 11; q = q + 1) {
     sys::writeChar(s[q]);
   }

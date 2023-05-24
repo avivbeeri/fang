@@ -10,8 +10,6 @@ static int labelId = 0;
 static int freereg[REG_SIZE];
 static char *storeRegList[REG_SIZE] = { "W8", "W9", "W10", "W11" };
 static char *regList[REG_SIZE] = { "X8", "X9", "X10", "X11" };
-static char *paramRegList[8] = { "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7" };
-static int MAX_PARAM_REG = 8;
 
 #define BOOL_INDEX 2
 #define U8_INDEX 3
@@ -21,9 +19,7 @@ static int MAX_PARAM_REG = 8;
 #define NUMERICAL_INDEX 7
 #define STRING_INDEX 8
 #define FN_INDEX 9
-static bool isNumeric(int type) {
-  return type <= NUMERICAL_INDEX && type >= BOOL_INDEX;
-}
+
 static bool isPointer(int type) {
   return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY;
 }
@@ -97,6 +93,7 @@ static int genConstant(FILE* f, int i) {
   int r = allocateRegister();
   fprintf(f, "  ADRP %s, _fang_const_%i@PAGE\n", regList[r], i);
   fprintf(f, "  ADD %s, %s, _fang_const_%i@PAGEOFF\n", regList[r], regList[r], i);
+  // Strings store their length at the front, so nudge the pointer by 1
   fprintf(f, "  ADD %s, %s, #1\n", regList[r], regList[r]);
   return r;
 }
@@ -308,15 +305,24 @@ static void genCompletePreamble(FILE* f) {
 static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
   fprintf(f, ".global %s\n", symbol(entry));
+  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY && IS_STRING(value)) {
+    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+  }
   fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
-    // RECORD too
-    Value* values = AS_ARRAY(value);
-    // TODO: check for 16bit nums
-    for (int i = 0; i < arrlen(values); i++) {
-      fprintf(f, ".byte %u\n", AS_I8(values[i]));
+    if (IS_STRING(value)) {
+      fprintf(f, ".asciz \"%s\"\n", AS_STRING(value)->chars);
+    } else {
+      // RECORD too
+      Value* values = AS_ARRAY(value);
+      // TODO: check for 16bit nums
+      for (int i = 0; i < arrlen(values); i++) {
+        if (IS_I8(values[i]) || IS_U8(values[i])) {
+          fprintf(f, ".byte %u\n", AS_I8(values[i]));
+        }
+      }
+      fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
     }
-    fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
   } else {
     fprintf(f, ".octa %u\n", AS_U8(value));
   }
@@ -326,16 +332,23 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
 static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
   fprintf(f, ".global %s\n ", symbol(entry));
+  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY && IS_STRING(value)) {
+    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+  }
   fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // RECORD too
     if (IS_EMPTY(value)) {
       fprintf(f, ".fill %i, %i, 0\n", AS_U8(count), size);
+    } else if (IS_STRING(value)) {
+      fprintf(f, ".asciz \"%s\"\n", AS_STRING(value)->chars);
     } else {
       Value* values = AS_ARRAY(value);
       // TODO: check for 16bit nums
       for (int i = 0; i < arrlen(values); i++) {
-        fprintf(f, ".byte %u\n", AS_I8(values[i]));
+        if (IS_I8(values[i]) || IS_U8(values[i])) {
+          fprintf(f, ".byte %u\n", AS_I8(values[i]));
+        }
       }
     }
     fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
