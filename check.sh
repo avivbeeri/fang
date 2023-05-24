@@ -35,6 +35,7 @@ allTests() {
   testFile examples/char-ops.fg "OK" 0 "OO" 0
   testFile examples/negative-numbers.fg "OK" 0 "-54 -121 -12" 0
   testFile examples/strings.fg "OK" 0 "hello world abcde" 0
+  testFile examples/global-string.fg "OK" 0 "c" 0
 }
 
 testFile() {

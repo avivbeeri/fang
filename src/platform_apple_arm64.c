@@ -295,7 +295,7 @@ static void genCompletePreamble(FILE* f) {
       continue;
     }
 
-    fprintf(f, ".balign 8\n");
+    fprintf(f, ".balign 4\n");
     fprintf(f, "_fang_str_%i: ", i);
     fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length) % 256);
     fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
@@ -328,7 +328,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   } else {
     fprintf(f, ".octa %u\n", AS_U8(value));
   }
-  fprintf(f, ".balign 8\n");
+  fprintf(f, ".balign 4\n");
 }
 
 static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
@@ -363,7 +363,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       fprintf(f, ".octa %u\n", AS_I8(value));
     }
   }
-  fprintf(f, ".balign 8\n");
+  fprintf(f, ".balign 4\n");
 }
 
 static void genRunMain(FILE* f) {
@@ -398,12 +398,12 @@ static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   STRING* module = SYMBOL_TABLE_getNameFromStart(scope.key);
   if (module == NULL) {
     fprintf(f, "\n.global _fang_fn_%s\n", name->chars);
-    fprintf(f, "\n.balign 8\n");
+    fprintf(f, "\n.balign 4\n");
 
     fprintf(f, "\n_fang_fn_%s:\n", name->chars);
   } else {
     fprintf(f, "\n.global _fang_%s_fn_%s\n", module->chars, name->chars);
-    fprintf(f, "\n.balign 8\n");
+    fprintf(f, "\n.balign 4\n");
     fprintf(f, "\n_fang_%s_fn_%s:\n", module->chars, name->chars);
   }
   fprintf(f, "  PUSH2 LR, FP\n"); // push LR onto stack
