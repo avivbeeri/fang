@@ -396,11 +396,10 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r  = traverse(data.type);
         int leftType = data.type->type;
-        if (leftType == STRING_INDEX) {
-          return false;
-        }
         PUSH(typeStack, leftType);
+        PUSH(rvalueStack, true);
         r &= traverse(data.expr);
+        POP(rvalueStack);
         POP(typeStack);
         int rightType = data.expr->type;
         if (!r) {
@@ -410,12 +409,15 @@ static bool traverse(AST* ptr) {
         bool result = r && isCompatible(leftType, rightType);
         if ((typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD)
             && data.expr->tag != AST_INITIALIZER) {
+          if (leftType == STRING_INDEX && data.expr->type == STRING_INDEX) {
 
-          char* initType = data.expr->data.AST_INITIALIZER.initType == INIT_TYPE_ARRAY ? "array" : "record";
-          compileError(ast.token, "Attempting to initialize %s using literal '", typeTable[leftType].name->chars);
-          printTree(data.expr);
-          printf("'.\n");
-          return false;
+          } else {
+            char* initType = data.expr->data.AST_INITIALIZER.initType == INIT_TYPE_ARRAY ? "array" : "record";
+            compileError(ast.token, "Attempting to initialize %s using literal '", typeTable[leftType].name->chars);
+            printTree(data.expr);
+            printf("'.\n");
+            return false;
+          }
         }
         if (!isCompatible(leftType, rightType)) {
           int indent = compileError(data.expr->token, "Incompatible initialization for variable '%s'", data.identifier->chars);
@@ -508,6 +510,7 @@ static bool traverse(AST* ptr) {
         int rightType = data.expr->type;
 
         if (!(ident && expr)) {
+          printf("trap %d\n", __LINE__);
           return false;
         }
         ptr->type = leftType;
@@ -615,6 +618,7 @@ static bool traverse(AST* ptr) {
             compileError(ast.token, "Incompatible %s initializer for an record of '%s'.\n", initType, subType);
           } else {
             printf("Impossible initializer type.\n");
+            printf("trap %d\n", __LINE__);
             exit(1);
           }
           return false;
@@ -628,6 +632,7 @@ static bool traverse(AST* ptr) {
             r = traverse(data.assignments[i]);
             POP(typeStack);
             if (!r) {
+              printf("trap %d\n", __LINE__);
               return false;
             }
             if (!isCompatible(data.assignments[i]->type, subType)) {
@@ -648,7 +653,8 @@ static bool traverse(AST* ptr) {
             }
             if (!found) {
               r = false;
-              break;
+              printf("trap %d\n", __LINE__);
+              return false;
             }
             PUSH(typeStack, entry.fields[fieldIndex].typeIndex);
             r &= traverse(field.value);
@@ -658,6 +664,7 @@ static bool traverse(AST* ptr) {
             }
             r &= isCompatible(entry.fields[fieldIndex].typeIndex, field.value->type);
             if (!r) {
+              printf("trap %d\n", __LINE__);
               return false;
             }
           }
@@ -915,7 +922,6 @@ static bool traverse(AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-        // ptr->rvalue = false;
         PUSH(rvalueStack, true);
         bool r = traverse(data.left);
         POP(rvalueStack);
@@ -932,7 +938,8 @@ static bool traverse(AST* ptr) {
         }
 
         int arrType = data.left->type;
-        ptr->type = arrType == STRING_INDEX ? CHAR_INDEX : typeTable[arrType].parent;
+        ptr->type = typeTable[arrType].parent;
+        //ptr->type = arrType == STRING_INDEX ? CHAR_INDEX : typeTable[arrType].parent;
         return ptr->type != 0;
       }
     case AST_CALL:

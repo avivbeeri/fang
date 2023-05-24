@@ -52,10 +52,10 @@ bool compile(const SourceFile* sources) {
     if (options.printAst) {
       printTree(ast);
     }
-    if (options.dumpAst) {
-     dumpTree(ast);
-    }
     if (resolveTree(ast)) {
+      if (options.dumpAst) {
+       dumpTree(ast);
+      }
       emitTree(ast);
       // evalTree(ast);
     } else {

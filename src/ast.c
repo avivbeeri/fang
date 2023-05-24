@@ -239,6 +239,7 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_TYPE_FN: return "TYPE_FN";
     case AST_TYPE_PTR: return "TYPE_PTR";
     case AST_TYPE_ARRAY: return "TYPE_ARRAY";
+    case AST_SUBSCRIPT: return "SUBSCRIPT";
   }
   return "UNKNOWN";
 }

@@ -34,6 +34,7 @@ allTests() {
   testFile examples/global-const.fg "OK" 0 "42AQ"$'\n'"01234" 0
   testFile examples/char-ops.fg "OK" 0 "OO" 0
   testFile examples/negative-numbers.fg "OK" 0 "-54 -121 -12" 0
+  testFile examples/strings.fg "OK" 0 "hello world abcde" 0
 }
 
 testFile() {

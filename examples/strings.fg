@@ -1,0 +1,13 @@
+import "lib.fg"
+fn main(): void {
+  const s: string = "hello world";
+  const list: [5]string = [ "a", "b", "c", "d", "f"];
+  for (var q: u8 = 0; q < 11; q = q + 1) {
+    sys::writeChar(s[q]);
+  }
+  sys::writeChar(' ');
+  for (var q: u8 = 0; q < 5; q = q + 1) {
+    sys::writeChar(list[q][0]);
+  }
+}
+

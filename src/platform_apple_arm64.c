@@ -5,10 +5,11 @@
 #include "const_table.h"
 
 static int labelId = 0;
-static int freereg[4];
 
-static char *storeRegList[4] = { "W8", "W9", "W10", "W11" };
-static char *regList[4] = { "X8", "X9", "X10", "X11" };
+#define REG_SIZE 4
+static int freereg[REG_SIZE];
+static char *storeRegList[REG_SIZE] = { "W8", "W9", "W10", "W11" };
+static char *regList[REG_SIZE] = { "X8", "X9", "X10", "X11" };
 static char *paramRegList[8] = { "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7" };
 static int MAX_PARAM_REG = 8;
 
@@ -38,7 +39,7 @@ const char* labelPrint(int i) {
 }
 
 static void freeAllRegisters() {
-  for (int i = 0; i < sizeof(freereg); i++) {
+  for (int i = 0; i < REG_SIZE; i++) {
     freereg[i] = 0;
   }
 }
@@ -52,7 +53,7 @@ static void freeRegister(int r) {
 }
 
 static int allocateRegister() {
-  for (int i = 0; i < sizeof(freereg); i++) {
+  for (int i = 0; i < REG_SIZE; i++) {
     if (freereg[i] == 0) {
       freereg[i] += 1;
       return i;
@@ -120,10 +121,14 @@ static void genCmpNotEqual(FILE* f, int r, int jumpLabel) {
   freeRegister(r);
 }
 
-static int genAllocStack(FILE* f, int storage, int cellSize) {
+static int genAllocStack(FILE* f, int storage, int offset) {
   char* store = regList[storage];
-  if (cellSize > 1) {
-    fprintf(f, "  LSL %s, %s, #%i\n", store, store, cellSize);
+
+  if (offset > 1) {
+    int temp = genLoad(f, offset, 8);
+    // TODO: Convert to MADD
+    fprintf(f, "  MUL %s, %s, %s\n", store, store, regList[temp]);
+    freeRegister(temp);
   }
   fprintf(f, "  ADD %s, %s, #15 ; storage\n", store, store);
   // ARM64 stack has to align to 16 bytes
@@ -230,12 +235,12 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
     } else {
       fprintf(f, "  LDR %s, [%s]\n", regList[r], regList[r]);
     }
-  } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex) || entry.typeIndex == STRING_INDEX) {
-    fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
   } else if (typeTable[entry.typeIndex].byteSize == 1) {
     fprintf(f, "  LDRSB %s, %s\n", storeRegList[r], symbol(entry));
+  } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex) || entry.typeIndex == STRING_INDEX) {
+    fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
   } else {
-    fprintf(f, "  LDRSB %s, %s\n", storeRegList[r], symbol(entry));
+    fprintf(f, "  LDR %s, %s\n", storeRegList[r], symbol(entry));
   }
   return r;
 }
@@ -287,19 +292,16 @@ static void genPreamble(FILE* f) {
 }
 static void genCompletePreamble(FILE* f) {
   fprintf(f, ".text\n");
-  size_t bytes = 0;
   for (int i = 0; i < arrlen(constTable); i++) {
     Value v = constTable[i].value;
     if (!IS_STRING(v)) {
       continue;
     }
-    if (bytes % 4 != 0) {
-      fprintf(f, ".align %lu\n", 4 - bytes % 4);
-    }
+
+    fprintf(f, ".balign 4\n");
     fprintf(f, "_fang_const_%i: ", i);
     fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length) % 256);
     fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
-    bytes += strlen(AS_STRING(constTable[i].value)->chars);
   }
 }
 
