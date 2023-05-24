@@ -29,6 +29,7 @@
 #include "common.h"
 
 int compileError(Token token, const char* format, ...) {
+  fprintf(stderr, "In \"%s\":\n", token.fileName);
   int indent = fprintf(stderr, "[line %d; pos %d] ", token.line, token.pos);
   va_list args;
   va_start(args, format);

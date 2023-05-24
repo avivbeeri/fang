@@ -52,7 +52,7 @@ testFile() {
   local COMPILER_CODE_EXPECTED=$3
   TOTAL=$(($TOTAL + 1))
 
-  if [ "$COMPILER" != "$COMPILER_EXPECT" ]; then
+  if [[ "$COMPILER" != *"$COMPILER_EXPECT"* ]]; then
     echo -e "${RED}[FAIL]${NC}: $1"
     ERRORS+="${RED}[FAIL]${NC}: $1 - Compiler Output"
     ERRORS+=$'\n'

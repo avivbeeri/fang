@@ -126,6 +126,7 @@ static Token makeEndToken(TokenType type) {
   token.length = (int)(strlen(token.start));
   token.line = scanner.line;
   token.pos = scanner.pos;
+  token.fileName = scanner.sources[scanner.fileIndex].name;
   return token;
 }
 static Token makeBeginToken() {
@@ -135,6 +136,7 @@ static Token makeBeginToken() {
   token.length = (int)(strlen(token.start));
   token.line = scanner.line;
   token.pos = scanner.pos;
+  token.fileName = scanner.sources[scanner.fileIndex].name;
   return token;
 }
 static Token makeToken(TokenType type) {
@@ -144,6 +146,7 @@ static Token makeToken(TokenType type) {
   token.length = (int)(scanner.current - scanner.start);
   token.line = scanner.line;
   token.pos = scanner.pos;
+  token.fileName = scanner.sources[scanner.fileIndex].name;
   return token;
 }
 
@@ -154,6 +157,7 @@ static Token errorToken(const char* message) {
   token.length = (int)strlen(message);
   token.line = scanner.line;
   token.pos = scanner.pos;
+  token.fileName = scanner.sources[scanner.fileIndex].name;
   return token;
 }
 
