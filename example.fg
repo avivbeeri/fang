@@ -1,14 +1,14 @@
 import "lib.fg"
-var i: i8 = 5;
-var s: [5]char = ['0', '1', '2', '3', '4'];
+const list: [8]string = [ "a", "b", "c", "d", "e", "6", "4", "5"];
+const text: string = "Words are cool";
 fn main(): void {
-  sys::writeI8(i);
-  i = 54;
-  sys::writeI8(i);
+  var s: string = list[2];
+  sys::writeChar(s[0]);
   sys::writeChar(' ');
-  s[4] = '5';
-  for (var q: u8 = 0; q < 5; q = q + 1) {
-    sys::writeChar(s[q]);
+
+  const len: u8 = text[-1] as u8;
+  for (var q: u8 = 0; q < len; q = q + 1) {
+    sys::writeChar(text[q]);
   }
 }
 
