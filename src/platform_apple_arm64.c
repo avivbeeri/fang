@@ -92,9 +92,8 @@ static int genConstant(FILE* f, int i) {
   // return the register index
   int r = allocateRegister();
   fprintf(f, "  ADRP %s, _fang_str_%i@PAGE\n", regList[r], i);
-  fprintf(f, "  ADD %s, %s, _fang_str_%i@PAGEOFF\n", regList[r], regList[r], i);
   // Strings store their length at the front, so nudge the pointer by 1
-  fprintf(f, "  ADD %s, %s, #1\n", regList[r], regList[r]);
+  fprintf(f, "  ADD %s, %s, _fang_str_%i@PAGEOFF + 1\n", regList[r], regList[r], i);
   return r;
 }
 static int genLoad(FILE* f, int i, int size) {
