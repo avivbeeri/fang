@@ -375,7 +375,7 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_DEREF data = ast.data.AST_DEREF;
         int r = traverse(f, data.expr);
         if (ast.rvalue) {
-          return p.genDeref(f, r);
+          return p.genDeref(f, r, ptr->type);
         } else {
           return r;
         }
@@ -526,26 +526,12 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_DOT data = ast.data.AST_DOT;
         int left = traverse(f, data.left);
-        TYPE_TABLE_ENTRY type = typeTable[data.left->type];
-        int typeIndex = type.parent;
-        int index = -1;
-        for (int i = 0; i < arrlen(type.fields); i++) {
-          if (STRING_equality(type.fields[i].name, data.name)) {
-            index = i;
-            break;
-          }
-        }
+        int r = p.genFieldOffset(f, left, data.left->type, data.name);
         if (ast.rvalue) {
-          fprintf(f, "; Would read field %i\n", index);
-          return p.genDeref(f, left);
-         // return p.genOffsetRead(f, left, index, typeIndex);
-
+          return p.genDeref(f, r, ptr->type);
         } else {
-          fprintf(f, "; Would read address field %i\n", index);
-          return left;
-          //return p.genOffsetAddr(f, left, index, typeIndex);
+          return r;
         }
-        break;
       }
     case AST_SUBSCRIPT:
       {

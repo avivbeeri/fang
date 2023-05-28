@@ -296,12 +296,30 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
 static int genRef(FILE* f, int leftReg) {
   return leftReg;
 }
-static int genDeref(FILE* f, int leftReg) {
+static int genDeref(FILE* f, int leftReg, int typeIndex) {
   // TODO: handle different types here
-  fprintf(f, "  LDRSB %s, [%s]\n", regList[leftReg], regList[leftReg]);
+  uint32_t size = typeTable[typeIndex].byteSize;
+  if (size == 1) {
+    fprintf(f, "  LDRSB %s, [%s]\n", regList[leftReg], regList[leftReg]);
+  } else {
+    fprintf(f, "  LDR %s, [%s]\n", regList[leftReg], regList[leftReg]);
+  }
   return leftReg;
 }
 
+static int genFieldOffset(FILE* f, int leftReg, int typeIndex, STRING* fieldName) {
+  TYPE_TABLE_ENTRY entry = typeTable[typeIndex];
+  int offset = 0;
+  for (int i = 0; i < arrlen(entry.fields); i++) {
+    if (STRING_equality(entry.fields[i].name, fieldName)) {
+      break;
+    }
+    offset += typeTable[entry.fields[i].typeIndex].byteSize;
+  }
+
+  fprintf(f, "  ADD %s, %s, #%i; field offset address\n", regList[leftReg], regList[leftReg], offset);
+  return leftReg;
+}
 static int genIndexAddr(FILE* f, int baseReg, int index, int type) {
   int dataSize = typeTable[type].byteSize;
   if (dataSize > 1) {
@@ -738,7 +756,8 @@ PLATFORM platform_apple_arm64 = {
   .genIndexRead = genIndexRead,
   .genIndexAddr = genIndexAddr,
   .genGlobalVariable = genGlobalVariable,
-  .genGlobalConstant = genGlobalConstant
+  .genGlobalConstant = genGlobalConstant,
+  .genFieldOffset = genFieldOffset
 
 };
 
