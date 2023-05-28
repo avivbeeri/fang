@@ -1,14 +1,7 @@
-import "lib.fg"
-
-type Bundle {
-  id: i8;
-  alive: bool;
+fn main(): i8 {
+  var a: i8 = 1;
+  var b: i8 = 2;
+  var c: i8 = 3;
+  var d: i8 = 4;
+  return a + b * d / (a + c) % b;
 }
-
-fn main(): void {
-  var s: Bundle = {
-    id = 5;
-    alive = true;
-  };
-}
-

@@ -1,4 +1,5 @@
 /*
+ *
   MIT License
 
   Copyright (c) 2023 Aviv Beeri
@@ -82,18 +83,6 @@ void SYMBOL_TABLE_closeScope() {
   SYMBOL_TABLE_SCOPE parent = SYMBOL_TABLE_getScope(closingScope.parent);
 
   uint32_t scopeCount = hmlen(closingScope.table);
-  /*
-  uint32_t scopeSize = 0;
-  for (int i = 0; i < scopeCount; i++) {
-    SYMBOL_TABLE_ENTRY entry = closingScope.table[i];
-    if (entry.defined) {
-      scopeSize += typeTable[entry.typeIndex].byteSize;
-    }
-  }
-  closingScope.tableAllocationSize = scopeSize + closingScope.nestedSize;
-  parent.nestedSize = fmax(parent.nestedSize, scopeSize);
-  */
-
 
   closingScope.tableAllocationCount = scopeCount + closingScope.nestedCount;
   parent.nestedCount = fmax(parent.nestedCount, closingScope.tableAllocationCount);
@@ -135,7 +124,7 @@ void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
   uint32_t offset = 0;
-  if (type == SYMBOL_TYPE_VARIABLE) {
+  if (type == SYMBOL_TYPE_VARIABLE || type == SYMBOL_TYPE_CONSTANT) {
     offset = scope.localOffset;
     scope.localOffset += typeTable[typeIndex].byteSize;
   } else if (type == SYMBOL_TYPE_PARAMETER) {
@@ -230,6 +219,7 @@ void SYMBOL_TABLE_report(void) {
     }
     if (scope.scopeType == SCOPE_TYPE_FUNCTION) {
       printf(" (stack required %u):\n", scope.tableAllocationCount);
+      printf(" (stack required %u):\n", scope.tableAllocationSize);
     }
     for (int j = 0; j < hmlen(scope.table); j++) {
       SYMBOL_TABLE_ENTRY entry = scope.table[j];

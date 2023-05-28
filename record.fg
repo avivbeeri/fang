@@ -1,0 +1,17 @@
+import "lib.fg"
+
+type Bundle {
+  id: i8;
+  alive: bool;
+}
+
+fn main(): void {
+/*
+  var s: Bundle = {
+    id = 5;
+    alive = true;
+  };
+*/
+  var s: Bundle;
+}
+

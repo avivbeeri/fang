@@ -297,21 +297,30 @@ static int traverse(FILE* f, AST* ptr) {
         int rvalue;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         if (data.expr->tag == AST_INITIALIZER) {
-          int dataType = typeTable[data.type->type].parent;
-          int storageReg = traverse(f, data.type);
-          rvalue = p.genAllocStack(f, storageReg, dataType);
-          // TODO: initialiser
           struct AST_INITIALIZER init = data.expr->data.AST_INITIALIZER;
+          if (init.initType == INIT_TYPE_ARRAY) {
+            int dataType = typeTable[data.type->type].parent;
+            int storageReg = traverse(f, data.type);
+            rvalue = p.genAllocStack(f, storageReg, dataType);
 
-          for (int i = 0; i < arrlen(init.assignments); i++) {
-            p.holdRegister(rvalue);
-            int value = traverse(f, init.assignments[i]);
-            int index = p.genLoad(f, i, 1);
-            int slot = p.genIndexAddr(f, rvalue, index, dataType);
-            int assign = p.genAssign(f, slot, value, dataType);
-            p.freeRegister(assign);
+            for (int i = 0; i < arrlen(init.assignments); i++) {
+              p.holdRegister(rvalue);
+              int value = traverse(f, init.assignments[i]);
+              int index = p.genLoad(f, i, 1);
+              int slot = p.genIndexAddr(f, rvalue, index, dataType);
+              int assign = p.genAssign(f, slot, value, dataType);
+              p.freeRegister(assign);
+            }
+            p.freeRegister(rvalue);
+          } else {
+            int dataType = data.type->type;
+            int baseReg = traverse(f, data.type);
+            for (int i = 0; i < arrlen(init.assignments); i++) {
+              //p.holdRegister(rvalue);
+            }
+            rvalue = -1;
+
           }
-          p.freeRegister(rvalue);
         } else {
           rvalue = traverse(f, data.expr);
         }

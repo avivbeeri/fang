@@ -159,6 +159,34 @@ static int genAllocStack(FILE* f, int storage, int type) {
   return storage;
 }
 
+static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
+  uint32_t offset = 0;
+  uint32_t index = entry.scopeIndex;
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(index);
+  SYMBOL_TABLE_SCOPE current = scope;
+  for (int i = 0; i < hmlen(scope.table); i++) {
+    SYMBOL_TABLE_ENTRY tableEntry = scope.table[i];
+    printf("lookup\n");
+    if (tableEntry.defined && tableEntry.ordinal == entry.ordinal) {
+      break;
+    } else if (tableEntry.defined) {
+      offset += typeTable[tableEntry.typeIndex].byteSize;
+    }
+  }
+  printf("local offset %i\n", offset);
+
+  while (current.scopeType != SCOPE_TYPE_FUNCTION) {
+    index = current.parent;
+    current = SYMBOL_TABLE_getScope(index);
+    for (int i = 0; i < hmlen(current.table); i++) {
+      SYMBOL_TABLE_ENTRY tableEntry = current.table[i];
+      if (tableEntry.defined) {
+        offset += typeTable[tableEntry.typeIndex].byteSize;
+      }
+    }
+  }
+  return offset + 16; // offset by 1 from frame pointer
+}
 static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
   uint32_t ordinal = entry.ordinal;
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
@@ -192,8 +220,8 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   } else {
     // local
     // calculate offset
-    uint32_t offset = getStackOrdinal(entry);
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", -offset * 16);
+    uint32_t offset = getStackOffset(entry);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i]", -offset);
   }
   return buffer;
 }
@@ -226,8 +254,8 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
   } else {
-    uint32_t offset = getStackOrdinal(entry);
-    fprintf(f, "  ADD %s, FP, #%i\n", regList[r], -offset * 16);
+    uint32_t offset = getStackOffset(entry);
+    fprintf(f, "  ADD %s, FP, #%i\n", regList[r], -offset);
   }
   return r;
 }
@@ -421,7 +449,9 @@ static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   // get max function scope offset
   // and round to next 16
   // TODO: Allocate based on function local scopes
-  int p = (scope.tableAllocationCount + 1) * 16;
+  // int p = (scope.tableAllocationCount + 1) * 16;
+
+  int p = ((scope.tableAllocationSize + 16) >> 4) << 4;
 
   // get scope name
   STRING* module = SYMBOL_TABLE_getNameFromStart(scope.key);
