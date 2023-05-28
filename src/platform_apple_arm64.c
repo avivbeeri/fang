@@ -503,14 +503,22 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
     int r = allocateRegister();
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
-    fprintf(f, "  STR %s, [%s]\n", regList[rvalue], regList[r]);
+    if (typeTable[entry.typeIndex].byteSize == 1) {
+      fprintf(f, "  STRB %s, [%s]\n", storeRegList[rvalue], regList[r]);
+    } else {
+      fprintf(f, "  STR %s, [%s]\n", regList[rvalue], regList[r]);
+    }
     freeRegister(r);
     return rvalue;
   }
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
     // allocate stack memory?
   }
-  fprintf(f, "  STR %s, %s\n", regList[rvalue], symbol(entry));
+  if (typeTable[entry.typeIndex].byteSize == 1) {
+    fprintf(f, "  STRB %s, %s\n", storeRegList[rvalue], symbol(entry));
+  } else {
+    fprintf(f, "  STR %s, %s\n", regList[rvalue], symbol(entry));
+  }
   return rvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue, int type) {
