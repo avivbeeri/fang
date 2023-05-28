@@ -1,18 +1,24 @@
 import "lib.fg"
 
 type Bundle {
-  id: i8;
   alive: bool;
+  s: string;
+  id: i8;
+  c: [5]char;
 }
 
 fn main(): void {
-/*
-  var s: Bundle = {
-    id = 5;
-    alive = true;
-  };
-*/
   var s: Bundle;
   s.id = 5;
+  sys::writeI8(s.id);
+  s.id = 42;
+  s.s = "Hello world";
+  s.c[0] = '1';
+  s.c[1] = '2';
+  s.c[2] = '3';
+  s.c[3] = '4';
+  s.c[4] = '2';
+  sys::writeI8(s.id);
+  sys::write(s.c as ^char, 5);
 }
 

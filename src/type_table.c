@@ -96,6 +96,23 @@ int TYPE_TABLE_registerPrimitive(STRING* name) {
   return arrlen(typeTable) - 1;
 }
 
+int TYPE_TABLE_registerArray(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent) {
+  int i = shget(aliasTable, name->chars);
+  if (i > 0) {
+    return i;
+  }
+  if (name != NULL) {
+    shput(aliasTable, name->chars, arrlen(typeTable));
+  }
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){
+        .name = name,
+        .entryType = entryType,
+        .parent = parent,
+        .fields = NULL,
+        .status = STATUS_DEFINED
+  }));
+  return arrlen(typeTable) - 1;
+}
 int TYPE_TABLE_registerType(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
   int i = shget(aliasTable, name->chars);
   if (i > 0) {
@@ -139,7 +156,7 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   TYPE_TABLE_registerPrimitive(createString("u16"));
   TYPE_TABLE_registerPrimitive(createString("i16"));
   TYPE_TABLE_registerPrimitive(createString("number"));
-  TYPE_TABLE_registerType(createString("string"), ENTRY_TYPE_ARRAY, 10, NULL); // 10 = char index
+  TYPE_TABLE_registerType(createString("string"), ENTRY_TYPE_POINTER, 10, NULL); // 10 = char index
   TYPE_TABLE_registerPrimitive(createString("fn"));
   TYPE_TABLE_registerPrimitive(createString("char"));
   TYPE_TABLE_registerPrimitive(createString("ptr"));
@@ -186,23 +203,25 @@ static TYPE_TABLE_RESULT TYPE_TABLE_calculateTypeSize(int typeIndex, TYPE_VISIT_
       }
 
       TYPE_TABLE_ENTRY fieldType = typeTable[field.typeIndex];
-      if (fieldType.entryType == ENTRY_TYPE_PRIMITIVE) {
-        total += fieldType.byteSize;
+      int fieldSize;
+      TYPE_TABLE_RESULT result = TYPE_TABLE_calculateTypeSize(field.typeIndex, visitSet);
+      if (result.error) {
+        return result;
+      }
+      fieldSize = result.size;
+      //printf("field %s, %i, %i\n", field.name->chars, fieldSize, field.elementCount);
+
+      if (field.elementCount > 0) {
+        TYPE_TABLE_RESULT elementResult = TYPE_TABLE_calculateTypeSize(fieldType.parent, visitSet);
+        total += elementResult.size * field.elementCount;
       } else {
-        if (fieldType.status == STATUS_COMPLETE) {
-          total += fieldType.byteSize;
-        } else {
-          TYPE_TABLE_RESULT result = TYPE_TABLE_calculateTypeSize(field.typeIndex, visitSet);
-          if (result.error) {
-            return result;
-          }
-          total += result.size;
-        }
+        total += fieldSize;
       }
     }
   } else {
     // TODO revisit this
-    if (entry->entryType == ENTRY_TYPE_ARRAY || entry->entryType == ENTRY_TYPE_POINTER) {
+    if (entry->entryType == ENTRY_TYPE_POINTER) {
+    //if (entry->entryType == ENTRY_TYPE_ARRAY || entry->entryType == ENTRY_TYPE_POINTER) {
       total += typeTable[TYPE_TABLE_lookup("ptr")].byteSize;
     } else {
       total += typeTable[entry->parent].byteSize;

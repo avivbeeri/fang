@@ -32,6 +32,7 @@
 #include "type_table.h"
 #include "symbol_table.h"
 #include "options.h"
+#include "const_eval.h"
 
 uint32_t* assignStack = NULL;
 uint32_t* rvalueStack = NULL;
@@ -182,10 +183,11 @@ static int resolveType(AST* ptr) {
         if (!isNumeric(lenType)) {
           return 0;
         }
+
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "[]");
-        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, subType, NULL);
+        ptr->type = TYPE_TABLE_registerArray(typeName, ENTRY_TYPE_ARRAY, subType);
         return ptr->type;
       }
   }
@@ -283,7 +285,17 @@ static bool resolveTopLevel(AST* ptr) {
             arrfree(fields);
             return false;
           }
-          arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = field.identifier } ));
+          int elementCount = 0;
+          if (typeTable[index].entryType == ENTRY_TYPE_ARRAY) {
+            if (field.value->tag == AST_TYPE) {
+              Value length = evalConstTree(field.value);
+              if (!IS_EMPTY(length) && !IS_ERROR(length)) {
+                elementCount = getNumber(length);
+                // printf("Array length: %i\n", elementCount);
+              }
+            }
+          }
+          arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = field.identifier, .elementCount = elementCount } ));
         }
         TYPE_TABLE_define(index, ENTRY_TYPE_RECORD, 0, fields);
         return true;
@@ -1033,7 +1045,6 @@ bool resolveTree(AST* ptr) {
 
 cleanup:
   if (options.report) {
-    SYMBOL_TABLE_report();
     if (success) {
       printf("Resolution successful.\n");
     } else {

@@ -540,10 +540,11 @@ static int traverse(FILE* f, AST* ptr) {
         int left = traverse(f, data.left);
         TYPE_TABLE_ENTRY type = typeTable[data.left->type];
         int typeIndex = type.parent;
+        left = p.genIndexAddr(f, left, index, typeIndex);
         if (ast.rvalue) {
-          return p.genIndexRead(f, left, index, typeIndex);
+          return p.genDeref(f, left, typeIndex);
         } else {
-          return p.genIndexAddr(f, left, index, typeIndex);
+          return left;
         }
       }
     case AST_CALL:

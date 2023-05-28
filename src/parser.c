@@ -347,7 +347,7 @@ static AST* typePtr() {
 
 static AST* typeArray() {
   Token start = parser.previous;
-  consume(TOKEN_NUMBER, "Expect array size literal when declaring an array type.");
+  consume(TOKEN_NUMBER, "Expect array size to be a literal when declaring an array type.");
   AST* length = number(false);
   consume(TOKEN_RIGHT_BRACKET, "Expect array size literal to be followed by ']'.");
   AST* resultType = parseType();

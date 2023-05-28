@@ -36,7 +36,8 @@ enum TYPE_TABLE_ENTRY_STATUS {
 #include "memory.h"
 typedef struct TYPE_TABLE_FIELD_ENTRY {
   STRING* name;
-  int typeIndex;
+  uint32_t typeIndex;
+  uint32_t elementCount;
 } TYPE_TABLE_FIELD_ENTRY;
 
 
@@ -59,8 +60,6 @@ typedef struct TYPE_TABLE_ENTRY {
   size_t byteSize;
   // Functions have a return type
   int returnType;
-  // length of array types go here
-  size_t elementCount;
   TYPE_TABLE_FIELD_ENTRY* fields;
 } TYPE_TABLE_ENTRY;
 
@@ -73,6 +72,7 @@ int TYPE_TABLE_declare(STRING* name);
 int TYPE_TABLE_registerPrimitive(STRING* name);
 bool TYPE_TABLE_setPrimitiveSize(char* name, int size);
 int TYPE_TABLE_registerType(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
+int TYPE_TABLE_registerArray(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent);
 void TYPE_TABLE_free(void);
 bool TYPE_TABLE_calculateSizes();
 

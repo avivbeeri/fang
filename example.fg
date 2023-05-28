@@ -1,18 +1,9 @@
-import "lib.fg"
-
-type Bundle {
-  alive: bool;
-  s: string;
-  id: i8;
-}
-
-fn main(): void {
-  var s: Bundle;
-  s.id = 5;
-  sys::writeI8(s.id);
-  s.id = 42;
-  s.s = "Hello world";
-  sys::writeI8(s.id);
-  sys::write(s.s as ^char, 5);
+//import "lib.fg"
+fn main(): i8 {
+  var n: [3]i8 = [ 11, 12, 13 ];
+  return n[1];
+//  sys::writeI8(n[0]);
+ // sys::writeI8(n[1]);
+  //sys::writeI8(n[2]);
 }
 
