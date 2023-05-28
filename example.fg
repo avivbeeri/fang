@@ -14,5 +14,6 @@ fn main(): void {
 */
   var s: Bundle;
   s.id = 5;
+  sys::writeI8(s.id);
 }
 

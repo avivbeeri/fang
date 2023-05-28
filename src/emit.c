@@ -522,6 +522,31 @@ static int traverse(FILE* f, AST* ptr) {
             }
         }
       }
+    case AST_DOT:
+      {
+        struct AST_DOT data = ast.data.AST_DOT;
+        int left = traverse(f, data.left);
+        TYPE_TABLE_ENTRY type = typeTable[data.left->type];
+        int typeIndex = type.parent;
+        int index = -1;
+        for (int i = 0; i < arrlen(type.fields); i++) {
+          if (STRING_equality(type.fields[i].name, data.name)) {
+            index = i;
+            break;
+          }
+        }
+        if (ast.rvalue) {
+          fprintf(f, "; Would read field %i\n", index);
+          return p.genDeref(f, left);
+         // return p.genOffsetRead(f, left, index, typeIndex);
+
+        } else {
+          fprintf(f, "; Would read address field %i\n", index);
+          return left;
+          //return p.genOffsetAddr(f, left, index, typeIndex);
+        }
+        break;
+      }
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;

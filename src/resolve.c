@@ -900,7 +900,9 @@ static bool traverse(AST* ptr) {
     case AST_DOT:
       {
         struct AST_DOT data = ast.data.AST_DOT;
+        PUSH(rvalueStack, false);
         bool r = traverse(data.left);
+        POP(rvalueStack);
         if (!r) {
           return false;
         }
