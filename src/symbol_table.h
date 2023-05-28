@@ -74,12 +74,14 @@ typedef struct {
   SYMBOL_TABLE_ENTRY* table;
   uint32_t ordinal;
   uint32_t paramOrdinal;
-  uint32_t localOffset;
-  uint32_t paramOffset;
-  uint32_t nestedSize;
+
   uint32_t nestedCount;
-  uint32_t tableAllocationSize;
   uint32_t tableAllocationCount;
+
+  uint32_t nestedSize;
+  uint32_t tableSize;
+  uint32_t tableAllocationSize;
+  bool leaf;
 } SYMBOL_TABLE_SCOPE;
 
 // 0 - LANGUAGE
@@ -89,6 +91,7 @@ typedef struct {
 void SYMBOL_TABLE_init(void);
 void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType);
 void SYMBOL_TABLE_closeScope();
+void SYMBOL_TABLE_calculateAllocations();
 void SYMBOL_TABLE_report();
 void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);

@@ -33,6 +33,7 @@
 
 uint32_t scopeId = 1;
 int* scopeStack = NULL;
+int* leafScopes = NULL;
 
 SYMBOL_TABLE_SCOPE* scopes = NULL;
 
@@ -42,17 +43,19 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
     parent = scopeStack[arrlen(scopeStack) - 1];
   }
   hmputs(scopes, ((SYMBOL_TABLE_SCOPE){
-        scopeId,
-        parent,
-        NULL,
-        scopeType,
-        NULL,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
+        .key = scopeId,
+        .parent = parent,
+        .moduleName = NULL,
+        .scopeType = scopeType,
+        .table = NULL,
+        .ordinal = 0,
+        .paramOrdinal = 0,
+        .nestedCount = 0,
+        .tableAllocationCount = 0,
+        .nestedSize = 0,
+        .tableSize = 0,
+        .tableAllocationSize = 0,
+        .leaf = true
   }));
   arrput(scopeStack, scopeId);
   scopeId++;
@@ -77,6 +80,52 @@ bool SYMBOL_TABLE_scopeHas(STRING* name) {
   return false;
 }
 
+static uint32_t SYMBOL_TABLE_calculateTableSize(uint32_t index) {
+  SYMBOL_TABLE_SCOPE closingScope = SYMBOL_TABLE_getScope(index);
+  uint32_t size = 0;
+  uint32_t scopeCount = hmlen(closingScope.table);
+  for (int i = 0; i < scopeCount; i++) {
+    SYMBOL_TABLE_ENTRY tableEntry = closingScope.table[i];
+    if (tableEntry.defined) {
+      size += typeTable[tableEntry.typeIndex].byteSize;
+    }
+  }
+
+  return size;
+}
+static void SYMBOL_TABLE_calculateAllocation(uint32_t start) {
+  SYMBOL_TABLE_SCOPE current = SYMBOL_TABLE_getScope(start);
+  uint32_t index = start;
+  while (current.scopeType != SCOPE_TYPE_MODULE && current.scopeType != SCOPE_TYPE_INVALID) {
+    SYMBOL_TABLE_SCOPE parent = SYMBOL_TABLE_getScope(current.parent);
+    current.tableAllocationSize = current.tableSize + current.nestedSize;
+    parent.nestedSize = fmax(parent.nestedSize, current.tableAllocationSize);
+
+    hmputs(scopes, current);
+    hmputs(scopes, parent);
+    index = current.parent;
+    current = SYMBOL_TABLE_getScope(index);
+  }
+
+  uint32_t size = 0;
+}
+
+void SYMBOL_TABLE_calculateAllocations() {
+  // Cache the table sizes
+  for (int i = 0; i < hmlen(scopes); i++) {
+    SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(i);
+    scope.tableSize = SYMBOL_TABLE_calculateTableSize(i);
+    hmputs(scopes, scope);
+  }
+
+  for (int i = 0; i < arrlen(leafScopes); i++) {
+    SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(leafScopes[i]);
+    if (scope.leaf) {
+      SYMBOL_TABLE_calculateAllocation(leafScopes[i]);
+    }
+  }
+}
+
 void SYMBOL_TABLE_closeScope() {
   uint32_t current = SYMBOL_TABLE_getCurrentScopeIndex();
   SYMBOL_TABLE_SCOPE closingScope = SYMBOL_TABLE_getScope(current);
@@ -86,10 +135,15 @@ void SYMBOL_TABLE_closeScope() {
 
   closingScope.tableAllocationCount = scopeCount + closingScope.nestedCount;
   parent.nestedCount = fmax(parent.nestedCount, closingScope.tableAllocationCount);
+  parent.leaf = false;
 
   hmputs(scopes, closingScope);
   hmputs(scopes, parent);
   arrdel(scopeStack, arrlen(scopeStack) - 1);
+
+  if (closingScope.leaf) {
+    arrput(leafScopes, current);
+  }
 }
 
 uint32_t SYMBOL_TABLE_getCurrentScopeIndex() {
@@ -125,11 +179,11 @@ void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
 
   uint32_t offset = 0;
   if (type == SYMBOL_TYPE_VARIABLE || type == SYMBOL_TYPE_CONSTANT) {
-    offset = scope.localOffset;
-    scope.localOffset += typeTable[typeIndex].byteSize;
+    //offset = scope.localOffset;
+    //scope.localOffset += typeTable[typeIndex].byteSize;
   } else if (type == SYMBOL_TYPE_PARAMETER) {
-    offset = scope.paramOffset;
-    scope.paramOffset += typeTable[typeIndex].byteSize;
+    //offset = scope.paramOffset;
+    //scope.paramOffset += typeTable[typeIndex].byteSize;
   }
 
   SYMBOL_TABLE_ENTRY entry = {
@@ -217,8 +271,9 @@ void SYMBOL_TABLE_report(void) {
     if (scope.scopeType == SCOPE_TYPE_MODULE && scope.moduleName != NULL) {
       printf(" (module: %s):\n", scope.moduleName->chars);
     }
+    printf(" (table size %u):\n", scope.tableSize);
     if (scope.scopeType == SCOPE_TYPE_FUNCTION) {
-      printf(" (stack required %u):\n", scope.tableAllocationCount);
+      printf(" (count %u):\n", scope.tableAllocationCount);
       printf(" (stack required %u):\n", scope.tableAllocationSize);
     }
     for (int j = 0; j < hmlen(scope.table); j++) {

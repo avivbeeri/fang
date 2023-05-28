@@ -1027,7 +1027,7 @@ bool resolveTree(AST* ptr) {
   if (!success) {
     goto cleanup;
   }
-
+  SYMBOL_TABLE_calculateAllocations();
 
 cleanup:
   if (options.report) {

@@ -49,31 +49,48 @@ bool compile(const SourceFile* sources) {
   initScanner(sources);
   AST* ast = parse(sources);
   bool result = true;
-  if (ast != NULL) {
-    if (options.printAst) {
-      printTree(ast);
-    }
-    if (resolveTree(ast)) {
-      if (options.dumpAst) {
-       dumpTree(ast);
-      }
-      PLATFORM_init();
-      PLATFORM p = PLATFORM_get("apple_arm64");
-      result &= p.calculateSizes();
-      if (options.report) {
-        TYPE_TABLE_report();
-      }
-      if (result) {
-        emitTree(ast, p);
-      }
-      // evalTree(ast);
-    } else {
-      result = false;
-    }
-    ast_free(ast);
-  } else {
+  if (ast == NULL) {
     result = false;
+    goto cleanup;
   }
+  if (options.printAst) {
+    printTree(ast);
+  }
+
+  PLATFORM_init();
+  PLATFORM p = PLATFORM_get("apple_arm64");
+
+  result &= resolveTree(ast);
+  if (!result) {
+    result = false;
+    goto cleanup;
+  }
+  result &= p.calculateSizes();
+  if (options.report) {
+    TYPE_TABLE_report();
+  }
+  if (!result) {
+    goto cleanup;
+  }
+
+  SYMBOL_TABLE_calculateAllocations();
+  if (options.report) {
+    SYMBOL_TABLE_report();
+  }
+
+  if (options.dumpAst) {
+    dumpTree(ast);
+  }
+
+  if (result) {
+    emitTree(ast, p);
+    // evalTree(ast);
+  }
+cleanup:
+  if (ast != NULL) {
+    ast_free(ast);
+  }
+
   CONST_TABLE_free();
   TYPE_TABLE_free();
   SYMBOL_TABLE_free();

@@ -166,14 +166,12 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   SYMBOL_TABLE_SCOPE current = scope;
   for (int i = 0; i < hmlen(scope.table); i++) {
     SYMBOL_TABLE_ENTRY tableEntry = scope.table[i];
-    printf("lookup\n");
     if (tableEntry.defined && tableEntry.ordinal == entry.ordinal) {
       break;
     } else if (tableEntry.defined) {
       offset += typeTable[tableEntry.typeIndex].byteSize;
     }
   }
-  printf("local offset %i\n", offset);
 
   while (current.scopeType != SCOPE_TYPE_FUNCTION) {
     index = current.parent;
@@ -451,7 +449,7 @@ static void genFunction(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope) {
   // TODO: Allocate based on function local scopes
   // int p = (scope.tableAllocationCount + 1) * 16;
 
-  int p = ((scope.tableAllocationSize + 16) >> 4) << 4;
+  int p = 16 + (((scope.tableAllocationSize + 15) >> 4) << 4);
 
   // get scope name
   STRING* module = SYMBOL_TABLE_getNameFromStart(scope.key);
