@@ -168,6 +168,9 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
     SYMBOL_TABLE_ENTRY tableEntry = scope.table[i];
     if (tableEntry.defined) {
       offset += typeTable[tableEntry.typeIndex].byteSize;
+      // The stack is subtractive, so we need to account for the current byte size
+      // when calculating its offset.
+
       if (tableEntry.ordinal == entry.ordinal) {
         break;
       }
