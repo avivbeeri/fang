@@ -166,10 +166,11 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   SYMBOL_TABLE_SCOPE current = scope;
   for (int i = 0; i < hmlen(scope.table); i++) {
     SYMBOL_TABLE_ENTRY tableEntry = scope.table[i];
-    if (tableEntry.defined && tableEntry.ordinal == entry.ordinal) {
-      break;
-    } else if (tableEntry.defined) {
+    if (tableEntry.defined) {
       offset += typeTable[tableEntry.typeIndex].byteSize;
+      if (tableEntry.ordinal == entry.ordinal) {
+        break;
+      }
     }
   }
 
