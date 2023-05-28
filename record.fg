@@ -13,5 +13,6 @@ fn main(): void {
   };
 */
   var s: Bundle;
+  s.id = 5;
 }
 
