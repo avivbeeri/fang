@@ -624,10 +624,10 @@ static bool traverse(AST* ptr) {
           }
           return false;
         }
-        int subType = typeTable[ptr->type].parent;
         bool r = true;
-        for (int i = 0; i < arrlen(data.assignments); i++) {
-          if (entry.entryType == ENTRY_TYPE_ARRAY) {
+        if (entry.entryType == ENTRY_TYPE_ARRAY) {
+          int subType = typeTable[ptr->type].parent;
+          for (int i = 0; i < arrlen(data.assignments); i++) {
 
             PUSH(typeStack, subType);
             r = traverse(data.assignments[i]);
@@ -641,7 +641,8 @@ static bool traverse(AST* ptr) {
               return false;
             }
           }
-          if (entry.entryType == ENTRY_TYPE_RECORD) {
+        } else if (entry.entryType == ENTRY_TYPE_RECORD) {
+          for (int i = 0; i < arrlen(data.assignments); i++) {
             struct AST_PARAM field = data.assignments[i]->data.AST_PARAM;
             STRING* name = field.identifier;
             int fieldIndex = 0;
@@ -655,6 +656,7 @@ static bool traverse(AST* ptr) {
             if (!found) {
               r = false;
               printf("trap %d\n", __LINE__);
+              compileError(data.assignments[i]->token, "Field '%s' doesn't exist in composite type '%s'\n", name->chars, entry.name->chars);
               return false;
             }
             PUSH(typeStack, entry.fields[fieldIndex].typeIndex);
@@ -665,7 +667,9 @@ static bool traverse(AST* ptr) {
             }
             r &= isCompatible(entry.fields[fieldIndex].typeIndex, field.value->type);
             if (!r) {
-              printf("trap %d\n", __LINE__);
+              int indent = compileError(data.assignments[i]->token, "Invalid assignment to field '%s' of composite type '%s'.\n", name->chars, entry.name->chars);
+              printf("%*s", indent, "");
+              printf("You attempted to assign a value of type '%s' to '%s', which are incompatible.\n", typeTable[field.value->type].name->chars, typeTable[entry.fields[fieldIndex].typeIndex].name->chars);
               return false;
             }
           }

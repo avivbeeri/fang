@@ -203,10 +203,11 @@ static AST* record() {
     do {
       // Becomes an assignment statement because of the coming equality sign
       STRING* name = parseVariable("Expect field value name in record literal.");
+      Token paramToken = parser.previous;
       consume(TOKEN_EQUAL, "Expect '=' after field name in record literal.");
       AST* value = expression();
       consume(TOKEN_SEMICOLON, "Expect ';' after field in record literal.");
-      arrput(assignments, AST_NEW(AST_PARAM, name, value));
+      arrput(assignments, AST_NEW_T(AST_PARAM, paramToken, name, value));
     } while (!check(TOKEN_RIGHT_BRACE));
   }
   consume(TOKEN_RIGHT_BRACE, "Expect '}' after a record literal.");
