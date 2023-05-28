@@ -65,6 +65,26 @@ static int holdRegister(int r) {
   return r;
 }
 
+static bool calculateSizes() {
+  // Init primitives
+  TYPE_TABLE_setPrimitiveSize("void", 0);
+
+  TYPE_TABLE_setPrimitiveSize("bool", 1);
+  TYPE_TABLE_setPrimitiveSize("i8", 1);
+  TYPE_TABLE_setPrimitiveSize("u8", 1);
+  TYPE_TABLE_setPrimitiveSize("char", 1);
+
+  TYPE_TABLE_setPrimitiveSize("u16", 2);
+  TYPE_TABLE_setPrimitiveSize("i16", 2);
+
+  TYPE_TABLE_setPrimitiveSize("number", 4);
+
+  TYPE_TABLE_setPrimitiveSize("string", 8);
+  TYPE_TABLE_setPrimitiveSize("fn", 8);
+  TYPE_TABLE_setPrimitiveSize("ptr", 8);
+  return TYPE_TABLE_calculateSizes();
+}
+
 static void genMacros(FILE* f) {
   fprintf(f, " .macro PUSH1 register\n");
   fprintf(f, "        STR \\register, [SP, #-16]!\n");
@@ -96,9 +116,10 @@ static int genConstant(FILE* f, int i) {
   fprintf(f, "  ADD %s, %s, _fang_str_%i@PAGEOFF + 1\n", regList[r], regList[r], i);
   return r;
 }
-static int genLoad(FILE* f, int i, int size) {
+static int genLoad(FILE* f, int i, int type) {
   // Load i into a register
   // return the register index
+  int size = typeTable[type].byteSize;
   int r = allocateRegister();
   if (size == 1) {
     int8_t value = i;
@@ -117,8 +138,9 @@ static void genCmpNotEqual(FILE* f, int r, int jumpLabel) {
   freeRegister(r);
 }
 
-static int genAllocStack(FILE* f, int storage, int offset) {
+static int genAllocStack(FILE* f, int storage, int type) {
   char* store = regList[storage];
+  int offset = typeTable[type].byteSize;
 
   if (offset > 1) {
     int temp = genLoad(f, offset, 8);
@@ -250,7 +272,8 @@ static int genDeref(FILE* f, int leftReg) {
   return leftReg;
 }
 
-static int genIndexAddr(FILE* f, int baseReg, int index, int dataSize) {
+static int genIndexAddr(FILE* f, int baseReg, int index, int type) {
+  int dataSize = typeTable[type].byteSize;
   if (dataSize > 1) {
     int temp = genLoad(f, dataSize, 8);
     // TODO: Convert to MADD
@@ -266,7 +289,8 @@ static int genIndexAddr(FILE* f, int baseReg, int index, int dataSize) {
   return leftReg;
 }
 
-static int genIndexRead(FILE* f, int leftReg, int index, int dataSize) {
+static int genIndexRead(FILE* f, int leftReg, int index, int type) {
+  int dataSize = typeTable[type].byteSize;
   if (dataSize > 1) {
     // TODO: Convert to MADD
     int temp = genLoad(f, dataSize, 8);
@@ -459,7 +483,8 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   fprintf(f, "  STR %s, %s\n", regList[rvalue], symbol(entry));
   return rvalue;
 }
-static int genAssign(FILE* f, int lvalue, int rvalue, int size) {
+static int genAssign(FILE* f, int lvalue, int rvalue, int type) {
+  int size = typeTable[type].byteSize;
   if (size == 1) {
     fprintf(f, "  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
   } else {
@@ -489,7 +514,8 @@ static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
   return leftReg;
 }
 
-static int genAdd(FILE* f, int leftReg, int rightReg, int size) {
+static int genAdd(FILE* f, int leftReg, int rightReg, int type) {
+  int size = typeTable[type].byteSize;
   fprintf(f, "  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   if (size == 1) {
  //   fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
@@ -505,7 +531,8 @@ static int genSub(FILE* f, int leftReg, int rightReg) {
   return leftReg;
 }
 
-static int genMul(FILE* f, int leftReg, int rightReg, int size) {
+static int genMul(FILE* f, int leftReg, int rightReg, int type) {
+  int size = typeTable[type].byteSize;
   fprintf(f, "  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   if (size == 1) {
   //  fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
@@ -513,7 +540,8 @@ static int genMul(FILE* f, int leftReg, int rightReg, int size) {
   freeRegister(rightReg);
   return leftReg;
 }
-static int genDiv(FILE* f, int leftReg, int rightReg, int size) {
+static int genDiv(FILE* f, int leftReg, int rightReg, int type) {
+  int size = typeTable[type].byteSize;
   fprintf(f, "  SDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   if (size == 1) {
    // fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
@@ -621,6 +649,7 @@ PLATFORM platform_apple_arm64 = {
   .key = "apple_arm64",
   .init = init,
   .complete = complete,
+  .calculateSizes = calculateSizes,
   .freeRegister = freeRegister,
   .holdRegister = holdRegister,
   .freeAllRegisters = freeAllRegisters,

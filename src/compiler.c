@@ -37,6 +37,7 @@
 #include "emit.h"
 #include "eval.h"
 #include "options.h"
+#include "platform.h"
 
 bool compile(const SourceFile* sources) {
 
@@ -56,7 +57,15 @@ bool compile(const SourceFile* sources) {
       if (options.dumpAst) {
        dumpTree(ast);
       }
-      emitTree(ast);
+      PLATFORM_init();
+      PLATFORM p = PLATFORM_get("apple_arm64");
+      result &= p.calculateSizes();
+      if (options.report) {
+        TYPE_TABLE_report();
+      }
+      if (result) {
+        emitTree(ast, p);
+      }
       // evalTree(ast);
     } else {
       result = false;

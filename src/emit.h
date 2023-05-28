@@ -25,7 +25,8 @@
 #ifndef emit_h
 #define emit_h
 #include "ast.h"
+#include "platform.h"
 
-void emitTree(AST* ptr);
+void emitTree(AST* ptr, PLATFORM platform);
 
 #endif

@@ -38,6 +38,7 @@ typedef struct {
   void (*freeRegister)(int r);
   int (*holdRegister)(int r);
   void (*freeAllRegisters)(void);
+  bool (*calculateSizes)();
 
   void (*genPreamble)(FILE* f);
   void (*genCompletePreamble)(FILE* f);

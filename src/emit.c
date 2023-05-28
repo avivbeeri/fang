@@ -280,9 +280,8 @@ static int traverse(FILE* f, AST* ptr) {
         // printf("%s: alloc %s\n", symbol.key, typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
         int rvalue;
         int storage = traverse(f, data.type);
-        int offset = typeTable[typeTable[data.type->type].parent].byteSize;
         if (storage != -1) {
-          rvalue = p.genAllocStack(f, storage, offset);
+          rvalue = p.genAllocStack(f, storage, typeTable[data.type->type].parent);
         } else {
           rvalue = p.genLoad(f, 0, 1);
         }
@@ -298,9 +297,9 @@ static int traverse(FILE* f, AST* ptr) {
         int rvalue;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         if (data.expr->tag == AST_INITIALIZER) {
-          int offset = typeTable[typeTable[data.type->type].parent].byteSize;
+          int dataType = typeTable[data.type->type].parent;
           int storageReg = traverse(f, data.type);
-          rvalue = p.genAllocStack(f, storageReg, offset);
+          rvalue = p.genAllocStack(f, storageReg, dataType);
           // TODO: initialiser
           struct AST_INITIALIZER init = data.expr->data.AST_INITIALIZER;
 
@@ -308,8 +307,8 @@ static int traverse(FILE* f, AST* ptr) {
             p.holdRegister(rvalue);
             int value = traverse(f, init.assignments[i]);
             int index = p.genLoad(f, i, 1);
-            int slot = p.genIndexAddr(f, rvalue, index, offset);
-            int assign = p.genAssign(f, slot, value, offset);
+            int slot = p.genIndexAddr(f, rvalue, index, dataType);
+            int assign = p.genAssign(f, slot, value, dataType);
             p.freeRegister(assign);
           }
           p.freeRegister(rvalue);
@@ -324,8 +323,7 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         int r = traverse(f, data.expr);
         int l = traverse(f, data.lvalue);
-        int size = typeTable[data.lvalue->type].byteSize;
-        return p.genAssign(f, l, r, size);
+        return p.genAssign(f, l, r, data.lvalue->type);
       }
     case AST_IDENTIFIER:
       {
@@ -351,8 +349,8 @@ static int traverse(FILE* f, AST* ptr) {
         } else if (IS_PTR(v)) {
           r = p.genConstant(f, AS_PTR(v));
         } else {
-          int size = typeTable[ptr->type].byteSize;
-          r = p.genLoad(f, AS_LIT_NUM(v), size);
+          int type = ptr->type;
+          r = p.genLoad(f, AS_LIT_NUM(v), type);
         }
         return r;
       }
@@ -430,11 +428,10 @@ static int traverse(FILE* f, AST* ptr) {
 
         int l = traverse(f, data.left);
         int r = traverse(f, data.right);
-        int size = typeTable[ptr->type].byteSize;
         switch (data.op) {
           case OP_ADD:
             {
-              return p.genAdd(f, l, r, size);
+              return p.genAdd(f, l, r, ptr->type);
             }
           case OP_SUB:
             {
@@ -442,11 +439,11 @@ static int traverse(FILE* f, AST* ptr) {
             }
           case OP_MUL:
             {
-              return p.genMul(f, l, r, size);
+              return p.genMul(f, l, r, ptr->type);
             }
           case OP_DIV:
             {
-              return p.genDiv(f, l, r, size);
+              return p.genDiv(f, l, r, ptr->type);
             }
           case OP_MOD:
             {
@@ -522,11 +519,11 @@ static int traverse(FILE* f, AST* ptr) {
         int index = traverse(f, data.index);
         int left = traverse(f, data.left);
         TYPE_TABLE_ENTRY type = typeTable[data.left->type];
-        int offset = typeTable[type.parent].byteSize;
+        int typeIndex = type.parent;
         if (ast.rvalue) {
-          return p.genIndexRead(f, left, index, offset);
+          return p.genIndexRead(f, left, index, typeIndex);
         } else {
-          return p.genIndexAddr(f, left, index, offset);
+          return p.genIndexAddr(f, left, index, typeIndex);
         }
       }
     case AST_CALL:
@@ -544,9 +541,8 @@ static int traverse(FILE* f, AST* ptr) {
   }
   return 0;
 }
-void emitTree(AST* ptr) {
-  PLATFORM_init();
-  p = PLATFORM_get("apple_arm64");
+void emitTree(AST* ptr, PLATFORM platform) {
+  p = platform;
 
   FILE* f = stdout;
   if (!options.toTerminal) {

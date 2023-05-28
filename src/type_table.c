@@ -35,30 +35,25 @@ TYPE_TABLE_ENTRY* typeTable = NULL;
 struct { char *key; int value; }* aliasTable = NULL;
 
 
-int TYPE_TABLE_defineCallable(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, int returnType) {
+int TYPE_TABLE_defineType(int index, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, int returnType) {
   if (index > arrlen(typeTable) - 1) {
     return 0;
   }
   typeTable[index].status = STATUS_DEFINED;
-  typeTable[index].entryType = ENTRY_TYPE_FUNCTION;
-  typeTable[index].byteSize = 2;
+  typeTable[index].entryType = entryType;
   typeTable[index].parent = parent;
   typeTable[index].fields = fields;
   typeTable[index].returnType = returnType;
 
   return index;
 }
-int TYPE_TABLE_define(int index, enum TYPE_TABLE_ENTRY_TYPE entryType,  size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
-  if (index > arrlen(typeTable) - 1) {
-    return 0;
-  }
 
-  typeTable[index].entryType = entryType;
-  typeTable[index].status = STATUS_DEFINED;
-  typeTable[index].parent = parent;
-  typeTable[index].fields = fields;
+int TYPE_TABLE_defineCallable(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, int returnType) {
+  return TYPE_TABLE_defineType(index, ENTRY_TYPE_FUNCTION, parent, fields, returnType);
+}
 
-  return index;
+int TYPE_TABLE_define(int index, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
+  return TYPE_TABLE_defineType(index, entryType, parent, fields, 0);
 }
 
 int TYPE_TABLE_declare(STRING* name) {
@@ -68,11 +63,18 @@ int TYPE_TABLE_declare(STRING* name) {
   }
 
   shput(aliasTable, name->chars, arrlen(typeTable));
-  arrput(typeTable, ((TYPE_TABLE_ENTRY){ .name = name, .status = STATUS_DECLARED, .fields = NULL, .byteSize = 0, .parent = 0, .entryType = ENTRY_TYPE_UNKNOWN }));
+  arrput(typeTable, ((TYPE_TABLE_ENTRY){
+    .name = name,
+    .status = STATUS_DECLARED,
+    .fields = NULL,
+    .byteSize = 0,
+    .parent = 0,
+    .entryType = ENTRY_TYPE_UNKNOWN
+  }));
   return arrlen(typeTable) - 1;
 }
 
-int TYPE_TABLE_registerPrimitive(STRING* name, size_t size) {
+int TYPE_TABLE_registerPrimitive(STRING* name) {
   if (name != NULL) {
     int i = shget(aliasTable, name->chars);
     if (i > 0) {
@@ -86,7 +88,7 @@ int TYPE_TABLE_registerPrimitive(STRING* name, size_t size) {
   arrput(typeTable, ((TYPE_TABLE_ENTRY){
         .name = name,
         .entryType = ENTRY_TYPE_PRIMITIVE,
-        .byteSize = size,
+        .byteSize = 0,
         .parent = 0,
         .fields = NULL,
         .status = STATUS_COMPLETE
@@ -94,7 +96,7 @@ int TYPE_TABLE_registerPrimitive(STRING* name, size_t size) {
   return arrlen(typeTable) - 1;
 }
 
-int TYPE_TABLE_registerType(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType,  size_t size, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
+int TYPE_TABLE_registerType(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields) {
   int i = shget(aliasTable, name->chars);
   if (i > 0) {
     return i;
@@ -105,10 +107,9 @@ int TYPE_TABLE_registerType(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType, 
   arrput(typeTable, ((TYPE_TABLE_ENTRY){
         .name = name,
         .entryType = entryType,
-        .byteSize = size,
         .parent = parent,
         .fields = fields,
-        .status = STATUS_COMPLETE
+        .status = STATUS_DEFINED
   }));
   return arrlen(typeTable) - 1;
 }
@@ -126,28 +127,47 @@ TYPE_TABLE_ENTRY* TYPE_TABLE_init() {
   sh_new_arena(aliasTable);
   shdefault(aliasTable, 0);
   shput(aliasTable, "uint8", 3);
-  //shput(aliasTable, "char", 3);
   shput(aliasTable, "int8", 4);
   shput(aliasTable, "uint16", 5);
-  shput(aliasTable, "ptr", 5);
   shput(aliasTable, "int16", 6);
 
-  TYPE_TABLE_registerPrimitive(NULL, 0);
-  TYPE_TABLE_registerPrimitive(createString("void"), 0);
-  TYPE_TABLE_registerPrimitive(createString("bool"), 1);
-  TYPE_TABLE_registerPrimitive(createString("u8"), 1);
-  TYPE_TABLE_registerPrimitive(createString("i8"), 1);
-  TYPE_TABLE_registerPrimitive(createString("u16"), 2);
-  TYPE_TABLE_registerPrimitive(createString("i16"), 2);
-  TYPE_TABLE_registerPrimitive(createString("number"), 4);
-  // TYPE_TABLE_registerPrimitive(createString("string"), 8);
-  TYPE_TABLE_registerType(createString("string"), ENTRY_TYPE_ARRAY, 8, 10, NULL);
-  TYPE_TABLE_registerPrimitive(createString("fn"), 2);
-  TYPE_TABLE_registerPrimitive(createString("char"), 1);
+  TYPE_TABLE_registerPrimitive(NULL);
+  TYPE_TABLE_registerPrimitive(createString("void"));
+  TYPE_TABLE_registerPrimitive(createString("bool"));
+  TYPE_TABLE_registerPrimitive(createString("u8"));
+  TYPE_TABLE_registerPrimitive(createString("i8"));
+  TYPE_TABLE_registerPrimitive(createString("u16"));
+  TYPE_TABLE_registerPrimitive(createString("i16"));
+  TYPE_TABLE_registerPrimitive(createString("number"));
+  TYPE_TABLE_registerType(createString("string"), ENTRY_TYPE_ARRAY, 10, NULL); // 10 = char index
+  TYPE_TABLE_registerPrimitive(createString("fn"));
+  TYPE_TABLE_registerPrimitive(createString("char"));
+  TYPE_TABLE_registerPrimitive(createString("ptr"));
 
   return typeTable;
 }
 
+int TYPE_TABLE_lookup(char* name) {
+  if (name == NULL) {
+    return 0;
+  }
+  int index = shget(aliasTable, name);
+  return index;
+}
+
+int TYPE_TABLE_lookupWithString(STRING* name) {
+  return TYPE_TABLE_lookup(name->chars);
+}
+
+bool TYPE_TABLE_setPrimitiveSize(char* name, int size) {
+  int typeIndex = TYPE_TABLE_lookup(name);
+  TYPE_TABLE_ENTRY* entry = typeTable + typeIndex;
+  if (entry->entryType != ENTRY_TYPE_PRIMITIVE) {
+    return false;
+  }
+  entry->byteSize = size;
+  return true;
+}
 
 static TYPE_TABLE_RESULT TYPE_TABLE_calculateTypeSize(int typeIndex, TYPE_VISIT_SET* visitSet) {
   TYPE_TABLE_ENTRY* entry = typeTable + typeIndex;
@@ -181,7 +201,12 @@ static TYPE_TABLE_RESULT TYPE_TABLE_calculateTypeSize(int typeIndex, TYPE_VISIT_
       }
     }
   } else {
-    total += typeTable[entry->parent].byteSize;
+    // TODO revisit this
+    if (entry->entryType == ENTRY_TYPE_ARRAY || entry->entryType == ENTRY_TYPE_POINTER) {
+      total += typeTable[TYPE_TABLE_lookup("ptr")].byteSize;
+    } else {
+      total += typeTable[entry->parent].byteSize;
+    }
   }
   entry->byteSize = total;
   entry->status = STATUS_COMPLETE;
@@ -197,14 +222,6 @@ bool TYPE_TABLE_calculateSizes() {
     }
   }
   return true;
-}
-
-int TYPE_TABLE_lookup(STRING* name) {
-  if (name == NULL || name->chars == NULL) {
-    return 0;
-  }
-  int index = shget(aliasTable, name->chars);
-  return index;
 }
 
 void TYPE_TABLE_report() {

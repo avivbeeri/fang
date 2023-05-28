@@ -79,9 +79,11 @@ static int coerceType(int type1, int type2) {
   if (isLiteral(type1) && isNumeric(type2)) {
     return type2;
   }
+  /*
   if (isNumeric(type1) && isNumeric(type2)) {
     return typeTable[type1].byteSize > typeTable[type2].byteSize ? type1 : type2;
   }
+  */
 
   return NUMERICAL_INDEX;
 }
@@ -127,7 +129,7 @@ static int resolveType(AST* ptr) {
     case AST_TYPE_NAME:
       {
         struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-        int i = TYPE_TABLE_lookup(data.typeName);
+        int i = TYPE_TABLE_lookupWithString(data.typeName);
         ptr->type = i;
         return i;
       }
@@ -140,7 +142,7 @@ static int resolveType(AST* ptr) {
         // store in type table and record index
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
-        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
+        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
         return ptr->type;
       }
     case AST_TYPE_FN:
@@ -183,7 +185,7 @@ static int resolveType(AST* ptr) {
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "[]");
-        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, 2, subType, NULL);
+        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, subType, NULL);
         return ptr->type;
       }
   }
@@ -677,7 +679,7 @@ static bool traverse(AST* ptr) {
         int subType = data.expr->type;
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
-        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, 2, subType, NULL);
+        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
       }
@@ -1021,16 +1023,11 @@ bool resolveTree(AST* ptr) {
   if (!success) {
     goto cleanup;
   }
-  success &= TYPE_TABLE_calculateSizes();
-  if (!success) {
-    goto cleanup;
-  }
 
 
 cleanup:
   if (options.report) {
     SYMBOL_TABLE_report();
-    TYPE_TABLE_report();
     if (success) {
       printf("Resolution successful.\n");
     } else {
