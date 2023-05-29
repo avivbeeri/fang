@@ -87,7 +87,11 @@ static uint32_t SYMBOL_TABLE_calculateTableSize(uint32_t index) {
   for (int i = 0; i < scopeCount; i++) {
     SYMBOL_TABLE_ENTRY tableEntry = closingScope.table[i];
     if (tableEntry.defined) {
-      size += typeTable[tableEntry.typeIndex].byteSize;
+      if (tableEntry.elementCount > 0) {
+        size += typeTable[tableEntry.typeIndex].byteSize * tableEntry.elementCount;
+      } else {
+        size += typeTable[tableEntry.typeIndex].byteSize;
+      }
     }
   }
 
@@ -126,6 +130,20 @@ void SYMBOL_TABLE_calculateAllocations() {
   }
 }
 
+void SYMBOL_TABLE_updateElementCount(STRING* name, uint32_t elementCount) {
+  uint32_t current = SYMBOL_TABLE_getCurrentScopeIndex();
+  while (current > 0) {
+    SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
+    SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
+    if (entry.defined) {
+      entry.elementCount = elementCount;
+      shputs(scope.table, entry);
+      return;
+    }
+    current = scope.parent;
+  }
+}
+
 void SYMBOL_TABLE_closeScope() {
   uint32_t current = SYMBOL_TABLE_getCurrentScopeIndex();
   SYMBOL_TABLE_SCOPE closingScope = SYMBOL_TABLE_getScope(current);
@@ -157,7 +175,7 @@ void SYMBOL_TABLE_init(void) {
   SYMBOL_TABLE_openScope(SCOPE_TYPE_INVALID);
 }
 
-void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
+void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
@@ -173,24 +191,18 @@ void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
   shputs(scope.table, entry);
   hmputs(scopes, scope);
 }
-void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
+void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
   uint32_t offset = 0;
-  if (type == SYMBOL_TYPE_VARIABLE || type == SYMBOL_TYPE_CONSTANT) {
-    //offset = scope.localOffset;
-    //scope.localOffset += typeTable[typeIndex].byteSize;
-  } else if (type == SYMBOL_TYPE_PARAMETER) {
-    //offset = scope.paramOffset;
-    //scope.paramOffset += typeTable[typeIndex].byteSize;
-  }
 
   SYMBOL_TABLE_ENTRY entry = {
     .key = name->chars,
     .entryType = type,
     .defined = true,
     .status = SYMBOL_TABLE_STATUS_DEFINED,
+    .storageType = storageType,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
     .offset = offset,
@@ -205,10 +217,6 @@ void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
   }
   shputs(scope.table, entry);
   hmputs(scopes, scope);
-}
-
-void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex) {
-  SYMBOL_TABLE_putFn(name, type, typeIndex);
 }
 
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getCurrentScope() {
@@ -289,6 +297,9 @@ void SYMBOL_TABLE_report(void) {
         case SYMBOL_TYPE_PARAMETER: { printf("PARAMETER"); break; }
         case SYMBOL_TYPE_VARIABLE: { printf("VARIABLE"); break; }
         case SYMBOL_TYPE_CONSTANT: { printf("CONSTANT"); break; }
+      }
+      if (entry.elementCount > 0) {
+        printf("(%i elements)", entry.elementCount);
       }
       printf("\n");
 

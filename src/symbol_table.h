@@ -39,7 +39,7 @@ typedef enum SYMBOL_TABLE_STORAGE_TYPE {
   STORAGE_TYPE_GLOBAL,
   STORAGE_TYPE_INDIRECT,
   STORAGE_TYPE_PARAMETER
-}
+} SYMBOL_TABLE_STORAGE_TYPE;
 
 typedef enum SYMBOL_TYPE {
   SYMBOL_TYPE_UNKNOWN,
@@ -56,6 +56,7 @@ typedef struct SYMBOL_TABLE_ENTRY {
   SYMBOL_TYPE entryType;
   bool defined;
   SYMBOL_TABLE_ENTRY_STATUS status;
+  SYMBOL_TABLE_STORAGE_TYPE storageType;
 
   uint32_t ordinal; // posiiton in scope
   uint32_t paramOrdinal; // posiiton in scope
@@ -64,6 +65,8 @@ typedef struct SYMBOL_TABLE_ENTRY {
   uint32_t scopeIndex;
   // only for constants
   uint32_t constantIndex;
+  // only for arrays
+  uint32_t elementCount;
 } SYMBOL_TABLE_ENTRY;
 
 typedef enum {
@@ -101,8 +104,8 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType);
 void SYMBOL_TABLE_closeScope();
 void SYMBOL_TABLE_calculateAllocations();
 void SYMBOL_TABLE_report();
-void SYMBOL_TABLE_putFn(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
-void SYMBOL_TABLE_put(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
+void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
+void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
 bool SYMBOL_TABLE_scopeHas(STRING* name);
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getCurrentScope();
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STRING* name);
@@ -114,9 +117,9 @@ uint32_t SYMBOL_TABLE_getCurrentScopeIndex();
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scope, STRING* name);
 bool SYMBOL_TABLE_nameScope(STRING* name);
 void SYMBOL_TABLE_free(void);
+void SYMBOL_TABLE_updateElementCount(STRING* name, uint32_t elementCount);
 void SYMBOL_TABLE_pushScope(int index);
 void SYMBOL_TABLE_popScope();
 STRING* SYMBOL_TABLE_getNameFromStart(int start);
-void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex);
 
 #endif

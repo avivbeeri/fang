@@ -48,7 +48,6 @@ typedef struct {
   int (*genLoadRegister)(FILE* f, int, int);
   int (*genLoad)(FILE* f, int, int);
   int (*genConstant)(FILE* f, int);
-  int (*genIdentifier)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   int (*genIdentifierAddr)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   int (*genAssign)(FILE* f, int, int, int);
   int (*genAdd)(FILE* f, int, int, int);
@@ -82,7 +81,6 @@ typedef struct {
   void (*genLabel)(FILE* f, int);
   int (*genRef)(FILE* f, int);
   int (*genDeref)(FILE* f, int, int);
-  int (*genIndexRead)(FILE* f, int, int, int);
   int (*genIndexAddr)(FILE* f, int, int, int);
   int (*genFieldOffset)(FILE* f, int leftReg, int typeIndex, STRING* fieldName);
   void (*genGlobalConstant)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);

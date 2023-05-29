@@ -278,15 +278,16 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         // printf("%s: alloc %s\n", symbol.key, typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
-        int rvalue;
+        int rvalue = -1;
         int storage = traverse(f, data.type);
         if (storage != -1) {
-          rvalue = p.genAllocStack(f, storage, typeTable[data.type->type].parent);
+          //rvalue = p.genAllocStack(f, storage, typeTable[data.type->type].parent);
         } else {
-          rvalue = p.genLoad(f, 0, 1);
+          //rvalue = p.genLoad(f, 0, 1);
         }
 
-        return p.genInitSymbol(f, symbol, rvalue);
+        return rvalue;
+        //return p.genInitSymbol(f, symbol, rvalue);
       }
     case AST_VAR_INIT:
     case AST_CONST_DECL:
@@ -301,17 +302,16 @@ static int traverse(FILE* f, AST* ptr) {
           if (init.initType == INIT_TYPE_ARRAY) {
             int dataType = typeTable[data.type->type].parent;
             int storageReg = traverse(f, data.type);
-            rvalue = p.genAllocStack(f, storageReg, dataType);
+            //rvalue = p.genAllocStack(f, storageReg, dataType);
 
             for (int i = 0; i < arrlen(init.assignments); i++) {
-              p.holdRegister(rvalue);
+              rvalue = p.genIdentifierAddr(f, symbol);
               int value = traverse(f, init.assignments[i]);
               int index = p.genLoad(f, i, 1);
               int slot = p.genIndexAddr(f, rvalue, index, dataType);
               int assign = p.genAssign(f, slot, value, dataType);
               p.freeRegister(assign);
             }
-            p.freeRegister(rvalue);
           } else {
             int dataType = data.type->type;
             int baseReg = traverse(f, data.type);
@@ -321,11 +321,11 @@ static int traverse(FILE* f, AST* ptr) {
             rvalue = -1;
 
           }
+          return rvalue;
         } else {
           rvalue = traverse(f, data.expr);
+          return p.genInitSymbol(f, symbol, rvalue);
         }
-
-        return p.genInitSymbol(f, symbol, rvalue);
       }
     case AST_ASSIGNMENT:
       {
@@ -340,11 +340,14 @@ static int traverse(FILE* f, AST* ptr) {
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r;
         if (ast.rvalue) {
-          r = p.genIdentifier(f, symbol);
-        } else {
           r = p.genIdentifierAddr(f, symbol);
+          if (symbol.entryType == SYMBOL_TYPE_FUNCTION) {
+            return r;
+          }
+          return p.genDeref(f, r, symbol.typeIndex);
+        } else {
+          return p.genIdentifierAddr(f, symbol);
         }
-        return r;
       }
     case AST_LITERAL:
       {
@@ -536,9 +539,9 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+        TYPE_TABLE_ENTRY type = typeTable[data.left->type];
         int index = traverse(f, data.index);
         int left = traverse(f, data.left);
-        TYPE_TABLE_ENTRY type = typeTable[data.left->type];
         int typeIndex = type.parent;
         left = p.genIndexAddr(f, left, index, typeIndex);
         if (ast.rvalue) {

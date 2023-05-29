@@ -37,6 +37,7 @@
 uint32_t* assignStack = NULL;
 uint32_t* rvalueStack = NULL;
 uint32_t* typeStack = NULL;
+bool functionScope = false;
 
 #define PUSH(stack, type) do { arrput(stack, type); } while (false)
 #define POP(stack) do { arrdel(stack, arrlen(stack) - 1); } while (false)
@@ -232,11 +233,11 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_EXT data = ast.data.AST_EXT;
         int resolvedType = resolveType(data.type);
         if (data.symbolType == SYMBOL_TYPE_FUNCTION) {
-          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType);
+          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
         } else if (data.symbolType == SYMBOL_TYPE_CONSTANT) {
-          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType);
+          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
         } else if (data.symbolType == SYMBOL_TYPE_VARIABLE) {
-          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType);
+          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
         }
         return true;
       }
@@ -291,7 +292,6 @@ static bool resolveTopLevel(AST* ptr) {
               Value length = evalConstTree(field.value);
               if (!IS_EMPTY(length) && !IS_ERROR(length)) {
                 elementCount = getNumber(length);
-                // printf("Array length: %i\n", elementCount);
               }
             }
           }
@@ -308,7 +308,7 @@ static bool resolveTopLevel(AST* ptr) {
           compileError(ast.token, "function \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_TABLE_put(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type);
+        SYMBOL_TABLE_define(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type, STORAGE_TYPE_GLOBAL);
         return true;
       }
     default:
@@ -422,6 +422,7 @@ static bool traverse(AST* ptr) {
         bool result = r && isCompatible(leftType, rightType);
         if ((typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD)
             && data.expr->tag != AST_INITIALIZER) {
+
           if (leftType == STRING_INDEX && data.expr->type == STRING_INDEX) {
 
           } else {
@@ -442,7 +443,16 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
+        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
+        int elementCount = 0;
+        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
+          Value length = evalConstTree(data.type);
+          if (!IS_EMPTY(length) && !IS_ERROR(length)) {
+            elementCount = getNumber(length);
+            printf("Array length: %i\n", elementCount);
+            SYMBOL_TABLE_updateElementCount(identifier, elementCount);
+          }
+        }
         ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return result;
@@ -461,7 +471,7 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, typeIndex);
+        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, typeIndex, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
       }
@@ -490,9 +500,9 @@ static bool traverse(AST* ptr) {
           return false;
         }
         if (ptr->scopeIndex <= 1 || ast.tag == AST_CONST_DECL) {
-          SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_CONSTANT, leftType);
+          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_CONSTANT, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
         } else {
-          SYMBOL_TABLE_put(identifier, SYMBOL_TYPE_VARIABLE, leftType);
+          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
         }
         return result;
       }
@@ -566,10 +576,12 @@ static bool traverse(AST* ptr) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
           STRING* paramName = param.identifier;
           uint32_t index = typeTable[ast.type].fields[i].typeIndex;
-          SYMBOL_TABLE_put(paramName, SYMBOL_TYPE_PARAMETER, index);
+          SYMBOL_TABLE_define(paramName, SYMBOL_TYPE_PARAMETER, index, STORAGE_TYPE_PARAMETER);
         }
         PUSH(typeStack, typeTable[ast.type].returnType);
+        functionScope = true;
         r &= traverse(data.body);
+        functionScope = false;
         POP(typeStack);
         SYMBOL_TABLE_closeScope();
         return r;
@@ -691,7 +703,9 @@ static bool traverse(AST* ptr) {
     case AST_REF:
       {
         struct AST_REF data = ast.data.AST_REF;
+        PUSH(rvalueStack, false);
         bool r = traverse(data.expr);
+        POP(rvalueStack);
         int subType = data.expr->type;
         STRING* name = typeTable[subType].name;
         STRING* typeName = STRING_prepend(name, "^");
@@ -941,7 +955,7 @@ static bool traverse(AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-        PUSH(rvalueStack, true);
+        PUSH(rvalueStack, false);
         bool r = traverse(data.left);
         POP(rvalueStack);
         if (!r) {

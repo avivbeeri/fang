@@ -167,7 +167,11 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   for (int i = 0; i < hmlen(scope.table); i++) {
     SYMBOL_TABLE_ENTRY tableEntry = scope.table[i];
     if (tableEntry.defined) {
-      offset += typeTable[tableEntry.typeIndex].byteSize;
+      if (tableEntry.elementCount > 0) {
+        offset += typeTable[tableEntry.typeIndex].byteSize * tableEntry.elementCount;
+      } else {
+        offset += typeTable[tableEntry.typeIndex].byteSize;
+      }
       // The stack is subtractive, so we need to account for the current byte size
       // when calculating its offset.
 
@@ -182,7 +186,9 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
     current = SYMBOL_TABLE_getScope(index);
     for (int i = 0; i < hmlen(current.table); i++) {
       SYMBOL_TABLE_ENTRY tableEntry = current.table[i];
-      if (tableEntry.defined) {
+      if (tableEntry.elementCount > 0) {
+        offset += typeTable[tableEntry.typeIndex].byteSize * tableEntry.elementCount;
+      } else {
         offset += typeTable[tableEntry.typeIndex].byteSize;
       }
     }
@@ -210,20 +216,22 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   if (scope.moduleName != NULL) {
     sprintf(buffer + strlen(buffer), "_%s", scope.moduleName->chars);
   }
-
-  if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-    sprintf(buffer + strlen(buffer), "_fn_%s", entry.key);
-  } else if (scope.parent <= 1 && entry.entryType == SYMBOL_TYPE_CONSTANT) {
-    sprintf(buffer + strlen(buffer), "_const_%s", entry.key);
-  } else if (scope.parent <= 1) {
-    sprintf(buffer + strlen(buffer), "_var_%s", entry.key);
-  } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", (entry.paramOrdinal + 1) * 16);
+  if (entry.storageType == STORAGE_TYPE_GLOBAL) {
+    if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
+      sprintf(buffer + strlen(buffer), "_fn_%s", entry.key);
+    } else if (entry.entryType == SYMBOL_TYPE_CONSTANT) {
+      sprintf(buffer + strlen(buffer), "_const_%s", entry.key);
+    } else if (entry.entryType == SYMBOL_TYPE_VARIABLE) {
+      sprintf(buffer + strlen(buffer), "_var_%s", entry.key);
+    } else {
+      printf("trap %d\n", __LINE__);
+      exit(1);
+    }
+  } else if (entry.storageType == STORAGE_TYPE_PARAMETER) {
+    snprintf(buffer, sizeof(buffer), "[FP, #%i] ; %s", (entry.paramOrdinal + 1) * 16, entry.key);
   } else {
-    // local
-    // calculate offset
     uint32_t offset = getStackOffset(entry);
-    snprintf(buffer, sizeof(buffer), "[FP, #%i]", -offset);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i] ; %s", -offset, entry.key);
   }
   return buffer;
 }
@@ -248,47 +256,14 @@ static int genLoadRegister(FILE* f, int i, int r) {
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
-  if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    fprintf(f, "  ADD %s, FP, #%i\n", regList[r], (entry.paramOrdinal + 1) * 16);
-//  } else if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
- //   fprintf(f, "  ADR %s, %s\n", regList[r], symbol(entry));
-  } else if (scope.parent <= 1) {
+  if (entry.storageType == STORAGE_TYPE_PARAMETER) {
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], (entry.paramOrdinal + 1) * 16, entry.key);
+  } else if (entry.storageType == STORAGE_TYPE_GLOBAL) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
-  } else {
+  } else if (entry.storageType == STORAGE_TYPE_LOCAL) {
     uint32_t offset = getStackOffset(entry);
-    fprintf(f, "  ADD %s, FP, #%i\n", regList[r], -offset);
-  }
-  return r;
-}
-static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
-  int r = allocateRegister();
-  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
-  if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
-    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
-  } else if (entry.entryType == SYMBOL_TYPE_PARAMETER) {
-    // TODO: handle size
-    if (typeTable[entry.typeIndex].byteSize == 1) {
-      fprintf(f, "  LDRSB %s, %s\n", regList[r], symbol(entry));
-    } else {
-      fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
-    }
-  } else if (scope.parent <= 1) {
-    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
-    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
-    if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY){
-      // Arrays always need to be dereferenced in this generator.
-      // So we do nothing here.
-    } else {
-      fprintf(f, "  LDR %s, [%s]\n", regList[r], regList[r]);
-    }
-  } else if (typeTable[entry.typeIndex].byteSize == 1) {
-    fprintf(f, "  LDRSB %s, %s\n", storeRegList[r], symbol(entry));
-  } else if (typeTable[entry.typeIndex].parent == U16_INDEX || isPointer(entry.typeIndex) || entry.typeIndex == STRING_INDEX) {
-    fprintf(f, "  LDR %s, %s\n", regList[r], symbol(entry));
-  } else {
-    fprintf(f, "  LDR %s, %s\n", storeRegList[r], symbol(entry));
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
   }
   return r;
 }
@@ -296,13 +271,15 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
 static int genRef(FILE* f, int leftReg) {
   return leftReg;
 }
-static int genDeref(FILE* f, int leftReg, int typeIndex) {
+static int genDeref(FILE* f, int baseReg, int typeIndex) {
   // TODO: handle different types here
   uint32_t size = typeTable[typeIndex].byteSize;
+  freeRegister(baseReg);
+  int leftReg = allocateRegister();
   if (size == 1) {
-    fprintf(f, "  LDRSB %s, [%s]\n", regList[leftReg], regList[leftReg]);
+    fprintf(f, "  LDRSB %s, [%s] ; deref\n", regList[leftReg], regList[baseReg]);
   } else {
-    fprintf(f, "  LDR %s, [%s]\n", regList[leftReg], regList[leftReg]);
+    fprintf(f, "  LDR %s, [%s]\n ; deref", regList[leftReg], regList[baseReg]);
   }
   return leftReg;
 }
@@ -333,23 +310,6 @@ static int genIndexAddr(FILE* f, int baseReg, int index, int type) {
   freeRegister(baseReg);
   int leftReg = allocateRegister();
   fprintf(f, "  ADD %s, %s, %s; index address\n", regList[leftReg], regList[baseReg], regList[index]);
-  freeRegister(index);
-  return leftReg;
-}
-
-static int genIndexRead(FILE* f, int leftReg, int index, int type) {
-  int dataSize = typeTable[type].byteSize;
-  if (dataSize > 1) {
-    // TODO: Convert to MADD
-    int temp = genLoad(f, dataSize, 8);
-    fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
-    freeRegister(temp);
-  }
-  if (dataSize == 1) {
-    fprintf(f, "  LDRSB %s, [%s, %s] ; index read\n", storeRegList[leftReg], regList[leftReg], regList[index]);
-  } else {
-    fprintf(f, "  LDR %s, [%s, %s] ; index read\n", regList[leftReg], regList[leftReg], regList[index]);
-  }
   freeRegister(index);
   return leftReg;
 }
@@ -519,25 +479,23 @@ static void genRaw(FILE* f, const char* str) {
   fprintf(f, "  %s\n", str);
 }
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
-  if (entry.scopeIndex <= 1) {
+  if (entry.storageType == STORAGE_TYPE_GLOBAL) {
     int r = allocateRegister();
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
+
     if (typeTable[entry.typeIndex].byteSize == 1) {
       fprintf(f, "  STRB %s, [%s]\n", storeRegList[rvalue], regList[r]);
     } else {
       fprintf(f, "  STR %s, [%s]\n", regList[rvalue], regList[r]);
     }
     freeRegister(r);
-    return rvalue;
-  }
-  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
-    // allocate stack memory?
-  }
-  if (typeTable[entry.typeIndex].byteSize == 1) {
-    fprintf(f, "  STRB %s, %s\n", storeRegList[rvalue], symbol(entry));
-  } else {
-    fprintf(f, "  STR %s, %s\n", regList[rvalue], symbol(entry));
+  } else if (entry.storageType == STORAGE_TYPE_LOCAL) {
+    if (typeTable[entry.typeIndex].byteSize == 1) {
+      fprintf(f, "  STRB %s, %s\n", storeRegList[rvalue], symbol(entry));
+    } else {
+      fprintf(f, "  STR %s, %s\n", regList[rvalue], symbol(entry));
+    }
   }
   return rvalue;
 }
@@ -723,7 +681,6 @@ PLATFORM platform_apple_arm64 = {
   .genLoad = genLoad,
   .genLoadRegister = genLoadRegister,
   .genInitSymbol = genInitSymbol,
-  .genIdentifier = genIdentifier,
   .genIdentifierAddr = genIdentifierAddr,
   .genRaw = genRaw,
   .genAssign = genAssign,
@@ -753,7 +710,6 @@ PLATFORM platform_apple_arm64 = {
   .genBitwiseNot = genBitwiseNot,
   .genRef = genRef,
   .genDeref = genDeref,
-  .genIndexRead = genIndexRead,
   .genIndexAddr = genIndexAddr,
   .genGlobalVariable = genGlobalVariable,
   .genGlobalConstant = genGlobalConstant,
