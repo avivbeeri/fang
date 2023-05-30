@@ -536,6 +536,9 @@ static int traverse(FILE* f, AST* ptr) {
         int left = traverse(f, data.left);
         int r = p.genFieldOffset(f, left, data.left->type, data.name);
         if (ast.rvalue) {
+          if (typeTable[ptr->type].entryType == ENTRY_TYPE_ARRAY) {
+            return r;
+          }
           return p.genDeref(f, r, ptr->type);
         } else {
           return r;

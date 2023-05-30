@@ -10,7 +10,7 @@ DEP = $(OBJECTS:%.o=%.d)
 TESTS := $(wildcard $(TEST)/*.c)
 TESTBINS := $(patsubst $(TEST)/%.c, $(TEST)/bin/%, $(TESTS))
  
-.phony: clean test
+.phony: clean test check
 
 
 fgcc: $(OBJECTS)
@@ -26,6 +26,9 @@ file.o: file.S
 	as -g -o file.o file.S
 file.S: fgcc example.fg
 	./fgcc 
+
+check: $(OBJECTS) fgcc
+	./check.sh
 
 test: $(TEST)/bin $(TESTBINS) $(OBJECTS) fgcc
 	for test in $(TESTBINS) ; do ./$$test --verbose ; done

@@ -360,6 +360,8 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       }
       fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
     }
+  } else if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_RECORD) {
+    fprintf(f, ".octa %zu\n", typeTable[entry.typeIndex].byteSize);
   } else {
     if (IS_PTR(value)) {
       fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
@@ -399,6 +401,8 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       }
     }
     fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
+  } else if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_RECORD) {
+    fprintf(f, ".octa %zu\n", typeTable[entry.typeIndex].byteSize);
   } else {
     if (IS_EMPTY(value)) {
       fprintf(f, ".octa 0\n");

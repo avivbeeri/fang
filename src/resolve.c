@@ -944,6 +944,7 @@ static bool traverse(AST* ptr) {
         // Need to pass type upwards to validate field name
         TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
         if (entry.entryType != ENTRY_TYPE_RECORD) {
+          printf("trap %d\n", __LINE__);
           return false;
         }
         STRING* name = data.name;
@@ -958,6 +959,7 @@ static bool traverse(AST* ptr) {
         if (!found) {
           return false;
         }
+        // ptr->rvalue = !PEEK(assignStack);
         ptr->type = entry.fields[fieldIndex].typeIndex;
         return true;
       }
