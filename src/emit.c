@@ -339,14 +339,20 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r;
+        r = p.genIdentifierAddr(f, symbol);
         if (ast.rvalue) {
-          r = p.genIdentifierAddr(f, symbol);
           if (symbol.entryType == SYMBOL_TYPE_FUNCTION) {
+            return r;
+          }
+          if (symbol.storageType == STORAGE_TYPE_LOCAL && (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY || typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_POINTER)) {
             return r;
           }
           return p.genDeref(f, r, symbol.typeIndex);
         } else {
-          return p.genIdentifierAddr(f, symbol);
+          if (symbol.storageType == STORAGE_TYPE_PARAMETER && (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY || typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_POINTER)) {
+            return p.genDeref(f, r, symbol.typeIndex);
+          }
+          return r;
         }
       }
     case AST_LITERAL:

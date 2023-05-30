@@ -279,7 +279,7 @@ static int genDeref(FILE* f, int baseReg, int typeIndex) {
   if (size == 1) {
     fprintf(f, "  LDRSB %s, [%s] ; deref\n", regList[leftReg], regList[baseReg]);
   } else {
-    fprintf(f, "  LDR %s, [%s]\n ; deref", regList[leftReg], regList[baseReg]);
+    fprintf(f, "  LDR %s, [%s]\n ; deref\n", regList[leftReg], regList[baseReg]);
   }
   return leftReg;
 }
