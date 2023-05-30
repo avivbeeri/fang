@@ -344,12 +344,14 @@ static int traverse(FILE* f, AST* ptr) {
           if (symbol.entryType == SYMBOL_TYPE_FUNCTION) {
             return r;
           }
-          if (symbol.storageType == STORAGE_TYPE_LOCAL && (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY || typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_POINTER)) {
+          if (symbol.storageType == STORAGE_TYPE_LOCAL && (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY)) {
             return r;
           }
+          fprintf(f, "; %s\n", data.identifier->chars);
           return p.genDeref(f, r, symbol.typeIndex);
         } else {
-          if (symbol.storageType == STORAGE_TYPE_PARAMETER && (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY || typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_POINTER)) {
+          if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_POINTER) {
+            fprintf(f, "; %s\n", data.identifier->chars);
             return p.genDeref(f, r, symbol.typeIndex);
           }
           return r;

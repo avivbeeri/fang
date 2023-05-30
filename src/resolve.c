@@ -955,6 +955,7 @@ static bool traverse(AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+        ptr->rvalue = true;
         PUSH(rvalueStack, false);
         bool r = traverse(data.left);
         POP(rvalueStack);

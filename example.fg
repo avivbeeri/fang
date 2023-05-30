@@ -1,4 +1,6 @@
-fn syscall_write(c: char): void {
+const list: [8]string = [ "a", "b", "c", "d", "e", "6", "4", "5"];
+const text: string = "Words are cool";
+fn writeChar(c: char): void {
   asm {
     "MOV X0, #1" // STDOUT
     "ADD X1, FP, #16" // PTR (FP+16) // function argument
@@ -7,26 +9,14 @@ fn syscall_write(c: char): void {
     "SVC 0"
    };
 }
-fn write(c : ^char, len: u8): void {
-  for (var i: u8 = 0; i < len; i = i + 1) {
-    syscall_write(c[i]);
+fn main(): void {
+  var s: string = list[2];
+  writeChar(s[0]);
+  writeChar(' ');
+
+  const len: u8 = text[-1] as u8;
+  for (var q: u8 = 0; q < len; q = q + 1) {
+    writeChar(text[q]);
   }
 }
 
-fn main(): i8 {
-  var len: u8 = 5;
-  var g: [5]char = [ 'w', 'o', 'r','l','d' ];
-  write(g as ^char, len);
-  /*
-  g[0] = 'h';
-  g[1] = 'e';
-  g[2] = 'l';
-  g[3] = 'l';
-  g[4] = 'o';
-  sys::write(g as ^char, len);
-  @(g+4) = 'x';
-  sys::write(g as ^char, len);
-*/
-
-  return 0;
-}

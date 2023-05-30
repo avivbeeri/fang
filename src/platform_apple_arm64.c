@@ -361,7 +361,11 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
     }
   } else {
-    fprintf(f, ".octa %u\n", AS_U8(value));
+    if (IS_PTR(value)) {
+      fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
+    } else {
+      fprintf(f, ".octa %u\n", AS_U8(value));
+    }
   }
 }
 
@@ -371,6 +375,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   fprintf(f, ".balign 8\n");
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY && IS_STRING(value)) {
 ///    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+    fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
   }
   fprintf(f, "%s: ", symbol(entry));
   if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
@@ -397,6 +402,8 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   } else {
     if (IS_EMPTY(value)) {
       fprintf(f, ".octa 0\n");
+    } else if (IS_PTR(value)) {
+      fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
     } else {
       fprintf(f, ".octa %u\n", AS_I8(value));
     }
