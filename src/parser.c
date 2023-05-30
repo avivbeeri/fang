@@ -431,9 +431,10 @@ static AST* block() {
 
 
 static AST* dot(bool canAssign, AST* left) {
+  Token start = parser.previous;
   consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
   STRING* field = copyString(parser.previous.start, parser.previous.length);
-  AST* expr = AST_NEW(AST_DOT, left, field);
+  AST* expr = AST_NEW_T(AST_DOT, start, left, field);
 
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();

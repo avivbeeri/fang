@@ -38,6 +38,7 @@ allTests() {
   testFile examples/global-string.fg "OK" 0 "c Words are cool" 0
   testFile examples/record-basic.fg "OK" 0 "542Hello" 0
   testFile examples/record-global.fg "OK" 0 "5 42 abcde Hello" 0
+  testFile examples/record-args.fg "OK" 0 "5 abcde Hello world" 0
 }
 
 testFile() {

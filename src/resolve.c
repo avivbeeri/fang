@@ -729,8 +729,14 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.expr);
         POP(rvalueStack);
         int subType = data.expr->type;
+        TYPE_TABLE_ENTRY entry = typeTable[subType];
+        if (entry.parent == 0) {
+          printf("trap %d\n", __LINE__);
+          return false;
+        }
         ptr->type = typeTable[subType].parent;
         if (ptr->type == 0) {
+          printf("trap %d\n", __LINE__);
           return false;
         }
         return r;
@@ -943,8 +949,11 @@ static bool traverse(AST* ptr) {
         }
         // Need to pass type upwards to validate field name
         TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
-        if (entry.entryType != ENTRY_TYPE_RECORD) {
-          printf("trap %d\n", __LINE__);
+        if (entry.entryType == ENTRY_TYPE_POINTER && typeTable[entry.parent].entryType == ENTRY_TYPE_RECORD) {
+
+        } else if (entry.entryType != ENTRY_TYPE_RECORD) {
+          compileError(ast.token, "Attempting to access field '%s' ", data.name->chars);
+          printf("of type '%s' but it is not a record type.\n", typeTable[data.left->type].name->chars);
           return false;
         }
         STRING* name = data.name;
