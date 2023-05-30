@@ -301,11 +301,12 @@ static int traverse(FILE* f, AST* ptr) {
           struct AST_INITIALIZER init = data.expr->data.AST_INITIALIZER;
           if (init.initType == INIT_TYPE_ARRAY) {
             int dataType = typeTable[data.type->type].parent;
-            int storageReg = traverse(f, data.type);
+            // int storageReg = traverse(f, data.type);
             //rvalue = p.genAllocStack(f, storageReg, dataType);
+            rvalue = p.genIdentifierAddr(f, symbol);
 
             for (int i = 0; i < arrlen(init.assignments); i++) {
-              rvalue = p.genIdentifierAddr(f, symbol);
+              p.holdRegister(rvalue);
               int value = traverse(f, init.assignments[i]);
               int index = p.genLoad(f, i, 1);
               int slot = p.genIndexAddr(f, rvalue, index, dataType);
@@ -315,11 +316,7 @@ static int traverse(FILE* f, AST* ptr) {
           } else {
             int dataType = data.type->type;
             int baseReg = traverse(f, data.type);
-            for (int i = 0; i < arrlen(init.assignments); i++) {
-              //p.holdRegister(rvalue);
-            }
-            rvalue = -1;
-
+            rvalue = baseReg;
           }
           return rvalue;
         } else {

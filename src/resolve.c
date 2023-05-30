@@ -504,6 +504,15 @@ static bool traverse(AST* ptr) {
         } else {
           SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
         }
+        int elementCount = 0;
+        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
+          Value length = evalConstTree(data.type);
+          if (!IS_EMPTY(length) && !IS_ERROR(length)) {
+            elementCount = getNumber(length);
+            printf("Array length: %i\n", elementCount);
+            SYMBOL_TABLE_updateElementCount(identifier, elementCount);
+          }
+        }
         return result;
       }
     case AST_ASSIGNMENT:
@@ -955,7 +964,7 @@ static bool traverse(AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-        ptr->rvalue = true;
+        ptr->rvalue = !PEEK(assignStack);
         PUSH(rvalueStack, false);
         bool r = traverse(data.left);
         POP(rvalueStack);

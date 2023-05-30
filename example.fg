@@ -1,22 +1,14 @@
-const list: [8]string = [ "a", "b", "c", "d", "e", "6", "4", "5"];
-const text: string = "Words are cool";
-fn writeChar(c: char): void {
-  asm {
-    "MOV X0, #1" // STDOUT
-    "ADD X1, FP, #16" // PTR (FP+16) // function argument
-    "MOV X2, 1"
-    "MOV X16, #4"
-    "SVC 0"
-   };
-}
+import "lib.fg"
 fn main(): void {
-  var s: string = list[2];
-  writeChar(s[0]);
-  writeChar(' ');
-
-  const len: u8 = text[-1] as u8;
-  for (var q: u8 = 0; q < len; q = q + 1) {
-    writeChar(text[q]);
+  const list: [5]string = [ "a", "b", "c", "d", "e"];
+  const s: string = "hello world";
+  for (var q: u8 = 0; q < 11; q = q + 1) {
+    sys::writeChar(s[q]);
+  }
+  sys::writeChar(' ');
+  for (var q: u8 = 0; q < 5; q = q + 1) {
+    var s: string = list[q];
+    sys::writeChar(s[0]);
   }
 }
 
