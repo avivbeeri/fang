@@ -9,17 +9,6 @@ type Bundle {
 
 var s: Bundle;
 
-fn reallyPrintBundle(b: ^Bundle): void {
-  sys::writeI8(s.id);
-  sys::writeChar(' ');
-  sys::write(s.test as ^char, 5);
-  sys::writeChar(' ');
-  sys::write(s.s as ^char, 11);
-}
-
-fn printBundle(b: ^Bundle): void {
-  reallyPrintBundle(b);
-}
 
 fn main(): void {
   s.id = 5;
@@ -30,6 +19,10 @@ fn main(): void {
   s.test[3] = 'd';
   s.test[4] = 'e';
 
-  printBundle(s as ^Bundle);
+  sys::writeI8(s.id);
+  sys::writeChar(' ');
+  sys::write(s.test, 5);
+  sys::writeChar(' ');
+  sys::write(s.s as ^char, 11);
 }
 

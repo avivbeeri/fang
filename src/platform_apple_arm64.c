@@ -337,15 +337,23 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   uint32_t size = typeTable[entry.typeIndex].byteSize;
   fprintf(f, ".global %s\n", symbol(entry));
   fprintf(f, ".balign 8\n");
-  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY && IS_STRING(value)) {
-//    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+  if (IS_STRING(value)) {
+    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+    //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
+  }
+  if (IS_PTR(value)) {
+    Value s = CONST_TABLE_get(AS_PTR(value));
+
+   // fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
+    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
-  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+  if (entry.kind == SYMBOL_KIND_ARRAY || isPointer(entry.typeIndex)) {
     if (IS_STRING(value)) {
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(value)->chars);
     } else if (IS_PTR(value)) {
       Value s = CONST_TABLE_get(AS_PTR(value));
+      // fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(s)->chars);
     } else {
       // RECORD too
@@ -375,12 +383,17 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   uint32_t size = typeTable[entry.typeIndex].byteSize;
   fprintf(f, ".global %s\n ", symbol(entry));
   fprintf(f, ".balign 8\n");
-  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY && IS_STRING(value)) {
-///    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
-    fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
+  if (IS_STRING(value)) {
+    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+   // fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
+  }
+  if (IS_PTR(value)) {
+    Value s = CONST_TABLE_get(AS_PTR(value));
+    //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
+    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
-  if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+  if (entry.kind == SYMBOL_KIND_ARRAY || isPointer(entry.typeIndex)) {
     // RECORD too
     if (IS_EMPTY(value)) {
       fprintf(f, ".fill %i, %i, 0\n", AS_U8(count), size);
@@ -388,6 +401,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(value)->chars);
     } else if (IS_PTR(value)) {
       Value s = CONST_TABLE_get(AS_PTR(value));
+      // fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(s)->chars);
     } else {
       Value* values = AS_ARRAY(value);

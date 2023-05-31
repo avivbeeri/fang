@@ -90,7 +90,6 @@ static int coerceType(int type1, int type2) {
   return NUMERICAL_INDEX;
 }
 
-
 static int valueToType(Value value) {
   switch (value.type) {
     case VAL_ERROR: return 0;
@@ -109,9 +108,26 @@ static int valueToType(Value value) {
     case VAL_LIT_NUM: return NUMERICAL_INDEX;
     case VAL_STRING: return STRING_INDEX;
     case VAL_RECORD: return 0;
+    case VAL_ARRAY: return 0;
     // Open to implicit num casting
   }
   return 0;
+}
+
+static SYMBOL_KIND getSymbolKind(int typeIndex) {
+  if (typeTable[typeIndex].entryType == ENTRY_TYPE_FUNCTION) {
+    return SYMBOL_KIND_FUNCTION;
+  }
+  if (typeTable[typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+    return SYMBOL_KIND_ARRAY;
+  }
+  if (typeTable[typeIndex].entryType == ENTRY_TYPE_RECORD) {
+    return SYMBOL_KIND_RECORD;
+  }
+  if (typeTable[typeIndex].entryType == ENTRY_TYPE_POINTER) {
+    return SYMBOL_KIND_POINTER;
+  }
+  return SYMBOL_KIND_SCALAR;
 }
 
 static bool traverse(AST* ptr);
@@ -187,6 +203,9 @@ static int resolveType(AST* ptr) {
 
         int subType = resolveType(data.subType);
         STRING* name = typeTable[subType].name;
+
+        STRING* ptrName = STRING_prepend(name, "^");
+        TYPE_TABLE_registerType(ptrName, ENTRY_TYPE_POINTER, subType, NULL);
         STRING* typeName = STRING_prepend(name, "[]");
         ptr->type = TYPE_TABLE_registerArray(typeName, ENTRY_TYPE_ARRAY, subType);
         return ptr->type;
@@ -233,11 +252,15 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_EXT data = ast.data.AST_EXT;
         int resolvedType = resolveType(data.type);
         if (data.symbolType == SYMBOL_TYPE_FUNCTION) {
-          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
-        } else if (data.symbolType == SYMBOL_TYPE_CONSTANT) {
-          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
-        } else if (data.symbolType == SYMBOL_TYPE_VARIABLE) {
-          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
+          SYMBOL_TABLE_declareWithKind(data.identifier, data.symbolType, SYMBOL_KIND_FUNCTION, resolvedType, STORAGE_TYPE_GLOBAL);
+        } else {
+          SYMBOL_KIND kind = getSymbolKind(resolvedType);
+
+          if (data.symbolType == SYMBOL_TYPE_CONSTANT) {
+            SYMBOL_TABLE_declareWithKind(data.identifier, data.symbolType, kind, resolvedType, STORAGE_TYPE_GLOBAL);
+          } else if (data.symbolType == SYMBOL_TYPE_VARIABLE) {
+            SYMBOL_TABLE_declareWithKind(data.identifier, data.symbolType, kind, resolvedType, STORAGE_TYPE_GLOBAL);
+          }
         }
         return true;
       }
@@ -286,8 +309,13 @@ static bool resolveTopLevel(AST* ptr) {
             arrfree(fields);
             return false;
           }
+          SYMBOL_KIND kind = getSymbolKind(index);
           int elementCount = 0;
           if (typeTable[index].entryType == ENTRY_TYPE_ARRAY) {
+            int subType = typeTable[index].parent;
+            STRING* name = typeTable[subType].name;
+            STRING* typeName = STRING_prepend(name, "^");
+            index = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
             if (field.value->tag == AST_TYPE) {
               Value length = evalConstTree(field.value);
               if (!IS_EMPTY(length) && !IS_ERROR(length)) {
@@ -295,7 +323,12 @@ static bool resolveTopLevel(AST* ptr) {
               }
             }
           }
-          arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){ .typeIndex = index, .name = field.identifier, .elementCount = elementCount } ));
+          arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){
+                .typeIndex = index,
+                .name = field.identifier,
+                .elementCount = elementCount,
+                .kind = kind
+          } ));
         }
         TYPE_TABLE_define(index, ENTRY_TYPE_RECORD, 0, fields);
         return true;
@@ -308,7 +341,7 @@ static bool resolveTopLevel(AST* ptr) {
           compileError(ast.token, "function \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_TABLE_define(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type, STORAGE_TYPE_GLOBAL);
+        SYMBOL_TABLE_define(data.identifier, SYMBOL_TYPE_FUNCTION, SYMBOL_KIND_FUNCTION, ptr->type, STORAGE_TYPE_GLOBAL);
         return true;
       }
     default:
@@ -443,7 +476,15 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
+        SYMBOL_KIND kind = getSymbolKind(leftType);
+        int index = leftType;
+        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
+          int subType = typeTable[leftType].parent;
+          STRING* name = typeTable[subType].name;
+          STRING* typeName = STRING_prepend(name, "^");
+          index = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+        }
+        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, kind, index, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
         int elementCount = 0;
         if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
           Value length = evalConstTree(data.type);
@@ -471,7 +512,8 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, typeIndex, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
+        SYMBOL_KIND kind = getSymbolKind(typeIndex);
+        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, kind, typeIndex, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
       }
@@ -493,20 +535,30 @@ static bool traverse(AST* ptr) {
           printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
           return false;
         }
-        ptr->type = leftType;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         if (SYMBOL_TABLE_getCurrentOnly(identifier).defined) {
           compileError(ast.token, "constant \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
+        SYMBOL_KIND kind = getSymbolKind(leftType);
+        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
+          Value length = evalConstTree(data.type);
+
+          int subType = typeTable[leftType].parent;
+          STRING* name = typeTable[subType].name;
+          STRING* typeName = STRING_prepend(name, "^");
+          leftType = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+        }
+        ptr->type = leftType;
         if (ptr->scopeIndex <= 1 || ast.tag == AST_CONST_DECL) {
-          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_CONSTANT, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
+          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_CONSTANT, kind, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
         } else {
-          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
+          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, kind, leftType, functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL);
         }
         int elementCount = 0;
         if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
           Value length = evalConstTree(data.type);
+
           if (!IS_EMPTY(length) && !IS_ERROR(length)) {
             elementCount = getNumber(length);
             printf("Array length: %i\n", elementCount);
@@ -585,7 +637,8 @@ static bool traverse(AST* ptr) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
           STRING* paramName = param.identifier;
           uint32_t index = typeTable[ast.type].fields[i].typeIndex;
-          SYMBOL_TABLE_define(paramName, SYMBOL_TYPE_PARAMETER, index, STORAGE_TYPE_PARAMETER);
+          SYMBOL_KIND kind = SYMBOL_KIND_SCALAR;
+          SYMBOL_TABLE_define(paramName, SYMBOL_TYPE_PARAMETER, kind, index, STORAGE_TYPE_PARAMETER);
         }
         PUSH(typeStack, typeTable[ast.type].returnType);
         functionScope = true;

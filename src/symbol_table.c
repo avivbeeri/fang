@@ -137,6 +137,7 @@ void SYMBOL_TABLE_updateElementCount(STRING* name, uint32_t elementCount) {
     SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
     if (entry.defined) {
       entry.elementCount = elementCount;
+      entry.kind = SYMBOL_KIND_ARRAY;
       shputs(scope.table, entry);
       return;
     }
@@ -175,7 +176,7 @@ void SYMBOL_TABLE_init(void) {
   SYMBOL_TABLE_openScope(SCOPE_TYPE_INVALID);
 }
 
-void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
+void SYMBOL_TABLE_declareWithKind(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND kind, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
@@ -184,6 +185,7 @@ void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SY
     .defined = true,
     .entryType = type,
     .status = SYMBOL_TABLE_STATUS_DECLARED,
+    .kind = kind,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
     .constantIndex = 0
@@ -191,7 +193,10 @@ void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SY
   shputs(scope.table, entry);
   hmputs(scopes, scope);
 }
-void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
+void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
+  SYMBOL_TABLE_declareWithKind(name, type, typeIndex, SYMBOL_KIND_UNKNOWN, storageType);
+}
+void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND kind, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
@@ -202,6 +207,7 @@ void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYM
     .entryType = type,
     .defined = true,
     .status = SYMBOL_TABLE_STATUS_DEFINED,
+    .kind = kind,
     .storageType = storageType,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,

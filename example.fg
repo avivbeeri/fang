@@ -1,35 +1,17 @@
 import "lib.fg"
-
-type Bundle {
-  alive: bool;
-  s: string;
-  id: i8;
-  test: [5]char;
-}
-
-var s: Bundle;
-
-fn reallyPrintBundle(b: ^Bundle): void {
-  sys::writeI8(s.id);
-  sys::writeChar(' ');
-  sys::write(s.test as ^char, 5);
-  sys::writeChar(' ');
-  sys::write(s.s as ^char, 11);
-}
-
-fn printBundle(b: ^Bundle): void {
-  reallyPrintBundle(b);
-}
-
+const list: [8]string = [ "a", "b", "c", "d", "e", "6", "4", "5"];
+const text: string = "Words are cool";
 fn main(): void {
-  s.id = 5;
-  s.s = "Hello world";
-  s.test[0] = 'a';
-  s.test[1] = 'b';
-  s.test[2] = 'c';
-  s.test[3] = 'd';
-  s.test[4] = 'e';
+  var s: string = list[2];
+  sys::writeChar(s[0]);
 
-  printBundle(s as ^Bundle);
+/*
+  sys::writeChar(' ');
+
+  const len: u8 = text[-1] as u8;
+  for (var q: u8 = 0; q < len; q = q + 1) {
+    sys::writeChar(text[q]);
+  }
+*/
 }
 

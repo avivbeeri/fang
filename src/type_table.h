@@ -25,6 +25,8 @@
 
 #ifndef type_table_h
 #define type_table_h
+#include "memory.h"
+#include "symbol_table.h"
 
 enum TYPE_TABLE_ENTRY_STATUS {
   STATUS_DECLARED,
@@ -33,11 +35,11 @@ enum TYPE_TABLE_ENTRY_STATUS {
   STATUS_EXTERNAL
 };
 
-#include "memory.h"
 typedef struct TYPE_TABLE_FIELD_ENTRY {
   STRING* name;
   uint32_t typeIndex;
   uint32_t elementCount;
+  SYMBOL_KIND kind;
 } TYPE_TABLE_FIELD_ENTRY;
 
 

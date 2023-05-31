@@ -337,20 +337,18 @@ static int traverse(FILE* f, AST* ptr) {
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r;
         r = p.genIdentifierAddr(f, symbol);
+        fprintf(f, "; %s\n", data.identifier->chars);
+        printf("Identifier: %s, kind: %s\n", data.identifier->chars, (symbol.kind == SYMBOL_KIND_POINTER) ? "true" : "false");
+        if (symbol.storageType == STORAGE_TYPE_GLOBAL) {
+          return r;
+        }
+        if (symbol.kind == SYMBOL_KIND_POINTER) {
+          return p.genDeref(f, r, symbol.typeIndex);
+        }
+
         if (ast.rvalue) {
-          if (symbol.entryType == SYMBOL_TYPE_FUNCTION) {
-            return r;
-          }
-          if (symbol.storageType == STORAGE_TYPE_LOCAL && (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY)) {
-            return r;
-          }
-          fprintf(f, "; %s\n", data.identifier->chars);
           return p.genDeref(f, r, symbol.typeIndex);
         } else {
-          if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_POINTER) {
-            fprintf(f, "; %s\n", data.identifier->chars);
-            return p.genDeref(f, r, symbol.typeIndex);
-          }
           return r;
         }
       }
@@ -535,8 +533,16 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_DOT data = ast.data.AST_DOT;
         int left = traverse(f, data.left);
         int r = p.genFieldOffset(f, left, data.left->type, data.name);
+        TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
+        TYPE_TABLE_FIELD_ENTRY field;
+        for (int i = 0; i < arrlen(entry.fields); i++) {
+          if (STRING_equality(entry.fields[i].name, data.name)) {
+            field = entry.fields[i];
+            break;
+          }
+        }
         if (ast.rvalue) {
-          if (typeTable[ptr->type].entryType == ENTRY_TYPE_ARRAY) {
+          if (field.kind == SYMBOL_KIND_ARRAY || typeTable[ptr->type].entryType == ENTRY_TYPE_ARRAY) {
             return r;
           }
           return p.genDeref(f, r, ptr->type);
@@ -548,8 +554,8 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
         TYPE_TABLE_ENTRY type = typeTable[data.left->type];
-        int index = traverse(f, data.index);
         int left = traverse(f, data.left);
+        int index = traverse(f, data.index);
         int typeIndex = type.parent;
         left = p.genIndexAddr(f, left, index, typeIndex);
         if (ast.rvalue) {
