@@ -340,10 +340,16 @@ static int traverse(FILE* f, AST* ptr) {
         fprintf(f, "; %s\n", data.identifier->chars);
         printf("Identifier: %s, kind: %s\n", data.identifier->chars, (symbol.kind == SYMBOL_KIND_POINTER) ? "true" : "false");
         if (symbol.storageType == STORAGE_TYPE_GLOBAL) {
-          return r;
+          if (symbol.kind != SYMBOL_KIND_SCALAR) {
+            return r;
+          }
+          return p.genDeref(f, r, symbol.typeIndex);
         }
         if (symbol.kind == SYMBOL_KIND_POINTER) {
           return p.genDeref(f, r, symbol.typeIndex);
+        }
+        if (symbol.kind != SYMBOL_KIND_SCALAR) {
+          return r;
         }
 
         if (ast.rvalue) {
