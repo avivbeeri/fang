@@ -297,8 +297,6 @@ void SYMBOL_TABLE_report(void) {
       printf("%s - ", typeTable[entry.typeIndex].name->chars);
       switch (entry.entryType) {
         case SYMBOL_TYPE_UNKNOWN: { printf("UNKNOWN"); break; }
-        case SYMBOL_TYPE_MODULE: { printf("MODULE"); break; }
-        case SYMBOL_TYPE_KEYWORD: { printf("KEYWORD"); break; }
         case SYMBOL_TYPE_FUNCTION: { printf("FUNCTION"); break; }
         case SYMBOL_TYPE_PARAMETER: { printf("PARAMETER"); break; }
         case SYMBOL_TYPE_VARIABLE: { printf("VARIABLE"); break; }
