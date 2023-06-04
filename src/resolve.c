@@ -35,6 +35,7 @@
 #include "const_eval.h"
 
 uint32_t* assignStack = NULL;
+uint32_t* evaluateStack = NULL;
 uint32_t* typeStack = NULL;
 bool functionScope = false;
 
@@ -355,7 +356,7 @@ static bool traverse(AST* ptr) {
   if (ptr == NULL) {
     return true;
   }
-  ptr->rvalue = false;
+  ptr->rvalue = PEEK(evaluateStack);
   AST ast = *ptr;
   switch(ast.tag) {
     case AST_ERROR:
@@ -442,7 +443,9 @@ static bool traverse(AST* ptr) {
         bool r  = traverse(data.type);
         int leftType = data.type->type;
         PUSH(typeStack, leftType);
+        PUSH(evaluateStack, true);
         r &= traverse(data.expr);
+        POP(evaluateStack);
         POP(typeStack);
         int rightType = data.expr->type;
         if (!r) {
@@ -530,7 +533,9 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.type);
         int leftType = data.type->type;
         PUSH(typeStack, leftType);
+        PUSH(evaluateStack, true);
         r &= traverse(data.expr);
+        POP(evaluateStack);
         int rightType = data.expr->type;
         POP(typeStack);
 
@@ -580,7 +585,6 @@ static bool traverse(AST* ptr) {
     case AST_ASSIGNMENT:
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-        PUSH(assignStack, true);
 
         if (data.lvalue->tag == AST_IDENTIFIER) {
           SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_getCurrent(data.lvalue->data.AST_IDENTIFIER.identifier);
@@ -590,12 +594,17 @@ static bool traverse(AST* ptr) {
           }
         }
 
+        PUSH(assignStack, true);
+        PUSH(evaluateStack, false);
         bool ident = traverse(data.lvalue);
+        POP(evaluateStack);
         POP(assignStack);
         int leftType = data.lvalue->type;
 
         PUSH(typeStack, leftType);
+        PUSH(evaluateStack, true);
         bool expr = traverse(data.expr);
+        POP(evaluateStack);
         POP(typeStack);
         int rightType = data.expr->type;
 
@@ -623,7 +632,6 @@ static bool traverse(AST* ptr) {
         struct AST_CAST data = ast.data.AST_CAST;
         bool r = traverse(data.expr) && traverse(data.type);
         ptr->type = data.type->type;
-        ptr->rvalue = data.expr->rvalue;
         return r;
       }
     case AST_TYPE:
@@ -685,9 +693,6 @@ static bool traverse(AST* ptr) {
         if (entry.defined) {
           ptr->scopeIndex = scopeIndex;
           ptr->type = entry.typeIndex;
-          if (entry.storageType == STORAGE_TYPE_LOCAL_OBJECT || entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
-            ptr->rvalue = true;
-          }
         } else {
           compileError(ast.token, "identifier '%s' has not yet been defined in this scope.\n", identifier->chars);
           return false;
@@ -787,10 +792,11 @@ static bool traverse(AST* ptr) {
     case AST_DEREF:
       {
         struct AST_DEREF data = ast.data.AST_DEREF;
+        PUSH(evaluateStack, !PEEK(assignStack));
         bool r = traverse(data.expr);
+        POP(evaluateStack);
         int subType = data.expr->type;
         TYPE_TABLE_ENTRY entry = typeTable[subType];
-        ptr->rvalue = PEEK(assignStack);
         if (entry.parent == 0) {
           printf("trap %d\n", __LINE__);
           return false;
@@ -806,7 +812,6 @@ static bool traverse(AST* ptr) {
       {
         struct AST_UNARY data = ast.data.AST_UNARY;
         bool r = traverse(data.expr);
-        ptr->rvalue = true;
         switch (data.op) {
           case OP_BITWISE_NOT:
           case OP_NEG:
@@ -825,7 +830,6 @@ static bool traverse(AST* ptr) {
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;
-        ptr->rvalue = true;
         PUSH(assignStack, false);
         bool r = traverse(data.left);
         int leftType = data.left->type;
@@ -990,7 +994,6 @@ static bool traverse(AST* ptr) {
     case AST_DOT:
       {
         struct AST_DOT data = ast.data.AST_DOT;
-        ptr->rvalue = false;
         bool r = traverse(data.left);
         if (!r) {
           return false;
@@ -1016,14 +1019,12 @@ static bool traverse(AST* ptr) {
         if (!found) {
           return false;
         }
-        // ptr->rvalue = !PEEK(assignStack);
         ptr->type = entry.fields[fieldIndex].typeIndex;
         return true;
       }
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-        ptr->rvalue = false;
         bool r = traverse(data.left);
         if (!r) {
           return false;
@@ -1047,7 +1048,6 @@ static bool traverse(AST* ptr) {
           return false;
         }
         // resolve data.identifier to string
-        ptr->rvalue = true;
         uint32_t leftType = data.identifier->type;
         TYPE_TABLE_ENTRY fnType = typeTable[leftType];
         if (fnType.parent != FN_INDEX) {
@@ -1077,7 +1077,9 @@ static bool traverse(AST* ptr) {
 
         for (int i = 0; i < arrlen(data.arguments); i++) {
           PUSH(typeStack, fnType.fields[i].typeIndex);
+          PUSH(evaluateStack, true);
           r = traverse(data.arguments[i]);
+          POP(evaluateStack);
           POP(typeStack);
           if (!r) {
             return false;
@@ -1107,6 +1109,8 @@ static bool traverse(AST* ptr) {
 bool resolveTree(AST* ptr) {
 
   SYMBOL_TABLE_init();
+  PUSH(evaluateStack, true);
+  PUSH(assignStack, false);
   bool success = resolveTopLevel(ptr);
   if (!success) {
     goto cleanup;
@@ -1126,6 +1130,8 @@ cleanup:
     }
   }
 
+  arrfree(evaluateStack);
+  arrfree(assignStack);
   arrfree(typeStack);
   return success;
 }

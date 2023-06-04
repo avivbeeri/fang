@@ -83,6 +83,7 @@ typedef struct {
   int (*genRef)(FILE* f, int);
   int (*genDeref)(FILE* f, int, int);
   int (*genIndexAddr)(FILE* f, int, int, int);
+  int (*genIndexRead)(FILE* f, int, int, int);
   int (*genFieldOffset)(FILE* f, int leftReg, int typeIndex, STRING* fieldName);
   void (*genGlobalConstant)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);
   void (*genGlobalVariable)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);

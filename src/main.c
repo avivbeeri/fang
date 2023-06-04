@@ -38,7 +38,7 @@ void OPTIONS_init(void) {
   options.report = false;
   options.scanTest = false;
   options.printAst = false;
-  options.dumpAst = false;
+  options.dumpAst = true;
   options.timeRun = false;
   options.outfile = NULL;
 }

@@ -175,9 +175,6 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_IF data = ast.data.AST_IF;
         int r = traverse(f, data.condition);
-        if (!data.condition->rvalue) {
-          r = p.genDeref(f, r, data.condition->type);
-        }
         int nextLabel = p.labelCreate();
         p.genCmp(f, r, nextLabel);
         traverse(f, data.body);
@@ -205,9 +202,6 @@ static int traverse(FILE* f, AST* ptr) {
         p.genLabel(f, loopLabel);
         if (data.condition != NULL) {
           int r = traverse(f, data.condition);
-          if (!data.condition->rvalue) {
-            r = p.genDeref(f, r, data.condition->type);
-          }
           p.genCmp(f, r, exitLabel);
           p.freeAllRegisters();
         }
@@ -228,9 +222,6 @@ static int traverse(FILE* f, AST* ptr) {
         p.genLabel(f, loopLabel);
         traverse(f, data.body);
         int r = traverse(f, data.condition);
-        if (!data.condition->rvalue) {
-          r = p.genDeref(f, r, data.condition->type);
-        }
         p.genCmpNotEqual(f, r, loopLabel);
         return -1;
       }
@@ -241,9 +232,6 @@ static int traverse(FILE* f, AST* ptr) {
         int exitLabel = p.labelCreate();
         p.genLabel(f, loopLabel);
         int r = traverse(f, data.condition);
-        if (!data.condition->rvalue) {
-          r = p.genDeref(f, r, data.condition->type);
-        }
         p.genCmp(f, r, exitLabel);
         traverse(f, data.body);
         p.genJump(f, loopLabel);
@@ -256,9 +244,6 @@ static int traverse(FILE* f, AST* ptr) {
         int r = -1;
         if (data.value) {
           r = traverse(f, data.value);
-          if (!data.value->rvalue) {
-            r = p.genDeref(f, r, data.value->type);
-          }
         }
         p.genReturn(f, fnStack[0], r);
         return r;
@@ -295,6 +280,7 @@ static int traverse(FILE* f, AST* ptr) {
         // printf("%s: alloc %s\n", symbol.key, typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
         int rvalue = -1;
         int storage = traverse(f, data.type);
+        // TODO: return to VLA
         if (storage != -1) {
           //rvalue = p.genAllocStack(f, storage, typeTable[data.type->type].parent);
         } else {
@@ -336,9 +322,6 @@ static int traverse(FILE* f, AST* ptr) {
           return rvalue;
         } else {
           rvalue = traverse(f, data.expr);
-          if (!data.expr->rvalue) {
-            rvalue = p.genDeref(f, rvalue, data.expr->type);
-          }
           return p.genInitSymbol(f, symbol, rvalue);
         }
       }
@@ -346,9 +329,6 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         int r = traverse(f, data.expr);
-        if (!(data.expr->rvalue)) {
-          r = p.genDeref(f, r, data.expr->type);
-        }
         int l = traverse(f, data.lvalue);
         return p.genAssign(f, l, r, data.lvalue->type);
       }
@@ -358,7 +338,11 @@ static int traverse(FILE* f, AST* ptr) {
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r;
         fprintf(f, "; %s\n", data.identifier->chars);
-        r = p.genIdentifierAddr(f, symbol);
+        if (ast.rvalue) {
+          r = p.genIdentifier(f, symbol);
+        } else {
+          r = p.genIdentifierAddr(f, symbol);
+        }
         return r;
       }
     case AST_LITERAL:
@@ -390,17 +374,14 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_DEREF data = ast.data.AST_DEREF;
         int r = traverse(f, data.expr);
         if (ast.rvalue) {
-          return r;
+          return p.genDeref(f, r, ptr->type);
         }
-        return p.genDeref(f, r, ptr->type);
+        return r;
       }
     case AST_UNARY:
       {
         struct AST_UNARY data = ast.data.AST_UNARY;
         int r = traverse(f, data.expr);
-        if (!data.expr->rvalue) {
-          r = p.genDeref(f, r, data.expr->type);
-        }
         switch (data.op) {
           case OP_BITWISE_NOT: return p.genBitwiseNot(f, r);
           case OP_NOT: return p.genLogicalNot(f, r);
@@ -421,15 +402,9 @@ static int traverse(FILE* f, AST* ptr) {
           int doneLabel = p.labelCreate();
           int falseLabel = p.labelCreate();
           int l = traverse(f, data.left);
-          if (!data.left->rvalue) {
-            l = p.genDeref(f, l, data.left->type);
-          }
           p.genCmp(f, l, falseLabel);
           // if (!l), go to done
           int r = traverse(f, data.right);
-          if (!data.right->rvalue) {
-            r = p.genDeref(f, r, data.right->type);
-          }
           // if (!r) go to done
           p.genCmp(f, r, falseLabel);
           r = p.genLoad(f, 1, 1);
@@ -444,15 +419,9 @@ static int traverse(FILE* f, AST* ptr) {
           int doneLabel = p.labelCreate();
           int trueLabel = p.labelCreate();
           int l = traverse(f, data.left);
-          if (!data.left->rvalue) {
-            l = p.genDeref(f, l, data.left->type);
-          }
           p.genCmpNotEqual(f, l, trueLabel);
           // if (l), go to done
           int r = traverse(f, data.right);
-          if (!data.right->rvalue) {
-            r = p.genDeref(f, r, data.right->type);
-          }
           // if (r) go to done
           p.genCmpNotEqual(f, r, trueLabel);
           r = p.genLoad(f, 0, 1);
@@ -465,13 +434,7 @@ static int traverse(FILE* f, AST* ptr) {
         }
 
         int l = traverse(f, data.left);
-        if (!data.left->rvalue) {
-          l = p.genDeref(f, l, data.left->type);
-        }
         int r = traverse(f, data.right);
-        if (!data.right->rvalue) {
-          r = p.genDeref(f, r, data.right->type);
-        }
         switch (data.op) {
           case OP_ADD:
             {
@@ -570,16 +533,6 @@ static int traverse(FILE* f, AST* ptr) {
             break;
           }
         }
-          /*
-        if (ast.rvalue) {
-          if (field.kind == SYMBOL_KIND_ARRAY || typeTable[ptr->type].entryType == ENTRY_TYPE_ARRAY) {
-            return r;
-          }
-          return p.genDeref(f, r, ptr->type);
-        } else {
-          return r;
-        }
-          */
         return r;
       }
     case AST_SUBSCRIPT:
@@ -588,21 +541,12 @@ static int traverse(FILE* f, AST* ptr) {
         TYPE_TABLE_ENTRY type = typeTable[data.left->type];
         int typeIndex = type.parent;
         int left = traverse(f, data.left);
-        if (!data.left->rvalue) {
-          left = p.genDeref(f, left, data.left->type);
-        }
         int index = traverse(f, data.index);
-        if (!data.index->rvalue) {
-          index = p.genDeref(f, index, data.index->type);
-        }
-        left = p.genIndexAddr(f, left, index, typeIndex);
-        /*
         if (ast.rvalue) {
-          return p.genDeref(f, left, typeIndex);
+          left = p.genIndexRead(f, left, index, typeIndex);
         } else {
-          return left;
+          left = p.genIndexAddr(f, left, index, typeIndex);
         }
-        */
         return left;
       }
     case AST_CALL:
@@ -612,9 +556,6 @@ static int traverse(FILE* f, AST* ptr) {
         int* rs = NULL;
         for (int i = 0; i < arrlen(data.arguments); i++) {
           int r = traverse(f, data.arguments[i]);
-          if (!(data.arguments[i]->rvalue)) {
-            r = p.genDeref(f, r, data.arguments[i]->type);
-          }
           arrput(rs, r);
         }
         int r = p.genFunctionCall(f, l, rs);

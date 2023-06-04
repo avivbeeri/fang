@@ -347,6 +347,22 @@ static int genIndexAddr(FILE* f, int baseReg, int index, int type) {
   fprintf(f, "  ADD %s, %s, %s; index address\n", regList[leftReg], regList[baseReg], regList[index]);
   return leftReg;
 }
+static int genIndexRead(FILE* f, int baseReg, int index, int type) {
+  int dataSize = typeTable[type].byteSize;
+  if (dataSize > 1) {
+    int temp = genLoad(f, dataSize, 8);
+    // TODO: Convert to MADD
+    freeRegister(temp);
+    fprintf(f, "  MUL %s, %s, %s\n", regList[index], regList[index], regList[temp]);
+  }
+  // We might still be holding onto the baseReg (for initializations especially)
+  // so we attempt to free add re-allocate to get a destination reg
+  freeRegister(baseReg);
+  freeRegister(index);
+  int leftReg = allocateRegister();
+  fprintf(f, "  ADD %s, %s, %s; index address\n", regList[leftReg], regList[baseReg], regList[index]);
+  return genDeref(f, leftReg, type);
+}
 
 static void genPreamble(FILE* f) {
   genMacros(f);
@@ -771,6 +787,7 @@ PLATFORM platform_apple_arm64 = {
   .genRef = genRef,
   .genDeref = genDeref,
   .genIndexAddr = genIndexAddr,
+  .genIndexRead = genIndexRead,
   .genGlobalVariable = genGlobalVariable,
   .genGlobalConstant = genGlobalConstant,
   .genFieldOffset = genFieldOffset

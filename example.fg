@@ -1,15 +1,12 @@
-import "lib.fg"
-fn main(): void {
-  const list: [5]string = [ "a", "b", "c", "d", "e"];
+fn main(): i8 {
+  var len: u8 = 5;
+  var g: [5]char = [ 'w', 'o', 'r','l','d' ];
+  g[0] = 'h';
+  g[1] = 'e';
+  g[2] = 'l';
+  g[3] = 'l';
+  g[4] = 'o';
+  @(g+4) = 'x';
 
-  const s: string = "hello world";
-  for (var q: u8 = 0; q < 11; q = q + 1) {
-    sys::writeChar(s[q]);
-  }
-  sys::writeChar(' ');
-  for (var q: u8 = 0; q < 5; q = q + 1) {
-    var s: string = list[q];
-    sys::writeChar(s[0]);
-  }
+  return 0;
 }
-

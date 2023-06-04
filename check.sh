@@ -14,27 +14,27 @@ allTests() {
   testFile examples/minimal.fg "OK" 0 "" 0
   testFile examples/return.fg "OK" 0 "" 42
   testFile examples/arithmetic.fg "OK" 0 "" 1
+  testFile examples/char-ops.fg "OK" 0 "OO" 0
   testFile examples/local-allocation.fg "OK" 0 "" 1
-  testFile examples/do-while-loop.fg "OK" 0 "LOOP" 0
-  testFile examples/controlflow.fg "OK" 0 "42"$'\n'"0"$'\n'"-54" 0
-  testFile examples/array.fg "OK" 0 "worldhellohellx" 0
   testFile examples/variables.fg "OK" 0 "60" 0
+  testFile examples/nestblock.fg "OK" 0 "4020" 0
+  testFile examples/do-while-loop.fg "OK" 0 "LOOP" 0
+  testFile examples/negative-numbers.fg "OK" 0 "-54 -121 -12" 0
+  testFile examples/controlflow.fg "OK" 0 "42"$'\n'"0"$'\n'"-54" 0
+  testFile examples/global-var.fg "OK" 0 "554 01235" 0
+  testFile examples/global-const.fg "OK" 0 "42AQ"$'\n'"01234" 0
   testFile examples/duplicate.fg "[line 4; pos 7] variable \"i\" is already defined."$'\n'"Fail" 1 
   testFile examples/assign-constant.fg "[line 4; pos 5] attempting to assign to read-only constant \"i\"."$'\n'"Fail" 1 
   testFile examples/duplicate-constant.fg "[line 4; pos 9] constant \"i\" is already defined."$'\n'"Fail" 1 
   testFile examples/duplicate-functions.fg "[line 3; pos 7] function \"main\" is already defined."$'\n'"Fail" 1 
   testFile examples/incompatible-assignment.fg "[line 4; pos 9] Incompatible assignment for variable 'i'"$'\n'"                Expected type 'i8' but instead found 'char'"$'\n'"Fail" 1 
-  testFile examples/nestblock.fg "OK" 0 "4020" 0
-  testFile examples/init-array.fg "OK" 0 "656667" 0
   testFile examples/wrong-init-array.fg "[line 3; pos 20] Incompatible record initializer for an array of 'char'."$'\n'"Fail" 1 
   testFile examples/wrong-init-literal.fg "[line 3; pos 7] Attempting to initialize []char using literal '2345'."$'\n'"Fail" 1 
   testFile examples/arithmetic-incompatible.fg "[line 3; pos 12] Invalid operands to arithmetic operator '+'"$'\n'"                 Operands were of type 'number' and 'char', which are incompatible."$'\n'"Fail" 1 
   testFile examples/bitwise-incompatible.fg "[line 3; pos 12] Invalid operands to bitwise operator '&'"$'\n'"                 Operands were of type 'number' and 'char', which are incompatible."$'\n'"Fail" 1 
-  testFile examples/global-var.fg "OK" 0 "554 01235" 0
-  testFile examples/global-const.fg "OK" 0 "42AQ"$'\n'"01234" 0
-  testFile examples/char-ops.fg "OK" 0 "OO" 0
-  testFile examples/negative-numbers.fg "OK" 0 "-54 -121 -12" 0
   testFile examples/strings.fg "OK" 0 "hello world abcde" 0
+  testFile examples/init-array.fg "OK" 0 "656667" 0
+  testFile examples/array.fg "OK" 0 "worldhellohellx" 0
   testFile examples/global-string.fg "OK" 0 "c Words are cool" 0
   testFile examples/record-basic.fg "OK" 0 "542Hello" 0
   testFile examples/record-global.fg "OK" 0 "5 42 abcde Hello" 0
