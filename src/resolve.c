@@ -487,11 +487,12 @@ static bool traverse(AST* ptr) {
         }
         SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, kind, index, storageType);
         int elementCount = 0;
-        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
+        if (kind == SYMBOL_KIND_ARRAY) {
           Value length = evalConstTree(data.type);
           if (!IS_EMPTY(length) && !IS_ERROR(length)) {
             elementCount = getNumber(length);
             printf("Array length: %i\n", elementCount);
+            printf("%i\n", elementCount);
             SYMBOL_TABLE_updateElementCount(identifier, elementCount);
           }
         }
@@ -565,12 +566,12 @@ static bool traverse(AST* ptr) {
           SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, kind, leftType, storageType);
         }
         int elementCount = 0;
-        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
+        if (kind == SYMBOL_KIND_ARRAY) {
           Value length = evalConstTree(data.type);
-
           if (!IS_EMPTY(length) && !IS_ERROR(length)) {
             elementCount = getNumber(length);
             printf("Array length: %i\n", elementCount);
+            printf("%i\n", elementCount);
             SYMBOL_TABLE_updateElementCount(identifier, elementCount);
           }
         }
@@ -789,7 +790,7 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.expr);
         int subType = data.expr->type;
         TYPE_TABLE_ENTRY entry = typeTable[subType];
-        ptr->rvalue = true;
+        ptr->rvalue = PEEK(assignStack);
         if (entry.parent == 0) {
           printf("trap %d\n", __LINE__);
           return false;

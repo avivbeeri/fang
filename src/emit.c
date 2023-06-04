@@ -389,6 +389,9 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_DEREF data = ast.data.AST_DEREF;
         int r = traverse(f, data.expr);
+        if (ast.rvalue) {
+          return r;
+        }
         return p.genDeref(f, r, ptr->type);
       }
     case AST_UNARY:
