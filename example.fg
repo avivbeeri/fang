@@ -4,15 +4,27 @@ type Bundle {
   alive: bool;
   s: string;
   id: i8;
+  test: [5]char;
 }
 
+var s: Bundle;
+
 fn main(): void {
-  var s: Bundle;
   s.id = 5;
   sys::writeI8(s.id);
   s.id = 42;
   s.s = "Hello world";
+  s.test[0] = 'a';
+  s.test[1] = 'b';
+  s.test[2] = 'c';
+  s.test[3] = 'd';
+  s.test[4] = 'e';
+
+  sys::writeChar(' ');
   sys::writeI8(s.id);
-  sys::write(s.s as ^char, 5);
+  sys::writeChar(' ');
+  sys::write(s.test as ^char, 5);
+//  sys::writeChar(' ');
+ // sys::write(s.s as ^char, 5);
 }
 

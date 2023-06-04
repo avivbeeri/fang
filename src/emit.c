@@ -525,16 +525,20 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_DOT data = ast.data.AST_DOT;
         int left = traverse(f, data.left);
         TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
-        //TYPE_TABLE_FIELD_ENTRY field;
+        TYPE_TABLE_FIELD_ENTRY field;
         for (int i = 0; i < arrlen(entry.fields); i++) {
           if (STRING_equality(entry.fields[i].name, data.name)) {
-            //field = entry.fields[i];
+            field = entry.fields[i];
             break;
           }
         }
         int r = p.genFieldOffset(f, left, data.left->type, data.name);
         if (ast.rvalue) {
-          r = p.genDeref(f, r, ast.type);
+          if (field.kind == SYMBOL_KIND_ARRAY || field.kind == SYMBOL_KIND_RECORD) {
+
+          } else {
+            r = p.genDeref(f, r, ast.type);
+          }
         }
         return r;
       }
