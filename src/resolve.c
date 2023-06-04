@@ -994,7 +994,9 @@ static bool traverse(AST* ptr) {
     case AST_DOT:
       {
         struct AST_DOT data = ast.data.AST_DOT;
+        PUSH(assignStack, false);
         bool r = traverse(data.left);
+        POP(assignStack);
         if (!r) {
           return false;
         }
