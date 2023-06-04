@@ -216,7 +216,7 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   if (scope.moduleName != NULL) {
     sprintf(buffer + strlen(buffer), "_%s", scope.moduleName->chars);
   }
-  if (entry.storageType == STORAGE_TYPE_GLOBAL) {
+  if (entry.storageType == STORAGE_TYPE_GLOBAL || entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
     if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
       sprintf(buffer + strlen(buffer), "_fn_%s", entry.key);
     } else if (entry.entryType == SYMBOL_TYPE_CONSTANT) {
@@ -258,19 +258,22 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.storageType == STORAGE_TYPE_PARAMETER) {
     fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], (entry.paramOrdinal + 1) * 16, entry.key);
+  } else if (entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
+    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
+    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
   } else if (entry.storageType == STORAGE_TYPE_GLOBAL) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
   } else if (entry.storageType == STORAGE_TYPE_LOCAL) {
     uint32_t offset = getStackOffset(entry);
     fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
+  } else if (entry.storageType == STORAGE_TYPE_LOCAL_OBJECT) {
+    uint32_t offset = getStackOffset(entry);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
   }
   return r;
 }
 
-static int genRef(FILE* f, int leftReg) {
-  return leftReg;
-}
 static int genDeref(FILE* f, int baseReg, int typeIndex) {
   // TODO: handle different types here
   uint32_t size = typeTable[typeIndex].byteSize;
@@ -281,6 +284,37 @@ static int genDeref(FILE* f, int baseReg, int typeIndex) {
   } else {
     fprintf(f, "  LDR %s, [%s]\n ; deref\n", regList[leftReg], regList[baseReg]);
   }
+  return leftReg;
+}
+
+static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
+  int r = allocateRegister();
+  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
+  if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
+    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
+    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
+    return r;
+  } else if (entry.storageType == STORAGE_TYPE_PARAMETER) {
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], (entry.paramOrdinal + 1) * 16, entry.key);
+  } else if (entry.storageType == STORAGE_TYPE_GLOBAL) {
+    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
+    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
+  } else if (entry.storageType == STORAGE_TYPE_LOCAL) {
+    uint32_t offset = getStackOffset(entry);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
+  } else if (entry.storageType == STORAGE_TYPE_LOCAL_OBJECT) {
+    uint32_t offset = getStackOffset(entry);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
+    return r;
+  } else if (entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
+    fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
+    fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
+    return r;
+  }
+  return genDeref(f, r, entry.typeIndex);
+}
+
+static int genRef(FILE* f, int leftReg) {
   return leftReg;
 }
 
@@ -338,17 +372,17 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   fprintf(f, ".global %s\n", symbol(entry));
   fprintf(f, ".balign 8\n");
   if (IS_STRING(value)) {
-    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
+    //fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(value)->length) % 256);
     //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
   }
   if (IS_PTR(value)) {
     Value s = CONST_TABLE_get(AS_PTR(value));
 
-   // fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
-    fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
+    //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
+   // fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
-  if (entry.kind == SYMBOL_KIND_ARRAY || isPointer(entry.typeIndex)) {
+  if (entry.kind == SYMBOL_KIND_ARRAY) {
     if (IS_STRING(value)) {
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(value)->chars);
     } else if (IS_PTR(value)) {
@@ -393,7 +427,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
-  if (entry.kind == SYMBOL_KIND_ARRAY || isPointer(entry.typeIndex)) {
+  if (entry.kind == SYMBOL_KIND_ARRAY) {
     // RECORD too
     if (IS_EMPTY(value)) {
       fprintf(f, ".fill %i, %i, 0\n", AS_U8(count), size);
@@ -504,7 +538,7 @@ static void genRaw(FILE* f, const char* str) {
   fprintf(f, "  %s\n", str);
 }
 static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
-  if (entry.storageType == STORAGE_TYPE_GLOBAL) {
+  if (entry.storageType == STORAGE_TYPE_GLOBAL || entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
     int r = allocateRegister();
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
@@ -515,7 +549,7 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
       fprintf(f, "  STR %s, [%s]\n", regList[rvalue], regList[r]);
     }
     freeRegister(r);
-  } else if (entry.storageType == STORAGE_TYPE_LOCAL) {
+  } else if (entry.storageType == STORAGE_TYPE_LOCAL || entry.storageType == STORAGE_TYPE_LOCAL_OBJECT) {
     if (typeTable[entry.typeIndex].byteSize == 1) {
       fprintf(f, "  STRB %s, %s\n", storeRegList[rvalue], symbol(entry));
     } else {
@@ -707,6 +741,7 @@ PLATFORM platform_apple_arm64 = {
   .genLoadRegister = genLoadRegister,
   .genInitSymbol = genInitSymbol,
   .genIdentifierAddr = genIdentifierAddr,
+  .genIdentifier = genIdentifier,
   .genRaw = genRaw,
   .genAssign = genAssign,
   .genAdd = genAdd,

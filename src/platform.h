@@ -49,6 +49,7 @@ typedef struct {
   int (*genLoad)(FILE* f, int, int);
   int (*genConstant)(FILE* f, int);
   int (*genIdentifierAddr)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
+  int (*genIdentifier)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   int (*genAssign)(FILE* f, int, int, int);
   int (*genAdd)(FILE* f, int, int, int);
   int (*genSub)(FILE* f, int, int);
