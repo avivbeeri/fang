@@ -995,7 +995,9 @@ static bool traverse(AST* ptr) {
       {
         struct AST_DOT data = ast.data.AST_DOT;
         PUSH(assignStack, false);
+        PUSH(evaluateStack, true);
         bool r = traverse(data.left);
+        POP(evaluateStack);
         POP(assignStack);
         if (!r) {
           return false;
@@ -1027,7 +1029,9 @@ static bool traverse(AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+        PUSH(evaluateStack, true);
         bool r = traverse(data.left);
+        POP(evaluateStack);
         if (!r) {
           return false;
         }
