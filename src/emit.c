@@ -556,6 +556,13 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_DOT data = ast.data.AST_DOT;
         int left = traverse(f, data.left);
         TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
+        int parent = entry.parent;
+        int typeIndex = data.left->type;
+        if (entry.entryType == ENTRY_TYPE_POINTER && typeTable[parent].entryType == ENTRY_TYPE_RECORD) {
+          typeIndex = parent;
+          entry = typeTable[typeIndex];
+          parent = entry.parent;
+        }
         TYPE_TABLE_FIELD_ENTRY field;
         for (int i = 0; i < arrlen(entry.fields); i++) {
           if (STRING_equality(entry.fields[i].name, data.name)) {
@@ -563,7 +570,11 @@ static int traverse(FILE* f, AST* ptr) {
             break;
           }
         }
-        int r = p.genFieldOffset(f, left, data.left->type, data.name);
+
+        int r = p.genFieldOffset(f, left, typeIndex, data.name);
+        if (typeTable[data.left->type].entryType == ENTRY_TYPE_POINTER && (field.kind != SYMBOL_KIND_RECORD && field.kind != SYMBOL_KIND_ARRAY)) {
+          // r = p.genDeref(f, r, parent);
+        }
         if (ast.rvalue) {
           if (field.kind == SYMBOL_KIND_ARRAY || field.kind == SYMBOL_KIND_RECORD) {
 

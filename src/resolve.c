@@ -77,7 +77,8 @@ static bool isCompatible(int type1, int type2) {
     || (isLiteral(type1) && isNumeric(type2))
     || (isLiteral(type1) && isLiteral(type2))
     || (type1 == STRING_INDEX && type2 == TYPE_TABLE_lookup("^char"))
-    || (type2 == STRING_INDEX && type1 == TYPE_TABLE_lookup("^char"));
+    || (type2 == STRING_INDEX && type1 == TYPE_TABLE_lookup("^char"))
+    || (isPointer(type1) && isPointer(type2) && typeTable[type1].parent == typeTable[type2].parent);
 }
 static int coerceType(int type1, int type2) {
   if (type1 == type2) {
@@ -203,10 +204,12 @@ static int resolveType(AST* ptr) {
         // Arrays are basically just pointers with some runtime allocation
         // semantics
         struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
-        traverse(data.length);
-        int lenType = data.length->type;
-        if (!isNumeric(lenType)) {
-          return 0;
+        if (data.length != NULL) {
+          traverse(data.length);
+          int lenType = data.length->type;
+          if (!isNumeric(lenType)) {
+            return 0;
+          }
         }
 
         int subType = resolveType(data.subType);
@@ -397,6 +400,11 @@ static bool traverse(AST* ptr) {
         }
         if (!isCompatible(data.value->type, PEEK(typeStack))) {
           printf("MISMATCH between return type and expecte\n");
+          int indent = compileError(data.value->token, "Incompatible return type '");
+          printTree(data.value);
+          printf("'\n");
+          printf("%*s", indent, "");
+          printf("Expected type '%s' but instead found '%s'\n", typeTable[PEEK(typeStack)].name->chars, typeTable[data.value->type].name->chars);
           return false;
         }
         return r;
@@ -574,7 +582,7 @@ static bool traverse(AST* ptr) {
           int subType = typeTable[leftType].parent;
           STRING* name = typeTable[subType].name;
           STRING* typeName = STRING_prepend(name, "^");
-          leftType = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+          TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
         }
         ptr->type = leftType;
         if (ptr->scopeIndex <= 1 || ast.tag == AST_CONST_DECL) {
@@ -732,9 +740,7 @@ static bool traverse(AST* ptr) {
             subType = typeTable[ptr->type].name->chars;
             compileError(ast.token, "Incompatible %s initializer for an record of '%s'.\n", initType, subType);
           } else {
-
             printf("Impossible initializer type.\n");
-            printKind(PEEK(kindStack));
             printf("trap %d\n", __LINE__);
             exit(1);
           }
@@ -777,7 +783,6 @@ static bool traverse(AST* ptr) {
             }
             PUSH(typeStack, entry.fields[fieldIndex].typeIndex);
             PUSH(kindStack, entry.fields[fieldIndex].kind);
-            printKind(PEEK(kindStack));
             r &= traverse(field.value);
             POP(typeStack);
             POP(kindStack);
@@ -1023,7 +1028,7 @@ static bool traverse(AST* ptr) {
         // Need to pass type upwards to validate field name
         TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
         if (entry.entryType == ENTRY_TYPE_POINTER && typeTable[entry.parent].entryType == ENTRY_TYPE_RECORD) {
-
+          entry = typeTable[entry.parent];
         } else if (entry.entryType != ENTRY_TYPE_RECORD) {
           compileError(ast.token, "Attempting to access field '%s' ", data.name->chars);
           printf("of type '%s' but it is not a record type.\n", typeTable[data.left->type].name->chars);
@@ -1039,6 +1044,7 @@ static bool traverse(AST* ptr) {
           }
         }
         if (!found) {
+          printf("trap %d\n", __LINE__);
           return false;
         }
         ptr->type = entry.fields[fieldIndex].typeIndex;

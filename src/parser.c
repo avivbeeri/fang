@@ -69,7 +69,7 @@ typedef struct {
   Precedence precedence;
 } ParseRule;
 
-static AST* parseType();
+static AST* parseType(bool signature);
 static AST* expression();
 static AST* declaration();
 static AST* statement();
@@ -331,49 +331,55 @@ static AST* asmDecl() {
   return AST_NEW(AST_ASM, output);
 }
 
-static AST* typeFn() {
+static AST* typeFn(bool signature) {
   AST** components = NULL;
   Token start = parser.current;
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'fn' in function pointer type declaration.");
   // Function pointer
   if (!check(TOKEN_RIGHT_PAREN)) {
     do {
-      AST* paramType = parseType();
+      AST* paramType = parseType(true);
       arrput(components, paramType);
     } while (match(TOKEN_COMMA));
   }
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after a function pointer type.");
   consume(TOKEN_COLON, "Expect ':' after a function pointer type");
-  AST* returnType = parseType();
+  AST* returnType = parseType(true);
   return AST_NEW_T(AST_TYPE_FN, start, components, returnType);
 }
 
-static AST* typePtr() {
+static AST* typePtr(bool signature) {
   Token start = parser.previous;
-  AST* subType = parseType();
+  AST* subType = parseType(signature);
   return AST_NEW_T(AST_TYPE_PTR, start, subType);
 }
 
-static AST* typeArray() {
+static AST* typeArray(bool signature) {
   Token start = parser.previous;
-  consume(TOKEN_NUMBER, "Expect array size to be a literal when declaring an array type.");
-  AST* length = number(false);
+  AST* length = NULL;
+  if (!signature) {
+    consume(TOKEN_NUMBER, "Expect array size to be a literal when declaring an array type.");
+    length = number(false);
+  } else if (match(TOKEN_NUMBER)) {
+    errorAtCurrent("Array size literal is not allowed in function definitions.");
+    return AST_NEW(AST_ERROR, 0);
+  }
   consume(TOKEN_RIGHT_BRACKET, "Expect array size literal to be followed by ']'.");
-  AST* resultType = parseType();
+  AST* resultType = parseType(signature);
   return AST_NEW_T(AST_TYPE_ARRAY, start, length, resultType);
 }
 
-static AST* parseType() {
+static AST* parseType(bool signature) {
   if (match(TOKEN_CARET)) {
-    return typePtr();
+    return typePtr(signature);
   } else if (match(TOKEN_LEFT_BRACKET)) {
-    return typeArray();
+    return typeArray(signature);
   } else if (match(TOKEN_LEFT_PAREN)) {
-    AST* subType = parseType();
+    AST* subType = parseType(signature);
     consume(TOKEN_RIGHT_PAREN, "Expect matching ')' in type definition.");
     return subType;
   } else if (match(TOKEN_FN)) {
-    return typeFn();
+    return typeFn(signature);
   } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
     STRING* string = copyString(parser.previous.start, parser.previous.length);
     return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
@@ -383,11 +389,11 @@ static AST* parseType() {
   return AST_NEW(AST_ERROR, 0);
 }
 
-static AST* type() {
+static AST* type(bool signature) {
   Token start = parser.current;
   AST* expr = NULL;
 
-  expr = parseType();
+  expr = parseType(signature);
   if (expr == NULL) {
     expr = AST_NEW(AST_ERROR, 0);
   }
@@ -406,7 +412,7 @@ static AST** argumentList() {
 }
 
 static AST* as(bool canAssign, AST* left) {
-  AST* right = type();
+  AST* right = type(false);
   AST* expr = AST_NEW_T(AST_CAST, parser.previous, left, right);
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
@@ -476,7 +482,7 @@ static AST** fieldList() {
     do {
       STRING* identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
-      AST* typeName = type();
+      AST* typeName = type(false);
       consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
       arrput(params, param);
@@ -490,7 +496,7 @@ static AST* constInit() {
   STRING* global = parseVariable("Expect constant name.");
   Token token = parser.previous;
   consume(TOKEN_COLON, "Expect ':' after identifier.");
-  AST* varType = type();
+  AST* varType = type(false);
 
   consume(TOKEN_EQUAL, "Expect '=' after constant declaration.");
   AST* value;
@@ -510,7 +516,7 @@ static AST* varInit() {
   STRING* global = parseVariable("Expect variable name");
   Token token = parser.previous;
   consume(TOKEN_COLON, "Expect ':' after identifier.");
-  AST* varType = type();
+  AST* varType = type(false);
 
   AST* decl = NULL;
   if (match(TOKEN_EQUAL)) {
@@ -543,7 +549,7 @@ static AST* fnDecl() {
       // TODO: Fix a maximum number of parameters here
       STRING* identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
-      AST* typeName = type();
+      AST* typeName = type(true);
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
       arrput(params, param);
       arrput(paramTypes, typeName);
@@ -551,7 +557,7 @@ static AST* fnDecl() {
   }
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
   consume(TOKEN_COLON,"Expect ':' after function parameter list.");
-  AST* returnType = type();
+  AST* returnType = type(true);
   consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
 
   AST* fnType = AST_NEW(AST_TYPE_FN, paramTypes, returnType);
@@ -824,7 +830,7 @@ static AST* extDecl() {
         // TODO: Fix a maximum number of parameters here
         STRING* identifier = parseVariable("Expect parameter name.");
         consume(TOKEN_COLON, "Expect ':' after parameter name.");
-        AST* typeName = type();
+        AST* typeName = type(true);
         AST* param = AST_NEW(AST_PARAM, identifier, typeName);
         arrput(params, param);
         arrput(paramTypes, typeName);
@@ -832,18 +838,18 @@ static AST* extDecl() {
     }
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after function parameter list");
     consume(TOKEN_COLON,"Expect ':' after function parameter list.");
-    AST* returnType = type();
+    AST* returnType = type(true);
     dataType = AST_NEW(AST_TYPE_FN, paramTypes, returnType);
   } else if (match(TOKEN_CONST)) {
     identifier = parseVariable("Expect identifier");
     consume(TOKEN_COLON, "Expect ':' after parameter name.");
     symbolType = SYMBOL_TYPE_CONSTANT;
-    dataType = type();
+    dataType = type(false);
   } else if (match(TOKEN_VAR)) {
     identifier = parseVariable("Expect identifier");
     consume(TOKEN_COLON, "Expect ':' after parameter name.");
     symbolType = SYMBOL_TYPE_VARIABLE;
-    dataType = type();
+    dataType = type(false);
   } else {
     return AST_NEW_T(AST_ERROR, parser.previous);
   }

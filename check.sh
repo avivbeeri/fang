@@ -35,6 +35,7 @@ allTests() {
   testFile examples/strings.fg "OK" 0 "hello world abcde" 0
   testFile examples/init-array.fg "OK" 0 "656667" 0
   testFile examples/array.fg "OK" 0 "worldhellohellx" 0
+  testFile examples/array-return.fg "OK" 0 "5 zyxwv Hello world 0" 0
   testFile examples/global-string.fg "OK" 0 "c Words are cool" 0
   testFile examples/record-basic.fg "OK" 0 "542Hello" 0
   testFile examples/record-global.fg "OK" 0 "5 42 abcde Hello" 0
