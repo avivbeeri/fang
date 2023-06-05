@@ -39,7 +39,7 @@ allTests() {
   testFile examples/record-basic.fg "OK" 0 "542Hello" 0
   testFile examples/record-global.fg "OK" 0 "5 42 abcde Hello" 0
   testFile examples/record-args.fg "OK" 0 "abcde 5 Hello 10 abcdq Hello world" 0
-  testFile examples/record-init.fg "OK" 0 "abcde 5 Hello" 0
+  testFile examples/record-init.fg "OK" 0 "5 abcde Hello world" 0
 }
 
 testFile() {

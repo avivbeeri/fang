@@ -318,7 +318,7 @@ static int genRef(FILE* f, int leftReg) {
   return leftReg;
 }
 
-static int genFieldOffset(FILE* f, int leftReg, int typeIndex, STRING* fieldName) {
+static int genFieldOffset(FILE* f, int baseReg, int typeIndex, STRING* fieldName) {
   TYPE_TABLE_ENTRY entry = typeTable[typeIndex];
   int offset = 0;
   for (int i = 0; i < arrlen(entry.fields); i++) {
@@ -328,7 +328,9 @@ static int genFieldOffset(FILE* f, int leftReg, int typeIndex, STRING* fieldName
     offset += typeTable[entry.fields[i].typeIndex].byteSize;
   }
 
-  fprintf(f, "  ADD %s, %s, #%i; field offset address\n", regList[leftReg], regList[leftReg], offset);
+  freeRegister(baseReg);
+  int leftReg = allocateRegister();
+  fprintf(f, "  ADD %s, %s, #%i; field offset address\n", regList[leftReg], regList[baseReg], offset);
   return leftReg;
 }
 static int genIndexAddr(FILE* f, int baseReg, int index, int type) {

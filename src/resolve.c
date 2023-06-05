@@ -40,10 +40,6 @@ uint32_t* typeStack = NULL;
 uint32_t* kindStack = NULL;
 bool functionScope = false;
 
-#define PUSH(stack, type) do { arrput(stack, type); } while (false)
-#define POP(stack) do { arrdel(stack, arrlen(stack) - 1); } while (false)
-#define PEEK(stack) (arrlen(stack) == 0 ? 0 : stack[arrlen(stack) - 1])
-
 #define VOID_INDEX 1
 #define BOOL_INDEX 2
 #define U8_INDEX 3
@@ -795,6 +791,7 @@ static bool traverse(AST* ptr) {
               printf("You attempted to assign a value of type '%s' to '%s', which are incompatible.\n", typeTable[field.value->type].name->chars, typeTable[entry.fields[fieldIndex].typeIndex].name->chars);
               return false;
             }
+            data.assignments[i]->type = entry.fields[fieldIndex].typeIndex;
           }
         }
         return r;

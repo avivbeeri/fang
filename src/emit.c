@@ -39,6 +39,7 @@
 PLATFORM p;
 
 STRING** fnStack = NULL;
+uint32_t* rStack = NULL;
 bool lvalue = false;
 
 static void emitGlobal(FILE* f, AST* ptr) {
@@ -302,27 +303,15 @@ static int traverse(FILE* f, AST* ptr) {
           struct AST_INITIALIZER init = data.expr->data.AST_INITIALIZER;
           if (init.initType == INIT_TYPE_RECORD) {
             rvalue = p.genIdentifierAddr(f, symbol);
-
-            for (int i = 0; i < arrlen(init.assignments); i++) {
-              p.holdRegister(rvalue);
-              int value = traverse(f, init.assignments[i]);
-              //int field = p.genFieldOffset(f, rvalue, fieldType, fieldName);
-              p.freeRegister(rvalue);
-            }
+            PUSH(rStack, rvalue);
+            traverse(f, data.expr);
+            POP(rStack);
           } else if (init.initType == INIT_TYPE_ARRAY) {
             int dataType = typeTable[data.type->type].parent;
-            // int storageReg = traverse(f, data.type);
-            //rvalue = p.genAllocStack(f, storageReg, dataType);
             rvalue = p.genIdentifierAddr(f, symbol);
-
-            for (int i = 0; i < arrlen(init.assignments); i++) {
-              p.holdRegister(rvalue);
-              int value = traverse(f, init.assignments[i]);
-              int index = p.genLoad(f, i, 1);
-              int slot = p.genIndexAddr(f, rvalue, index, dataType);
-              int assign = p.genAssign(f, slot, value, dataType);
-              p.freeRegister(assign);
-            }
+            PUSH(rStack, rvalue);
+            traverse(f, data.expr);
+            POP(rStack);
           } else {
             int dataType = data.type->type;
             int baseReg = traverse(f, data.type);
@@ -333,6 +322,39 @@ static int traverse(FILE* f, AST* ptr) {
           rvalue = traverse(f, data.expr);
           return p.genInitSymbol(f, symbol, rvalue);
         }
+      }
+    case AST_INITIALIZER:
+      {
+        struct AST_INITIALIZER init = ast.data.AST_INITIALIZER;
+        int rvalue = PEEK(rStack);
+        p.holdRegister(rvalue);
+        if (init.initType == INIT_TYPE_RECORD) {
+          for (int i = 0; i < arrlen(init.assignments); i++) {
+            p.holdRegister(rvalue);
+            struct AST_PARAM field = init.assignments[i]->data.AST_PARAM;
+            int fieldReg = p.genFieldOffset(f, rvalue, ast.type, field.identifier);
+            PUSH(rStack, fieldReg);
+            int value = traverse(f, field.value);
+            POP(rStack);
+            if (field.value->tag != AST_INITIALIZER) {
+              int assign = p.genAssign(f, fieldReg, value, init.assignments[i]->type);
+              p.freeRegister(assign);
+            }
+          }
+        } else if (init.initType == INIT_TYPE_ARRAY) {
+          int dataType = typeTable[ast.type].parent;
+          for (int i = 0; i < arrlen(init.assignments); i++) {
+            p.holdRegister(rvalue);
+            int index = p.genLoad(f, i, 1);
+            int slot = p.genIndexAddr(f, rvalue, index, dataType);
+            PUSH(rStack, slot);
+            int value = traverse(f, init.assignments[i]);
+            POP(rStack);
+            int assign = p.genAssign(f, slot, value, dataType);
+            p.freeRegister(assign);
+          }
+        }
+        return rvalue;
       }
     case AST_ASSIGNMENT:
       {

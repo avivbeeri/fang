@@ -33,4 +33,8 @@
 
 #include "ds.h"
 
+#define PUSH(stack, type) do { arrput(stack, type); } while (false)
+#define POP(stack) do { arrdel(stack, arrlen(stack) - 1); } while (false)
+#define PEEK(stack) (arrlen(stack) == 0 ? 0 : stack[arrlen(stack) - 1])
+
 #endif
