@@ -37,6 +37,7 @@
 uint32_t* assignStack = NULL;
 uint32_t* evaluateStack = NULL;
 uint32_t* typeStack = NULL;
+uint32_t* kindStack = NULL;
 bool functionScope = false;
 
 #define PUSH(stack, type) do { arrput(stack, type); } while (false)
@@ -56,6 +57,15 @@ bool functionScope = false;
 
 static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
+}
+static void printKind(int kind) {
+  switch (kind) {
+    case SYMBOL_KIND_SCALAR: printf("scalar"); break;
+    case SYMBOL_KIND_POINTER: printf("pointer"); break;
+    case SYMBOL_KIND_RECORD: printf("record"); break;
+    case SYMBOL_KIND_ARRAY: printf("array"); break;
+    case SYMBOL_KIND_FUNCTION: printf("fun"); break;
+  }
 }
 
 static bool isPointer(int type) {
@@ -444,11 +454,14 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r  = traverse(data.type);
         int leftType = data.type->type;
+        SYMBOL_KIND kind = getSymbolKind(leftType);
+        PUSH(kindStack, kind);
         PUSH(typeStack, leftType);
         PUSH(evaluateStack, true);
         r &= traverse(data.expr);
         POP(evaluateStack);
         POP(typeStack);
+        POP(kindStack);
         int rightType = data.expr->type;
         if (!r) {
           return false;
@@ -478,7 +491,6 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_KIND kind = getSymbolKind(leftType);
         SYMBOL_TABLE_STORAGE_TYPE storageType = functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL;
         int index = leftType;
         if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
@@ -534,10 +546,13 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r = traverse(data.type);
         int leftType = data.type->type;
+        SYMBOL_KIND kind = getSymbolKind(leftType);
+        PUSH(kindStack, kind);
         PUSH(typeStack, leftType);
         PUSH(evaluateStack, true);
         r &= traverse(data.expr);
         POP(evaluateStack);
+        POP(kindStack);
         int rightType = data.expr->type;
         POP(typeStack);
 
@@ -554,7 +569,6 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "constant \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_KIND kind = getSymbolKind(leftType);
         if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
         }
@@ -710,19 +724,21 @@ static bool traverse(AST* ptr) {
         struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
         TYPE_TABLE_ENTRY entry = typeTable[PEEK(typeStack)];
         ptr->type = PEEK(typeStack);
-        if ((data.initType == INIT_TYPE_RECORD && entry.entryType != ENTRY_TYPE_RECORD)
-            || (data.initType == INIT_TYPE_ARRAY && entry.entryType != ENTRY_TYPE_ARRAY)) {
+        if ((data.initType == INIT_TYPE_RECORD && PEEK(kindStack) != SYMBOL_KIND_RECORD)
+            || (data.initType == INIT_TYPE_ARRAY && PEEK(kindStack) != SYMBOL_KIND_ARRAY)) {
 
           char* initType = data.initType == INIT_TYPE_ARRAY ? "array" : "record";
           char* subType;
-          if (entry.entryType == ENTRY_TYPE_ARRAY) {
+          if (PEEK(kindStack) == SYMBOL_KIND_ARRAY) {
             subType = typeTable[entry.parent].name->chars;
             compileError(ast.token, "Incompatible %s initializer for an array of '%s'.\n", initType, subType);
-          } else if (entry.entryType == ENTRY_TYPE_RECORD) {
+          } else if (PEEK(kindStack) == SYMBOL_KIND_RECORD) {
             subType = typeTable[ptr->type].name->chars;
             compileError(ast.token, "Incompatible %s initializer for an record of '%s'.\n", initType, subType);
           } else {
+
             printf("Impossible initializer type.\n");
+            printKind(PEEK(kindStack));
             printf("trap %d\n", __LINE__);
             exit(1);
           }
@@ -764,8 +780,11 @@ static bool traverse(AST* ptr) {
               return false;
             }
             PUSH(typeStack, entry.fields[fieldIndex].typeIndex);
+            PUSH(kindStack, entry.fields[fieldIndex].kind);
+            printKind(PEEK(kindStack));
             r &= traverse(field.value);
             POP(typeStack);
+            POP(kindStack);
             if (!r) {
               return false;
             }

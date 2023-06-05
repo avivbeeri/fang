@@ -205,8 +205,17 @@ static AST* record() {
       STRING* name = parseVariable("Expect field value name in record literal.");
       Token paramToken = parser.previous;
       consume(TOKEN_EQUAL, "Expect '=' after field name in record literal.");
-      AST* value = expression();
-      consume(TOKEN_SEMICOLON, "Expect ';' after field in record literal.");
+      AST* value = NULL;
+      if (match(TOKEN_LEFT_BRACE)) {
+        value = record();
+      } else if (match(TOKEN_LEFT_BRACKET)) {
+        value = array();
+      } else {
+        value = expression();
+      }
+      if (!match(TOKEN_SEMICOLON) && !match(TOKEN_COMMA) && !check(TOKEN_RIGHT_BRACE)) {
+        consume(TOKEN_SEMICOLON, "Expect ';' or ',' after field in record initializer.");
+      }
       arrput(assignments, AST_NEW_T(AST_PARAM, paramToken, name, value));
     } while (!check(TOKEN_RIGHT_BRACE));
   }

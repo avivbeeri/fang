@@ -9,8 +9,8 @@ type Bundle {
 
 fn main(): void {
   var s: Bundle = {
-    id = 5,
-    test = ['a', 'b', 'c', 'd', 'e'],
+    id = 5;
+    test = ['a', 'b', 'c', 'd', 'e'];
     s = "Hello world"
   };
 
