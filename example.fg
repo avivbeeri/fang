@@ -18,6 +18,10 @@ fn print(s: Bundle): void {
   printReal(s);
 }
 
+fn arr(s: ^char): void {
+  sys::write(s, 5);
+}
+
 fn main(): void {
   s.id = 5;
   s.s = "Hello world";
@@ -26,9 +30,15 @@ fn main(): void {
   s.test[2] = 'c';
   s.test[3] = 'd';
   s.test[4] = 'e';
+
+  arr(s.test);
+  sys::writeChar(' ');
   print(s);
   sys::writeChar(' ');
+  arr(s.s);
+  sys::writeChar(' ');
   sys::writeI8(s.id);
+  sys::writeChar(' ');
   sys::write(s.test, 5);
   sys::writeChar(' ');
   sys::write(s.s as ^char, 11);

@@ -69,7 +69,9 @@ static bool isCompatible(int type1, int type2) {
   return type1 == type2
     || (isNumeric(type1) && isLiteral(type2))
     || (isLiteral(type1) && isNumeric(type2))
-    || (isLiteral(type1) && isLiteral(type2));
+    || (isLiteral(type1) && isLiteral(type2))
+    || (type1 == STRING_INDEX && type2 == TYPE_TABLE_lookup("^char"))
+    || (type2 == STRING_INDEX && type1 == TYPE_TABLE_lookup("^char"));
 }
 static int coerceType(int type1, int type2) {
   if (type1 == type2) {
