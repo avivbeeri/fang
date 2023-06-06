@@ -18,6 +18,7 @@ fgcc: $(OBJECTS)
 
 example: file.o
 	ld -o example file.o \
+		    -unaligned_pointers suppress \
         -lSystem \
         -syslibroot `xcrun -sdk macosx --show-sdk-path` \
         -e _start \

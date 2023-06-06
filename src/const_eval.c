@@ -99,6 +99,17 @@ static Value traverse(AST* ptr, Environment* context) {
           arrput(values, traverse(data.assignments[i], context));
         }
         return ARRAY(values);
+      } else if (data.initType == INIT_TYPE_RECORD) {
+        STRING** names = NULL;
+        Value* values = NULL;
+        for (int i = 0; i < arrlen(data.assignments); i++) {
+          struct AST_PARAM field = data.assignments[i]->data.AST_PARAM;
+          arrput(names, field.identifier);
+          arrput(values, traverse(field.value, context));
+        }
+        int type = ast.type;
+
+        return RECORD(type, names, values);
       }
       return U8(0);
     }

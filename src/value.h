@@ -45,10 +45,11 @@ typedef enum {
   VAL_ERROR
 } ValueType;
 
+struct Value;
 typedef struct {
   int typeIndex;
-  size_t size;
-  void* data;
+  STRING** names;
+  struct Value* values;
 } Record;
 
 typedef struct Value {
@@ -64,8 +65,8 @@ typedef struct Value {
     STRING* string;
     unsigned char character;
     size_t ptr;
-    Record record;
     struct Value* array;
+    Record record;
   } as;
 } Value;
 
@@ -80,6 +81,7 @@ typedef struct Value {
 #define PTR(value) ((Value){VAL_PTR, {.ptr = value}})
 #define ERROR(value) ((Value){VAL_ERROR, {.ptr = value}})
 #define ARRAY(values) ((Value){VAL_ARRAY, {.array = values}})
+#define RECORD(type, names, values) ((Value){VAL_RECORD, {.record = { .typeIndex = type, .names = names, .values = values } }})
 #define EMPTY() ((Value){VAL_UNDEF, { 0 }})
 
 #define AS_BOOL(value)    ((value).as.boolean)
@@ -109,6 +111,7 @@ typedef struct Value {
 #define IS_ERROR(value)    ((value).type == VAL_ERROR)
 #define IS_EMPTY(value)    ((value).type == VAL_UNDEF)
 #define IS_ARRAY(value)    ((value).type == VAL_ARRAY)
+#define IS_RECORD(value)    ((value).type == VAL_RECORD)
 
 #define IS_NUMERICAL(value) ((value).type <= VAL_PTR)
 

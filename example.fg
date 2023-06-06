@@ -7,45 +7,20 @@ type Bundle {
   test: [5]char;
 }
 
-fn getBundle(): Bundle {
-  var s: Bundle = {
-    id = 5;
-    test = ['a', 'b', 'c', 'd', 'e'];
-    s = "Hello world",
-    alive = false
-  };
-  return s;
-}
-fn getArray(): []char {
-  var s: Bundle = {
-    id = 5;
-    test = ['z', 'y', 'x', 'w', 'v'];
-    s = "Hello world",
-    alive = false
-  };
-  return s.test;
-}
+var s: Bundle = {
+  id = 5;
+  test = ['z', 'y', 'x', 'w', 'v'];
+  s = "Hello world",
+  alive = false
+};
 
 fn main(): void {
-  var g: Bundle;
-  var s: ^Bundle;
-  var c: ^char;
-  s = getBundle() as ^Bundle;
-  c = getArray();
-  g.id = s.id;
-  g.test[0] = c[0];
-  g.test[1] = c[1];
-  g.test[2] = c[2];
-  g.test[3] = c[3];
-  g.test[4] = c[4];
-  g.s = s.s;
-  g.alive = s.alive;
-  sys::writeI8(g.id);
+  sys::writeI8(s.id);
   sys::writeChar(' ');
-  sys::write(g.test, 5);
+  sys::write(s.test, 5);
   sys::writeChar(' ');
-  sys::write(g.s as ^char, 11);
+  sys::write(s.s as ^char, 11);
   sys::writeChar(' ');
-  sys::writeI8(g.alive as i8);
+  sys::writeI8(s.alive as i8);
 }
 

@@ -385,6 +385,44 @@ static void genCompletePreamble(FILE* f) {
   }
 }
 
+static void emitValue(FILE* f, Value value, int typeIndex) {
+  if (IS_RECORD(value)) {
+    Record record = AS_RECORD(value);
+    int typeIndex = record.typeIndex;
+    int len = arrlen(typeTable[typeIndex].fields);
+    for (int i = 0; i < len; i++) {
+      TYPE_TABLE_FIELD_ENTRY field = typeTable[typeIndex].fields[i];
+      bool found = false;
+      int j = 0;
+      for (; j < arrlen(record.names); j++) {
+        if (STRING_equality(field.name, record.names[j])) {
+          found = true;
+          break;
+        }
+      }
+      if (found) {
+        emitValue(f, record.values[j], typeTable[typeIndex].fields[i].typeIndex);
+      } else {
+        fprintf(f, ".octa %zu\n", typeTable[typeTable[typeIndex].fields[i].typeIndex].byteSize);
+      }
+    }
+  } else if (IS_ARRAY(value)) {
+    Value* values = AS_ARRAY(value);
+    // TODO: check for 16bit nums
+    for (int i = 0; i < arrlen(values); i++) {
+      emitValue(f, values[i], typeTable[typeIndex].parent);
+    }
+//    fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
+  } else if (IS_PTR(value)) {
+    fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
+  } else if (typeTable[typeIndex].byteSize == 1 || IS_I8(value) || IS_U8(value) || IS_CHAR(value)) {
+    fprintf(f, ".byte %u\n", AS_I8(value));
+  } else if (IS_EMPTY(value)) {
+    fprintf(f, ".octa 0\n");
+  } else {
+    fprintf(f, ".octa %u\n", AS_I8(value));
+  }
+}
 static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
   fprintf(f, ".global %s\n", symbol(entry));
@@ -400,7 +438,9 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
    // fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
-  if (entry.kind == SYMBOL_KIND_ARRAY) {
+  if (entry.kind == SYMBOL_KIND_RECORD) {
+    emitValue(f, value, 0);
+  } else if (entry.kind == SYMBOL_KIND_ARRAY) {
     if (IS_STRING(value)) {
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(value)->chars);
     } else if (IS_PTR(value)) {
@@ -420,8 +460,6 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       }
       fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
     }
-  } else if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_RECORD) {
-    fprintf(f, ".octa %zu\n", typeTable[entry.typeIndex].byteSize);
   } else {
     if (IS_PTR(value)) {
       fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
@@ -430,6 +468,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     }
   }
 }
+
 
 static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
   uint32_t size = typeTable[entry.typeIndex].byteSize;
@@ -445,7 +484,9 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
-  if (entry.kind == SYMBOL_KIND_ARRAY) {
+  if (entry.kind == SYMBOL_KIND_RECORD) {
+    emitValue(f, value, 0);
+  } else if (entry.kind == SYMBOL_KIND_ARRAY) {
     // RECORD too
     if (IS_EMPTY(value)) {
       fprintf(f, ".fill %i, %i, 0\n", AS_U8(count), size);
@@ -467,8 +508,6 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       }
     }
     fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
-  } else if (typeTable[entry.typeIndex].entryType == ENTRY_TYPE_RECORD) {
-    fprintf(f, ".octa %zu\n", typeTable[entry.typeIndex].byteSize);
   } else {
     if (IS_EMPTY(value)) {
       fprintf(f, ".octa 0\n");
