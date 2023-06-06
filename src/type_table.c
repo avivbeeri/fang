@@ -195,8 +195,15 @@ static TYPE_TABLE_RESULT TYPE_TABLE_calculateTypeSize(int typeIndex, TYPE_VISIT_
 
   size_t total = 0;
   if (entry->parent == 0) {
+    int offset = 0;
     for (int j = 0; j < arrlen(entry->fields); j++) {
       TYPE_TABLE_FIELD_ENTRY field = entry->fields[j];
+      /*
+      if (typeTable[field.typeIndex].entryType == ENTRY_TYPE_POINTER && offset % 8 != 0) {
+
+    //    arrins(entry.fields, (TYPE_TABLE_FIELD_ENTRY){ .name = NULL, .typeIndex = CHAR_INDEX,  })
+      }
+      */
       if (hmgeti(visitSet, field.typeIndex) != -1) {
         printf("Types cannot be recursively defined.\n");
         return (TYPE_TABLE_RESULT){ 0, true };

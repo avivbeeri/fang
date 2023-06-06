@@ -15,12 +15,17 @@ var s: Bundle = {
 };
 
 fn main(): void {
+/*
   sys::writeI8(s.id);
   sys::writeChar(' ');
-  sys::write(s.test, 5);
+//  sys::write(s.test, 5);
   sys::writeChar(' ');
-  sys::write(s.s as ^char, 11);
+//  sys::write(s.s as ^char, 11);
   sys::writeChar(' ');
   sys::writeI8(s.alive as i8);
+*/
+  sys::syscall_write('"');
+  sys::syscall_write(s.s[0]);
+  sys::syscall_write('"');
 }
 
