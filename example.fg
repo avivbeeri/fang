@@ -1,8 +1,8 @@
 import "lib.fg"
 
 type Bundle {
-  alive: bool;
   s: string;
+  alive: bool;
   id: i8;
   test: [5]char;
 }

@@ -68,6 +68,7 @@ static int holdRegister(int r) {
 
 static bool calculateSizes() {
   // Init primitives
+  /*
   TYPE_TABLE_setPrimitiveSize("void", 0);
 
   TYPE_TABLE_setPrimitiveSize("bool", 8);
@@ -83,7 +84,7 @@ static bool calculateSizes() {
   TYPE_TABLE_setPrimitiveSize("string", 8);
   TYPE_TABLE_setPrimitiveSize("fn", 8);
   TYPE_TABLE_setPrimitiveSize("ptr", 8);
-  /*
+  */
   TYPE_TABLE_setPrimitiveSize("void", 0);
 
   TYPE_TABLE_setPrimitiveSize("bool", 1);
@@ -99,7 +100,6 @@ static bool calculateSizes() {
   TYPE_TABLE_setPrimitiveSize("string", 8);
   TYPE_TABLE_setPrimitiveSize("fn", 8);
   TYPE_TABLE_setPrimitiveSize("ptr", 8);
-  */
   return TYPE_TABLE_calculateSizes();
 }
 
@@ -303,7 +303,7 @@ static int genDeref(FILE* f, int baseReg, int typeIndex) {
   freeRegister(baseReg);
   int leftReg = allocateRegister();
   if (size == 1) {
-    fprintf(f, "  LDRUSB %s, [%s] ; deref\n", regList[leftReg], regList[baseReg]);
+    fprintf(f, "  LDURSB %s, [%s] ; deref\n", regList[leftReg], regList[baseReg]);
   } else {
     fprintf(f, "  LDUR %s, [%s]\n ; deref\n", regList[leftReg], regList[baseReg]);
   }
@@ -662,7 +662,7 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
 static int genAssign(FILE* f, int lvalue, int rvalue, int type) {
   int size = typeTable[type].byteSize;
   if (size == 1) {
-    fprintf(f, "  STRUB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
+    fprintf(f, "  STURB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
   } else {
     fprintf(f, "  STUR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
   }
