@@ -69,6 +69,7 @@ char unesc(const char* str, size_t len) {
       case 'f': return '\f';
       case '\\': return '\\';
       case '"': return '\"';
+      case '\'': return '\'';
       case '?': return '\?';
       case 'x': {
         t += 2;
@@ -86,7 +87,7 @@ static size_t strunesc(const char *dest, const char *str, size_t length) {
   char* next = (char*)str + 1;
   size_t newLength = length;
   while (length--) {
-    if (*t == '\\' && *next == '"') {
+    if (*t == '\\' && (*next == '"' || *next == '\'')) {
       *s = '"';
       length--;
       newLength--;

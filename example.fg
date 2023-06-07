@@ -21,7 +21,10 @@ fn main(): void {
   var q: Bundle;
   q = construct();
 
+  sys::writeChar('\'');
   sys::writeI8(b.id);
+  sys::writeChar('\'');
   sys::writeI8(q.id);
+  sys::writeChar('\'');
 }
 
