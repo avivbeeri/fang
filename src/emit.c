@@ -365,6 +365,14 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         int r = traverse(f, data.expr);
         int l = traverse(f, data.lvalue);
+        if (typeTable[data.lvalue->type].entryType == ENTRY_TYPE_RECORD && typeTable[data.expr->type].entryType == ENTRY_TYPE_RECORD) {
+          printf("COPY RECORD\n");
+          return 0;
+        }
+        if (typeTable[data.lvalue->type].entryType == ENTRY_TYPE_ARRAY && typeTable[data.expr->type].entryType == ENTRY_TYPE_ARRAY) {
+          printf("COPY ARRAY\n");
+          return 0;
+        }
         return p.genAssign(f, l, r, data.lvalue->type);
       }
     case AST_IDENTIFIER:
@@ -602,7 +610,6 @@ static int traverse(FILE* f, AST* ptr) {
         }
         if (ast.rvalue) {
           if (field.kind == SYMBOL_KIND_ARRAY || field.kind == SYMBOL_KIND_RECORD) {
-            printf("dot record");
             ptr->rvalue = false;
           } else {
             r = p.genDeref(f, r, ast.type);

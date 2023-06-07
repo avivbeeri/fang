@@ -1,19 +1,26 @@
 import "lib.fg"
 
-var q: [10][10]char;
-
-fn doStuff(): void {
-  sys::writeChar('d');
+type Bundle {
+  s: string;
+  alive: bool;
+  id: i8;
+  test: [5]char;
 }
 
-fn doOtherStuff(): void {
-  sys::writeChar('o');
-}
+var q: [10]Bundle;
 
 fn main(): void {
-  var f: fn (): void = doStuff;
-  f();
-  f = doOtherStuff;
-  f();
+
+  q[3].id = 12;
+  q[3].alive = false;
+  q[3].s = "News";
+  q[3].test[0] = 'w';
+  q[3].test[1] = 'o';
+  q[3].test[2] = 'r';
+  q[3].test[3] = 'l';
+  q[3].test[4] = 'd';
+
+  q[4] = q[3];
+
 }
 
