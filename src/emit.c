@@ -618,7 +618,7 @@ static int traverse(FILE* f, AST* ptr) {
         int left = traverse(f, data.left);
         int index = traverse(f, data.index);
         if (ast.rvalue) {
-          if (typeTable[typeIndex].entryType != ENTRY_TYPE_RECORD) {
+          if (typeTable[typeIndex].entryType != ENTRY_TYPE_ARRAY && typeTable[typeIndex].entryType != ENTRY_TYPE_RECORD) {
             left = p.genIndexRead(f, left, index, typeIndex);
           } else {
             left = p.genIndexAddr(f, left, index, typeIndex);

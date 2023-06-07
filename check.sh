@@ -36,6 +36,7 @@ allTests() {
   testFile examples/init-array.fg "OK" 0 "656667" 0
   testFile examples/array.fg "OK" 0 "worldhellohellx" 0
   testFile examples/array-return.fg "OK" 0 "5 zyxwv Hello world 0" 0
+  testFile examples/array-nested.fg "OK" 0 "a" 0
   testFile examples/global-string.fg "OK" 0 "c Words are cool" 0
   testFile examples/record-basic.fg "OK" 0 "542Hello" 0
   testFile examples/record-global.fg "OK" 0 "5 42 abcde Hello" 0
@@ -44,6 +45,7 @@ allTests() {
   testFile examples/record-global-var-init.fg "OK" 0 "5 zyxwv Hello world 0" 0
   testFile examples/record-global-const-init.fg "OK" 0 "5 zyxwv Hello world 0" 0
   testFile examples/array-of-struct.fg "OK" 0 "42 hello Words 1"$'\n'"12 world News 0" 0
+  testFile examples/function-pointer.fg "OK" 0 "do" 0
 }
 
 testFile() {

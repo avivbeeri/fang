@@ -1,0 +1,10 @@
+import "lib.fg"
+
+var q: [10][10]char;
+
+fn main(): void {
+  q[5][5] = 'a';
+  
+  sys::writeChar(q[5][5]);
+}
+
