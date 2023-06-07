@@ -1,0 +1,50 @@
+import "lib.fg"
+
+type Bundle {
+  s: string;
+  alive: bool;
+  id: i8;
+  test: [5]char;
+}
+
+var q: [10]Bundle;
+
+fn main(): void {
+
+  q[3].id = 12;
+  q[3].alive = false;
+  q[3].s = "News";
+  q[3].test[0] = 'w';
+  q[3].test[1] = 'o';
+  q[3].test[2] = 'r';
+  q[3].test[3] = 'l';
+  q[3].test[4] = 'd';
+
+  q[4].id = 42;
+  q[4].alive = true;
+  q[4].s = "Words";
+  q[4].test[0] = 'h';
+  q[4].test[1] = 'e';
+  q[4].test[2] = 'l';
+  q[4].test[3] = 'l';
+  q[4].test[4] = 'o';
+
+
+  sys::writeI8(q[4].id);
+  sys::writeChar(' ');
+  sys::write(q[4].test, 5);
+  sys::writeChar(' ');
+  sys::write(q[4].s as ^char, 5);
+  sys::writeChar(' ');
+  sys::writeI8(q[4].alive as i8);
+  sys::writeChar('\n');
+
+  sys::writeI8(q[3].id);
+  sys::writeChar(' ');
+  sys::write(q[3].test, 5);
+  sys::writeChar(' ');
+  sys::write(q[3].s as ^char, 4);
+  sys::writeChar(' ');
+  sys::writeI8(q[3].alive as i8);
+}
+

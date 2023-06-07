@@ -43,6 +43,7 @@ allTests() {
   testFile examples/record-init.fg "OK" 0 "5 abcde Hello world" 0
   testFile examples/record-global-var-init.fg "OK" 0 "5 zyxwv Hello world 0" 0
   testFile examples/record-global-const-init.fg "OK" 0 "5 zyxwv Hello world 0" 0
+  testFile examples/array-of-struct.fg "OK" 0 "42 hello Words 1"$'\n'"12 world News 0" 0
 }
 
 testFile() {
