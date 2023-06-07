@@ -7,7 +7,7 @@ type Bundle {
   test: [5]char;
 }
 
-var s: Bundle = {
+const s: Bundle = {
   id = 5;
   test = ['z', 'y', 'x', 'w', 'v'];
   s = "Hello world",
