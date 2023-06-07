@@ -57,7 +57,8 @@ static void emitGlobal(FILE* f, AST* ptr) {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         STRING* identifier = data.identifier;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
-        p.genGlobalVariable(f, symbol, EMPTY(), EMPTY());
+        Value count = evalConstTree(data.type);
+        p.genGlobalVariable(f, symbol, EMPTY(), count);
         break;
       }
     case AST_VAR_INIT:
@@ -601,7 +602,8 @@ static int traverse(FILE* f, AST* ptr) {
         }
         if (ast.rvalue) {
           if (field.kind == SYMBOL_KIND_ARRAY || field.kind == SYMBOL_KIND_RECORD) {
-
+            printf("dot record");
+            ptr->rvalue = false;
           } else {
             r = p.genDeref(f, r, ast.type);
           }
@@ -616,7 +618,11 @@ static int traverse(FILE* f, AST* ptr) {
         int left = traverse(f, data.left);
         int index = traverse(f, data.index);
         if (ast.rvalue) {
-          left = p.genIndexRead(f, left, index, typeIndex);
+          if (typeTable[typeIndex].entryType != ENTRY_TYPE_RECORD) {
+            left = p.genIndexRead(f, left, index, typeIndex);
+          } else {
+            left = p.genIndexAddr(f, left, index, typeIndex);
+          }
         } else {
           left = p.genIndexAddr(f, left, index, typeIndex);
         }

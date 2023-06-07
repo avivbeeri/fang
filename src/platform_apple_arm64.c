@@ -139,13 +139,15 @@ static int genLoad(FILE* f, int i, int type) {
   // return the register index
   int size = typeTable[type].byteSize;
   int r = allocateRegister();
-  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+  if (typeTable[type].byteSize == 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     int8_t value = i;
     fprintf(f, "  MOV %s, #%" PRIi8 "\n", regList[r], value);
-  } else {
+  } else if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
     fprintf(f, "  MOV %s, #%i\n", regList[r], i);
     fprintf(f, "  LSL %s, %s, #56\n", regList[r], regList[r]);
     fprintf(f, "  ASR %s, %s, #56\n", regList[r], regList[r]);
+  } else {
+    fprintf(f, "  MOV %s, #%i\n", regList[r], i);
   }
   return r;
 }
@@ -270,8 +272,10 @@ static int genLoadRegister(FILE* f, int i, int r) {
   r = r == -1 ? allocateRegister() : r;
   int8_t value = i;
   fprintf(f, "  MOV %s, #%"PRIi8"\n", regList[r], value);
-  fprintf(f, "  LSL %s, %s, #56\n", regList[r], regList[r]);
-  fprintf(f, "  ASR %s, %s, #56\n", regList[r], regList[r]);
+  if (typeTable[U8_INDEX].byteSize != 1){
+    fprintf(f, "  LSL %s, %s, #56\n", regList[r], regList[r]);
+    fprintf(f, "  ASR %s, %s, #56\n", regList[r], regList[r]);
+  }
   return r;
 }
 
@@ -385,7 +389,7 @@ static int genIndexRead(FILE* f, int baseReg, int index, int type) {
   freeRegister(baseReg);
   freeRegister(index);
   int leftReg = allocateRegister();
-  fprintf(f, "  ADD %s, %s, %s; index address\n", regList[leftReg], regList[baseReg], regList[index]);
+  fprintf(f, "  ADD %s, %s, %s; index read\n", regList[leftReg], regList[baseReg], regList[index]);
   return genDeref(f, leftReg, type);
 }
 
@@ -528,7 +532,11 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   } else if (entry.kind == SYMBOL_KIND_ARRAY) {
     // RECORD too
     if (IS_EMPTY(value)) {
-      fprintf(f, ".fill %i, %i, 0\n", AS_U8(count), size);
+      if (size > 8) {
+        fprintf(f, ".zero %i\n", AS_U8(count) * size);
+      } else {
+        fprintf(f, ".fill %i, %i, 0\n", AS_U8(count), size);
+      }
     } else if (IS_STRING(value)) {
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(value)->chars);
     } else if (IS_PTR(value)) {
@@ -692,12 +700,12 @@ static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
 
 static int genAdd(FILE* f, int leftReg, int rightReg, int type) {
   int size = typeTable[type].byteSize;
-  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  LSL %s, %s, #56\n", regList[leftReg], regList[leftReg]);
     fprintf(f, "  LSL %s, %s, #56\n", regList[rightReg], regList[rightReg]);
   }
   fprintf(f, "  ADDS %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  ASR %s, %s, #56\n", regList[leftReg], regList[leftReg]);
   }
 
@@ -706,12 +714,12 @@ static int genAdd(FILE* f, int leftReg, int rightReg, int type) {
 }
 
 static int genSub(FILE* f, int leftReg, int rightReg, int type) {
-  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  LSL %s, %s, #56\n", regList[leftReg], regList[leftReg]);
     fprintf(f, "  LSL %s, %s, #56\n", regList[rightReg], regList[rightReg]);
   }
   fprintf(f, "  SUBS %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  ASR %s, %s, #56\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
@@ -721,7 +729,7 @@ static int genSub(FILE* f, int leftReg, int rightReg, int type) {
 static int genMul(FILE* f, int leftReg, int rightReg, int type) {
   int size = typeTable[type].byteSize;
   fprintf(f, "  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
@@ -730,7 +738,7 @@ static int genMul(FILE* f, int leftReg, int rightReg, int type) {
 static int genDiv(FILE* f, int leftReg, int rightReg, int type) {
   int size = typeTable[type].byteSize;
   fprintf(f, "  SDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
