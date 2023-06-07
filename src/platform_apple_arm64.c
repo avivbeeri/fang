@@ -671,7 +671,7 @@ static int genCopyObject(FILE* f, int lvalue, int rvalue, int type) {
   int size = typeTable[type].byteSize;
   int r = allocateRegister();
   for (int i = 0; i < size; i++) {
-    fprintf(f, "  LDRSB %s, [%s], #1\n", storeRegList[r], regList[rvalue]);
+    fprintf(f, "  LDRB %s, [%s], #1\n", storeRegList[r], regList[rvalue]);
     fprintf(f, "  STRB %s, [%s], #1 ; copy\n", storeRegList[r], regList[lvalue]);
   }
   freeRegister(r);

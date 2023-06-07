@@ -1,6 +1,7 @@
 import "lib.fg"
 
 type Inside {
+  c: string;
   data: i8;
 }
 

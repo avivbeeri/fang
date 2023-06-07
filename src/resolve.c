@@ -325,8 +325,8 @@ static bool resolveTopLevel(AST* ptr) {
           if (typeTable[index].entryType == ENTRY_TYPE_ARRAY) {
             int subType = typeTable[index].parent;
             STRING* name = typeTable[subType].name;
-            STRING* typeName = STRING_prepend(name, "^");
-            index = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+            STRING* typeName = STRING_prepend(name, "[]");
+            index = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, subType, NULL);
             if (field.value->tag == AST_TYPE) {
               Value length = evalConstTree(field.value);
               if (!IS_EMPTY(length) && !IS_ERROR(length)) {
