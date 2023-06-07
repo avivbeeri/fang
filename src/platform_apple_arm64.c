@@ -667,6 +667,17 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   }
   return rvalue;
 }
+static int genCopyObject(FILE* f, int lvalue, int rvalue, int type) {
+  int size = typeTable[type].byteSize;
+  int r = allocateRegister();
+  for (int i = 0; i < size; i++) {
+    fprintf(f, "  LDRSB %s, [%s], #1\n", storeRegList[r], regList[rvalue]);
+    fprintf(f, "  STRB %s, [%s], #1 ; copy\n", storeRegList[r], regList[lvalue]);
+  }
+  freeRegister(r);
+  freeRegister(rvalue);
+  return lvalue;
+}
 static int genAssign(FILE* f, int lvalue, int rvalue, int type) {
   int size = typeTable[type].byteSize;
   if (size == 1) {
@@ -870,6 +881,7 @@ PLATFORM platform_apple_arm64 = {
   .genIdentifier = genIdentifier,
   .genRaw = genRaw,
   .genAssign = genAssign,
+  .genCopyObject = genCopyObject,
   .genAdd = genAdd,
   .genSub = genSub,
   .genMul = genMul,
@@ -902,6 +914,7 @@ PLATFORM platform_apple_arm64 = {
   .genGlobalVariable = genGlobalVariable,
   .genGlobalConstant = genGlobalConstant,
   .genFieldOffset = genFieldOffset
+
 
 };
 

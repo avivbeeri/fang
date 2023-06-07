@@ -367,11 +367,11 @@ static int traverse(FILE* f, AST* ptr) {
         int l = traverse(f, data.lvalue);
         if (typeTable[data.lvalue->type].entryType == ENTRY_TYPE_RECORD && typeTable[data.expr->type].entryType == ENTRY_TYPE_RECORD) {
           printf("COPY RECORD\n");
-          return 0;
+          return p.genCopyObject(f, l, r, data.lvalue->type);
         }
         if (typeTable[data.lvalue->type].entryType == ENTRY_TYPE_ARRAY && typeTable[data.expr->type].entryType == ENTRY_TYPE_ARRAY) {
           printf("COPY ARRAY\n");
-          return 0;
+          return p.genCopyObject(f, l, r, data.lvalue->type);
         }
         return p.genAssign(f, l, r, data.lvalue->type);
       }
