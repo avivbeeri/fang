@@ -139,19 +139,21 @@ static int genLoad(FILE* f, int i, int type) {
   // return the register index
   int size = typeTable[type].byteSize;
   int r = allocateRegister();
-  if (size == 1) {
+  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
     int8_t value = i;
     fprintf(f, "  MOV %s, #%" PRIi8 "\n", regList[r], value);
   } else {
     fprintf(f, "  MOV %s, #%i\n", regList[r], i);
+    fprintf(f, "  LSL %s, %s, #56\n", regList[r], regList[r]);
+    fprintf(f, "  ASR %s, %s, #56\n", regList[r], regList[r]);
   }
   return r;
 }
-static void genCmp(FILE* f, int r, int jumpLabel) {
+static void genEqual(FILE* f, int r, int jumpLabel) {
   fprintf(f, "  TBZ %s, #0, %s\n", regList[r], labelPrint(jumpLabel));
   freeRegister(r);
 }
-static void genCmpNotEqual(FILE* f, int r, int jumpLabel) {
+static void genNotEqual(FILE* f, int r, int jumpLabel) {
   fprintf(f, "  TBNZ %s, #0, %s\n", regList[r], labelPrint(jumpLabel));
   freeRegister(r);
 }
@@ -266,7 +268,10 @@ static int genLoadRegister(FILE* f, int i, int r) {
   // Load i into a register
   // return the register index
   r = r == -1 ? allocateRegister() : r;
-  fprintf(f, "  MOV %s, #%i\n", regList[r], i);
+  int8_t value = i;
+  fprintf(f, "  MOV %s, #%"PRIi8"\n", regList[r], value);
+  fprintf(f, "  LSL %s, %s, #56\n", regList[r], regList[r]);
+  fprintf(f, "  ASR %s, %s, #56\n", regList[r], regList[r]);
   return r;
 }
 
@@ -298,9 +303,9 @@ static int genDeref(FILE* f, int baseReg, int typeIndex) {
   freeRegister(baseReg);
   int leftReg = allocateRegister();
   if (size == 1) {
-    fprintf(f, "  LDRSB %s, [%s] ; deref\n", regList[leftReg], regList[baseReg]);
+    fprintf(f, "  LDRUSB %s, [%s] ; deref\n", regList[leftReg], regList[baseReg]);
   } else {
-    fprintf(f, "  LDR %s, [%s]\n ; deref\n", regList[leftReg], regList[baseReg]);
+    fprintf(f, "  LDUR %s, [%s]\n ; deref\n", regList[leftReg], regList[baseReg]);
   }
   return leftReg;
 }
@@ -640,16 +645,16 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
 
     if (typeTable[entry.typeIndex].byteSize == 1) {
-      fprintf(f, "  STRB %s, [%s]\n", storeRegList[rvalue], regList[r]);
+      fprintf(f, "  STURB %s, [%s]\n", storeRegList[rvalue], regList[r]);
     } else {
-      fprintf(f, "  STR %s, [%s]\n", regList[rvalue], regList[r]);
+      fprintf(f, "  STUR %s, [%s]\n", regList[rvalue], regList[r]);
     }
     freeRegister(r);
   } else if (entry.storageType == STORAGE_TYPE_LOCAL || entry.storageType == STORAGE_TYPE_LOCAL_OBJECT) {
     if (typeTable[entry.typeIndex].byteSize == 1) {
-      fprintf(f, "  STRB %s, %s\n", storeRegList[rvalue], symbol(entry));
+      fprintf(f, "  STURB %s, %s\n", storeRegList[rvalue], symbol(entry));
     } else {
-      fprintf(f, "  STR %s, %s\n", regList[rvalue], symbol(entry));
+      fprintf(f, "  STUR %s, %s\n", regList[rvalue], symbol(entry));
     }
   }
   return rvalue;
@@ -657,9 +662,9 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
 static int genAssign(FILE* f, int lvalue, int rvalue, int type) {
   int size = typeTable[type].byteSize;
   if (size == 1) {
-    fprintf(f, "  STRB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
+    fprintf(f, "  STRUB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
   } else {
-    fprintf(f, "  STR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
+    fprintf(f, "  STUR %s, [%s] ; assign\n", regList[rvalue], regList[lvalue]);
   }
   freeRegister(lvalue);
   return rvalue;
@@ -687,17 +692,28 @@ static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
 
 static int genAdd(FILE* f, int leftReg, int rightReg, int type) {
   int size = typeTable[type].byteSize;
-  fprintf(f, "  ADD %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
   if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
-    fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
+    fprintf(f, "  LSL %s, %s, #56\n", regList[leftReg], regList[leftReg]);
+    fprintf(f, "  LSL %s, %s, #56\n", regList[rightReg], regList[rightReg]);
+  }
+  fprintf(f, "  ADDS %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+    fprintf(f, "  ASR %s, %s, #56\n", regList[leftReg], regList[leftReg]);
   }
 
   freeRegister(rightReg);
   return leftReg;
 }
 
-static int genSub(FILE* f, int leftReg, int rightReg) {
-  fprintf(f, "  SUB %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+static int genSub(FILE* f, int leftReg, int rightReg, int type) {
+  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+    fprintf(f, "  LSL %s, %s, #56\n", regList[leftReg], regList[leftReg]);
+    fprintf(f, "  LSL %s, %s, #56\n", regList[rightReg], regList[rightReg]);
+  }
+  fprintf(f, "  SUBS %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
+  if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
+    fprintf(f, "  ASR %s, %s, #56\n", regList[leftReg], regList[leftReg]);
+  }
   freeRegister(rightReg);
   return leftReg;
 }
@@ -781,32 +797,37 @@ static int genNeg(FILE* f, int valueReg) {
   return valueReg;
 }
 
+static int genCmp(FILE* f, int left, int right) {
+  fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
+  freeRegister(right);
+  return left;
+}
 static int genGreaterThan(FILE* f, int left, int right) {
   fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
   fprintf(f, "  CSET %s, gt\n", regList[left]);
-  fprintf(f, "  AND %s, %s, #255\n", regList[left], regList[left]);
+  fprintf(f, "  AND %s, %s, #0x1\n", regList[left], regList[left]);
   return left;
 }
 static int genEqualGreaterThan(FILE* f, int left, int right) {
   fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
   fprintf(f, "  CSET %s, ge\n", regList[left]);
-  fprintf(f, "  AND %s, %s, #255\n", regList[left], regList[left]);
+  fprintf(f, "  AND %s, %s, #0x1\n", regList[left], regList[left]);
   return left;
 }
 static int genEqualLessThan(FILE* f, int left, int right) {
   fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   freeRegister(right);
   fprintf(f, "  CSET %s, le\n", regList[left]);
-  fprintf(f, "  AND %s, %s, #255\n", regList[left], regList[left]);
+  fprintf(f, "  AND %s, %s, #0x1\n", regList[left], regList[left]);
   return left;
 }
 
 static int genLessThan(FILE* f, int left, int right) {
   fprintf(f, "  CMP %s, %s\n", regList[left], regList[right]);
   fprintf(f, "  CSET %s, lt\n", regList[left]);
-  fprintf(f, "  AND %s, %s, #255\n", regList[left], regList[left]);
+  fprintf(f, "  AND %s, %s, #0x1\n", regList[left], regList[left]);
   return left;
 }
 static int genLogicalNot(FILE* f, int valueReg) {
@@ -852,7 +873,8 @@ PLATFORM platform_apple_arm64 = {
   .genAllocStack = genAllocStack,
   .labelCreate = labelCreate,
   .genCmp = genCmp,
-  .genCmpNotEqual = genCmpNotEqual,
+  .genEqual = genEqual,
+  .genNotEqual = genNotEqual,
   .genJump = genJump,
   .genLabel = genLabel,
   .genLessThan = genLessThan,

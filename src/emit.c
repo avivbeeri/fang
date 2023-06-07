@@ -41,6 +41,9 @@ PLATFORM p;
 STRING** fnStack = NULL;
 uint32_t* rStack = NULL;
 bool lvalue = false;
+static bool isPointer(int type) {
+  return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY || type == 8;
+}
 
 static void emitGlobal(FILE* f, AST* ptr) {
   AST ast = *ptr;
@@ -177,7 +180,7 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_IF data = ast.data.AST_IF;
         int r = traverse(f, data.condition);
         int nextLabel = p.labelCreate();
-        p.genCmp(f, r, nextLabel);
+        p.genEqual(f, r, nextLabel);
         traverse(f, data.body);
 
         if (data.elseClause != NULL) {
@@ -203,7 +206,7 @@ static int traverse(FILE* f, AST* ptr) {
         p.genLabel(f, loopLabel);
         if (data.condition != NULL) {
           int r = traverse(f, data.condition);
-          p.genCmp(f, r, exitLabel);
+          p.genEqual(f, r, exitLabel);
           p.freeAllRegisters();
         }
         traverse(f, data.body);
@@ -223,7 +226,7 @@ static int traverse(FILE* f, AST* ptr) {
         p.genLabel(f, loopLabel);
         traverse(f, data.body);
         int r = traverse(f, data.condition);
-        p.genCmpNotEqual(f, r, loopLabel);
+        p.genNotEqual(f, r, loopLabel);
         return -1;
       }
     case AST_WHILE:
@@ -233,7 +236,7 @@ static int traverse(FILE* f, AST* ptr) {
         int exitLabel = p.labelCreate();
         p.genLabel(f, loopLabel);
         int r = traverse(f, data.condition);
-        p.genCmp(f, r, exitLabel);
+        p.genEqual(f, r, exitLabel);
         traverse(f, data.body);
         p.genJump(f, loopLabel);
         p.genLabel(f, exitLabel);
@@ -433,11 +436,11 @@ static int traverse(FILE* f, AST* ptr) {
           int doneLabel = p.labelCreate();
           int falseLabel = p.labelCreate();
           int l = traverse(f, data.left);
-          p.genCmp(f, l, falseLabel);
+          p.genEqual(f, l, falseLabel);
           // if (!l), go to done
           int r = traverse(f, data.right);
           // if (!r) go to done
-          p.genCmp(f, r, falseLabel);
+          p.genEqual(f, r, falseLabel);
           r = p.genLoad(f, 1, 1);
           p.genJump(f, doneLabel);
           p.genLabel(f, falseLabel);
@@ -450,11 +453,11 @@ static int traverse(FILE* f, AST* ptr) {
           int doneLabel = p.labelCreate();
           int trueLabel = p.labelCreate();
           int l = traverse(f, data.left);
-          p.genCmpNotEqual(f, l, trueLabel);
+          p.genNotEqual(f, l, trueLabel);
           // if (l), go to done
           int r = traverse(f, data.right);
           // if (r) go to done
-          p.genCmpNotEqual(f, r, trueLabel);
+          p.genNotEqual(f, r, trueLabel);
           r = p.genLoad(f, 0, 1);
           p.genJump(f, doneLabel);
           p.genLabel(f, trueLabel);
@@ -466,6 +469,27 @@ static int traverse(FILE* f, AST* ptr) {
 
         int l = traverse(f, data.left);
         int r = traverse(f, data.right);
+        if (isPointer(data.left->type) || isPointer(data.right->type)) {
+          if (isPointer(data.right->type)) {
+            int swap = l;
+            l = r;
+            r = swap;
+          }
+          switch (data.op) {
+            case OP_ADD:
+              {
+                int scale = p.genLoad(f, typeTable[typeTable[ptr->type].parent].byteSize, ptr->type);
+                r = p.genMul(f, r, scale, ptr->type);
+                return p.genAdd(f, l, r, ptr->type);
+              }
+            case OP_SUB:
+              {
+                int scale = p.genLoad(f, typeTable[typeTable[ptr->type].parent].byteSize, ptr->type);
+                r = p.genMul(f, r, scale, ptr->type);
+                return p.genSub(f, l, r, ptr->type);
+              }
+          }
+        }
         switch (data.op) {
           case OP_ADD:
             {
@@ -473,7 +497,7 @@ static int traverse(FILE* f, AST* ptr) {
             }
           case OP_SUB:
             {
-              return p.genSub(f, l, r);
+              return p.genSub(f, l, r, ptr->type);
             }
           case OP_MUL:
             {
@@ -511,8 +535,8 @@ static int traverse(FILE* f, AST* ptr) {
             {
               int doneLabel = p.labelCreate();
               int trueLabel = p.labelCreate();
-              r = p.genSub(f, l, r);
-              p.genCmp(f, r, trueLabel);
+              r = p.genCmp(f, l, r);
+              p.genEqual(f, r, trueLabel);
               r = p.genLoad(f, 1, 1);
               p.genJump(f, doneLabel);
               p.genLabel(f, trueLabel);
@@ -524,8 +548,8 @@ static int traverse(FILE* f, AST* ptr) {
             {
               int doneLabel = p.labelCreate();
               int trueLabel = p.labelCreate();
-              r = p.genSub(f, l, r);
-              p.genCmp(f, r, trueLabel);
+              r = p.genCmp(f, l, r);
+              p.genEqual(f, r, trueLabel);
               r = p.genLoad(f, 0, 1);
               p.genJump(f, doneLabel);
               p.genLabel(f, trueLabel);

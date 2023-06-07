@@ -52,7 +52,7 @@ typedef struct {
   int (*genIdentifier)(FILE* f, SYMBOL_TABLE_ENTRY symbol);
   int (*genAssign)(FILE* f, int, int, int);
   int (*genAdd)(FILE* f, int, int, int);
-  int (*genSub)(FILE* f, int, int);
+  int (*genSub)(FILE* f, int, int, int);
   int (*genMul)(FILE* f, int, int, int);
   int (*genDiv)(FILE* f, int, int, int);
   int (*genMod)(FILE* f, int, int);
@@ -76,8 +76,9 @@ typedef struct {
   void (*genExit)(FILE* f, int);
   void (*genRaw)(FILE* f, const char*);
   int (*labelCreate)();
-  void (*genCmp)(FILE* f, int, int);
-  void (*genCmpNotEqual)(FILE* f, int, int);
+  int (*genCmp)(FILE* f, int, int);
+  void (*genEqual)(FILE* f, int, int);
+  void (*genNotEqual)(FILE* f, int, int);
   void (*genJump)(FILE* f, int);
   void (*genLabel)(FILE* f, int);
   int (*genRef)(FILE* f, int);

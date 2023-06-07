@@ -25,7 +25,7 @@ fn main(): void {
   sys::writeI8(s.alive as i8);
 */
   sys::syscall_write('"');
-  sys::syscall_write(s.s[0]);
+  sys::syscall_write(s.test[0]);
   sys::syscall_write('"');
 }
 
