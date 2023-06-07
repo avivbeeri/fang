@@ -473,7 +473,7 @@ static bool traverse(AST* ptr) {
 
         bool result = r && isCompatible(leftType, rightType);
         if ((typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD)
-            && data.expr->tag != AST_INITIALIZER) {
+            && leftType != rightType) {
 
           if (leftType == STRING_INDEX && data.expr->type == STRING_INDEX) {
 

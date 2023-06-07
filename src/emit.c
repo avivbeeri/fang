@@ -322,6 +322,10 @@ static int traverse(FILE* f, AST* ptr) {
             rvalue = baseReg;
           }
           return rvalue;
+        } else if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_RECORD || typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+          int l = p.genIdentifierAddr(f, symbol);
+          rvalue = traverse(f, data.expr);
+          return p.genCopyObject(f, l, rvalue, symbol.typeIndex);
         } else {
           rvalue = traverse(f, data.expr);
           return p.genInitSymbol(f, symbol, rvalue);
