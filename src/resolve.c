@@ -507,7 +507,7 @@ static bool traverse(AST* ptr) {
           int subType = typeTable[leftType].parent;
           STRING* name = typeTable[subType].name;
           STRING* typeName = STRING_prepend(name, "^");
-          index = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+          // index = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
         }
         if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
@@ -842,8 +842,6 @@ static bool traverse(AST* ptr) {
 
         if (parent.entryType == ENTRY_TYPE_ARRAY || parent.entryType == ENTRY_TYPE_RECORD) {
           ptr->rvalue = false;
-        } else if (parent.entryType == ENTRY_TYPE_POINTER) {
-          ptr->rvalue = true;
         } else {
           ptr->rvalue = PEEK(evaluateStack);
         }

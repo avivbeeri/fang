@@ -45,6 +45,10 @@ static bool isPointer(int type) {
   return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY || type == 8;
 }
 
+static void printEntry(TYPE_TABLE_ENTRY entry) {
+  printf("%s\n", entry.name->chars);
+}
+
 static void emitGlobal(FILE* f, AST* ptr) {
   AST ast = *ptr;
   switch(ast.tag) {
@@ -419,16 +423,15 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_DEREF data = ast.data.AST_DEREF;
         int r = traverse(f, data.expr);
         int typeIndex = ast.type;
-        /*
-        if (typeTable[data.expr->type].entryType == ENTRY_TYPE_ARRAY) {
-          return r;
-        }
-        if (typeTable[data.expr->type].entryType == ENTRY_TYPE_RECORD) {
-          return r;
-        }
-        */
+        int ptrType = data.expr->type;
         if (ast.rvalue) {
-          return p.genDeref(f, r, ptr->type);
+          return p.genDeref(f, r, typeIndex);
+        }
+        printEntry(typeTable[data.expr->type]);
+
+        if (typeTable[data.expr->type].entryType == ENTRY_TYPE_POINTER && (typeTable[typeIndex].entryType != ENTRY_TYPE_RECORD && typeTable[typeIndex].entryType != ENTRY_TYPE_ARRAY)) {
+          r = p.genDeref(f, r, ptrType);
+          typeIndex = typeTable[ptrType].parent;
         }
         return r;
       }
