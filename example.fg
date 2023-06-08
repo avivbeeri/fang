@@ -1,7 +1,7 @@
 import "lib.fg"
 
 type Inside {
-  b: bool;
+  c: string;
   data: i8;
 }
 
@@ -20,22 +20,16 @@ fn construct(): Bundle {
     id = 42;
     data = {
       data = -32;
-      b = true;
     };
   };
   return s;
 }
 
 fn main(): void {
+  var b: Bundle = construct();
   var q: Bundle;
   q = construct();
-  var t: ^Bundle = ^q;
-  var n: i8 = 54;
-  var p: ^i8 = ^n;
-  @p = 96;
 
-
-  sys::writeI8((@t).data.data);
-  sys::writeI8((@p));
+  sys::writeI8(q.data.data);
 }
 

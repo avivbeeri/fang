@@ -671,6 +671,46 @@ static int genCopyObject(FILE* f, int lvalue, int rvalue, int type) {
   int size = typeTable[type].byteSize;
   int current = size;
   int r = allocateRegister();
+  int i = 0;
+  while (current >= 8) {
+    i++;
+    current -= 8;
+  }
+  if (i > 0) {
+    fprintf(f, "  .rept %i ; copy\n", i);
+    fprintf(f, "  LDR %s, [%s], #8\n", regList[r], regList[rvalue]);
+    fprintf(f, "  STR %s, [%s], #8 ; copy\n", regList[r], regList[lvalue]);
+    fprintf(f, "  .endr\n");
+  }
+  i = 0;
+  while (current >= 4) {
+    i++;
+    current -= 4;
+  }
+  if (i > 0) {
+    fprintf(f, "  .rept %i ; copy\n", i);
+    fprintf(f, "  LDR %s, [%s], #4\n", storeRegList[r], regList[rvalue]);
+    fprintf(f, "  STR %s, [%s], #4 ; copy\n", storeRegList[r], regList[lvalue]);
+    fprintf(f, "  .endr\n");
+  }
+  i = 0;
+  while (current >= 2) {
+    i++;
+    current -= 2;
+  }
+  if (i > 0) {
+    fprintf(f, "  .rept %i ; copy\n", i);
+    fprintf(f, "  LDRH %s, [%s], #2\n", storeRegList[r], regList[rvalue]);
+    fprintf(f, "  STRH %s, [%s], #2 ; copy\n", storeRegList[r], regList[lvalue]);
+    fprintf(f, "  .endr\n");
+  }
+  if (current > 0) {
+    fprintf(f, "  .rept %i ; copy\n", current);
+    fprintf(f, "  LDRB %s, [%s], #1\n", storeRegList[r], regList[rvalue]);
+    fprintf(f, "  STRB %s, [%s], #1 ; copy\n", storeRegList[r], regList[lvalue]);
+    fprintf(f, "  .endr\n");
+  }
+  /*
   while (current > 0) {
     if (current >= 8) {
       current -= 8;
@@ -690,6 +730,7 @@ static int genCopyObject(FILE* f, int lvalue, int rvalue, int type) {
       fprintf(f, "  STRB %s, [%s], #1 ; copy\n", storeRegList[r], regList[lvalue]);
     }
   }
+  */
   freeRegister(r);
   freeRegister(rvalue);
   return lvalue;
