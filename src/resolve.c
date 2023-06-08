@@ -816,25 +816,36 @@ static bool traverse(AST* ptr) {
         STRING* typeName = STRING_prepend(name, "^");
         ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        ptr->rvalue = false;
         return r;
       }
     case AST_DEREF:
       {
         struct AST_DEREF data = ast.data.AST_DEREF;
         PUSH(evaluateStack, !PEEK(assignStack));
-        ptr->rvalue = PEEK(evaluateStack);
         bool r = traverse(data.expr);
         POP(evaluateStack);
         int subType = data.expr->type;
         TYPE_TABLE_ENTRY entry = typeTable[subType];
+
         if (entry.parent == 0) {
           printf("trap %d\n", __LINE__);
           return false;
         }
         ptr->type = typeTable[subType].parent;
+        TYPE_TABLE_ENTRY parent = typeTable[ptr->type];
         if (ptr->type == 0) {
           printf("trap %d\n", __LINE__);
           return false;
+        }
+        printf("%i -> %zu\n", subType, entry.parent);
+
+        if (parent.entryType == ENTRY_TYPE_ARRAY || parent.entryType == ENTRY_TYPE_RECORD) {
+          ptr->rvalue = false;
+        } else if (parent.entryType == ENTRY_TYPE_POINTER) {
+          ptr->rvalue = true;
+        } else {
+          ptr->rvalue = PEEK(evaluateStack);
         }
         return r;
       }

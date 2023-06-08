@@ -1,0 +1,7 @@
+import "lib.fg"
+
+fn main(): void {
+  var n: i8 = 54;
+  sys::writeI8((@^n));
+}
+

@@ -419,9 +419,14 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_DEREF data = ast.data.AST_DEREF;
         int r = traverse(f, data.expr);
         int typeIndex = ast.type;
-        if (typeTable[typeIndex].entryType != ENTRY_TYPE_POINTER) {
+        /*
+        if (typeTable[data.expr->type].entryType == ENTRY_TYPE_ARRAY) {
           return r;
         }
+        if (typeTable[data.expr->type].entryType == ENTRY_TYPE_RECORD) {
+          return r;
+        }
+        */
         if (ast.rvalue) {
           return p.genDeref(f, r, ptr->type);
         }

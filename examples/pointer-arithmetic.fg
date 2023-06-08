@@ -1,6 +1,7 @@
 import "lib.fg"
 
 type Inside {
+  b: bool;
   data: i8;
 }
 
@@ -19,6 +20,7 @@ fn construct(): Bundle {
     id = 42;
     data = {
       data = -32;
+      b = true;
     };
   };
   return s;
