@@ -670,10 +670,27 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
 static int genCopyObject(FILE* f, int lvalue, int rvalue, int type) {
   int size = typeTable[type].byteSize;
   int r = allocateRegister();
-  for (int i = 0; i < size; i++) {
+  if (size % 8 == 0) {
+    size /= 8;
+    fprintf(f, ".rept %i\n", size);
+    fprintf(f, "  LDR %s, [%s], #8\n", storeRegList[r], regList[rvalue]);
+    fprintf(f, "  STR %s, [%s], #8 ; copy\n", storeRegList[r], regList[lvalue]);
+  } else if (size % 4 == 0) {
+    size /= 4;
+    fprintf(f, ".rept %i\n", size);
+    fprintf(f, "  LDRW %s, [%s], #4\n", storeRegList[r], regList[rvalue]);
+    fprintf(f, "  STRW %s, [%s], #4 ; copy\n", storeRegList[r], regList[lvalue]);
+  } else if (size % 2 == 0) {
+    size /= 2;
+    fprintf(f, ".rept %i\n", size);
+    fprintf(f, "  LDRH %s, [%s], #2\n", storeRegList[r], regList[rvalue]);
+    fprintf(f, "  STRH %s, [%s], #2 ; copy\n", storeRegList[r], regList[lvalue]);
+  } else {
+    fprintf(f, ".rept %i\n", size);
     fprintf(f, "  LDRB %s, [%s], #1\n", storeRegList[r], regList[rvalue]);
     fprintf(f, "  STRB %s, [%s], #1 ; copy\n", storeRegList[r], regList[lvalue]);
   }
+  fprintf(f, ".endr\n");
   freeRegister(r);
   freeRegister(rvalue);
   return lvalue;
