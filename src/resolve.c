@@ -95,6 +95,12 @@ static int coerceType(int type1, int type2) {
     return typeTable[type1].byteSize > typeTable[type2].byteSize ? type1 : type2;
   }
   */
+  if (isPointer(type1)) {
+    return type1;
+  }
+  if (isPointer(type2)) {
+    return type2;
+  }
 
   return NUMERICAL_INDEX;
 }
@@ -816,6 +822,7 @@ static bool traverse(AST* ptr) {
       {
         struct AST_DEREF data = ast.data.AST_DEREF;
         PUSH(evaluateStack, !PEEK(assignStack));
+        ptr->rvalue = PEEK(evaluateStack);
         bool r = traverse(data.expr);
         POP(evaluateStack);
         int subType = data.expr->type;

@@ -1,0 +1,39 @@
+import "lib.fg"
+
+type Inside {
+  data: i8;
+}
+
+type Bundle {
+  s: string;
+  alive: bool;
+  id: i8;
+  test: [5]char;
+  data: Inside;
+}
+
+fn construct(): Bundle {
+  var s: Bundle = {
+    s = "hello world";
+    alive = true;
+    id = 42;
+    data = {
+      data = -32;
+    };
+  };
+  return s;
+}
+
+fn main(): void {
+  var q: Bundle;
+  q = construct();
+  var t: ^Bundle = ^q;
+  var n: i8 = 54;
+  var p: ^i8 = ^n;
+  @p = 96;
+
+
+  sys::writeI8((@t).data.data);
+  sys::writeI8((@p));
+}
+

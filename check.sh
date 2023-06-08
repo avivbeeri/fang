@@ -47,6 +47,7 @@ allTests() {
   testFile examples/record-global-const-init.fg "OK" 0 "5 zyxwv Hello world 0" 0
   testFile examples/array-of-struct.fg "OK" 0 "42 hello Words 1"$'\n'"12 world News 0" 0
   testFile examples/function-pointer.fg "OK" 0 "do" 0
+  testFile examples/pointer-arithmetic.fg "OK" 0 "-3296" 0
   testFile examples/record-copy-init.fg "OK" 0 "4242" 0
 }
 

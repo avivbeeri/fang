@@ -1,34 +1,17 @@
 import "lib.fg"
 
-type Inside {
-  data: i8;
+fn main(): i8 {
+  var len: u8 = 5;
+  var g: [5]char = [ 'w', 'o', 'r','l','d' ];
+  sys::write(g as ^char, len);
+  g[0] = 'h';
+  g[1] = 'e';
+  g[2] = 'l';
+  g[3] = 'l';
+  g[4] = 'o';
+  sys::write(g as ^char, len);
+  @(g+4) = 'x';
+  sys::write(g as ^char, len);
+
+  return 0;
 }
-
-type Bundle {
-  s: string;
-  alive: bool;
-  id: i8;
-  test: [5]char;
-  data: Inside;
-}
-
-fn construct(): Bundle {
-  var s: Bundle = {
-    s = "hello world";
-    alive = true;
-    id = 42;
-    data = {
-      data = -32;
-    };
-  };
-  return s;
-}
-
-fn main(): void {
-  var b: Bundle = construct();
-  var q: Bundle;
-  q = construct();
-
-  sys::writeI8(q.data.data);
-}
-
