@@ -25,63 +25,68 @@
 
 #ifndef type_table_h
 #define type_table_h
-#include "memory.h"
-#include "symbol_table.h"
 
-enum TYPE_TABLE_ENTRY_STATUS {
+typedef enum TYPE_ENTRY_STATUS {
+  STATUS_UNKNOWN,
   STATUS_DECLARED,
   STATUS_DEFINED,
   STATUS_COMPLETE,
   STATUS_EXTERNAL
-};
+} TYPE_ENTRY_STATUS;
 
-typedef struct TYPE_TABLE_FIELD_ENTRY {
-  STRING* name;
-  uint32_t typeIndex;
-  uint32_t elementCount;
-//  This is needed to derive something, but I'd prefer it not to be
-//  SYMBOL_KIND kind;
-} TYPE_TABLE_FIELD_ENTRY;
-
-
-enum TYPE_TABLE_ENTRY_TYPE {
+typedef enum TYPE_ENTRY_TYPE {
   ENTRY_TYPE_UNKNOWN,
   ENTRY_TYPE_PRIMITIVE,
   ENTRY_TYPE_POINTER,
   ENTRY_TYPE_FUNCTION,
-  ENTRY_TYPE_ARRAY,
+  ENTRY_TYPE_ARRAY
   ENTRY_TYPE_RECORD,
-  ENTRY_TYPE_UNION
-};
+  ENTRY_TYPE_UNION,
+} TYPE_ENTRY_TYPE;
 
-typedef struct TYPE_TABLE_ENTRY {
+typedef uint32_t TYPE_ID;
+
+typedef struct TYPE_FIELD_ENTRY {
+  TYPE_ID typeIndex;
+  STRING* name; // Nullable
+  uint8_t elementCount;
+  // Not sure why I want this right now
+  // Hoping we can do without it.
+  // SYMBOL_KIND kind;
+} TYPE_FIELD_ENTRY;
+
+typedef struct TYPE_ENTRY {
+  TYPE_ID index;
+  STRING* module;
   STRING* name;
-  enum TYPE_TABLE_ENTRY_STATUS status;
-  enum TYPE_TABLE_ENTRY_TYPE entryType;
+
+  TYPE_ENTRY_STATUS status;
+  TYPE_ENTRY_TYPE entryType;
   // Pointers and arrays have "parents" (really the pointed type)
-  size_t parent;
-  size_t container;
-  size_t byteSize;
-  // Functions have a return type
-  int returnType;
-  TYPE_TABLE_FIELD_ENTRY* fields;
-} TYPE_TABLE_ENTRY;
+  // Function types use fields for parameters, the last field is the return type
+  // Records just store fields
+  // Unions store the types that overlap
+  // Pointers and arrays store their parent type
+  TYPE_FIELD_ENTRY* fields;
+} TYPE_ENTRY;
 
-extern TYPE_TABLE_ENTRY* typeTable;
-
-TYPE_TABLE_ENTRY* TYPE_TABLE_init(void);
-int TYPE_TABLE_define(int index, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
-int TYPE_TABLE_defineCallable(int index, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields, int returnType);
-int TYPE_TABLE_declare(STRING* name);
-int TYPE_TABLE_registerPrimitive(STRING* name);
-bool TYPE_TABLE_setPrimitiveSize(char* name, int size);
-int TYPE_TABLE_registerType(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent, TYPE_TABLE_FIELD_ENTRY* fields);
-int TYPE_TABLE_registerArray(STRING* name, enum TYPE_TABLE_ENTRY_TYPE entryType, size_t parent);
+TYPE_ENTRY* TYPE_TABLE_init(void);
 void TYPE_TABLE_free(void);
-bool TYPE_TABLE_calculateSizes();
+
+TYPE_ID TYPE_declare(STRING* module, STRING* name);
+TYPE_ID TYPE_define(TYPE_ID index, TYPE_ENTRY_TYPE entryType, TYPE_FIELD_ENTRY* fields);
+TYPE_ID TYPE_registerPrimitive(STRING* name);
+
+TYPE_ENTRY TYPE_get(TYPE_ID index);
+TYPE_ENTRY TYPE_getByName(char* name);
+bool TYPE_hasParent(TYPE_ID index);
+TYPE_ID TYPE_getParent(TYPE_ID index);
+
+/*
+   // These belong in the platform layer
+bool TYPE_setPrimitiveSize(char* name, int size);
+bool TYPE_calculateSizes();
+*/
 
 void TYPE_TABLE_report();
-TYPE_TABLE_ENTRY TYPE_TABLE_get(TYPE_ID index);
-int TYPE_TABLE_lookup(char* name);
-int TYPE_TABLE_lookupWithString(STRING* name);
 #endif
