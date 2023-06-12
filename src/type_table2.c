@@ -31,6 +31,82 @@
 
 // typedef struct { int key; bool value; } TYPE_VISIT_SET;
 // typedef struct { int size; bool error; } TYPE_TABLE_RESULT;
+// struct { char *key; TYPE_ID value; }* aliasTable = NULL;
 
 TYPE_ENTRY* typeTable = NULL;
-struct { char *key; TYPE_ID value; }* aliasTable = NULL;
+
+TYPE_ENTRY* TYPE_TABLE_init(void) {
+  return typeTable;
+}
+
+void TYPE_TABLE_free(void) {
+  // Do nothing for now, we'll clean this up later
+}
+
+TYPE_ID TYPE_declare(STRING* module, STRING* name) {
+  TYPE_ID id = arrlen(typeTable);
+  arrput(typeTable, ((TYPE_ENTRY){
+    .index = id,
+    .module = module,
+    .name = name,
+    .entryType = ENTRY_TYPE_UNKNOWN,
+    .fields = NULL,
+    .status = STATUS_DECLARED,
+  }));
+  return id;
+}
+
+TYPE_ID TYPE_define(TYPE_ID index, TYPE_ENTRY_TYPE entryType, TYPE_FIELD_ENTRY* fields) {
+  if (index > arrlen(typeTable) - 1) {
+    return 0;
+  }
+
+  typeTable[index].status = STATUS_DEFINED;
+  typeTable[index].entryType = entryType;
+  typeTable[index].fields = fields;
+
+  return index;
+}
+
+TYPE_ID TYPE_registerPrimitive(STRING* name) {
+  TYPE_ID id = arrlen(typeTable);
+  arrput(typeTable, ((TYPE_ENTRY){
+        .index = id,
+        .module = NULL,
+        .name = name,
+        .entryType = ENTRY_TYPE_PRIMITIVE,
+        .fields = NULL,
+        .status = STATUS_COMPLETE
+  }));
+  return id;
+}
+
+TYPE_ENTRY TYPE_get(TYPE_ID index) {
+  return typeTable[index];
+}
+
+TYPE_ENTRY TYPE_getByName(char* module, char* name) {
+  return typeTable[0];
+}
+
+bool TYPE_hasParent(TYPE_ID index) {
+  TYPE_ENTRY entry = typeIndex[index];
+  if (entry.entryType != ENTRY_TYPE_ARRAY && entry.entryType != ENTRY_TYPE_POINTER) {
+    return false;
+  }
+
+  return true;
+}
+
+TYPE_ID TYPE_getParent(TYPE_ID index) {
+  if (TYPE_hasParent(index)) {
+    return 0;
+  }
+  TYPE_ENTRY entry = typeIndex[index];
+  return entry.fields[0].typeIndex;
+}
+
+void TYPE_TABLE_report(void) {
+
+}
+
