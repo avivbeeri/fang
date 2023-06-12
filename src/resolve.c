@@ -56,16 +56,16 @@ static bool isLiteral(int type) {
 }
 static void printKind(int kind) {
   switch (kind) {
-    case SYMBOL_KIND_SCALAR: printf("scalar"); break;
-    case SYMBOL_KIND_POINTER: printf("pointer"); break;
-    case SYMBOL_KIND_RECORD: printf("record"); break;
-    case SYMBOL_KIND_ARRAY: printf("array"); break;
-    case SYMBOL_KIND_FUNCTION: printf("fun"); break;
+    case ENTRY_TYPE_PRIMITIVE: printf("primitive"); break;
+    case ENTRY_TYPE_POINTER: printf("pointer"); break;
+    case ENTRY_TYPE_RECORD: printf("record"); break;
+    case ENTRY_TYPE_ARRAY: printf("array"); break;
+    case ENTRY_TYPE_FUNCTION: printf("fun"); break;
   }
 }
 
 static bool isPointer(int type) {
-  return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY || type == STRING_INDEX;
+  return TYPE_get(type).entryType == ENTRY_TYPE_POINTER || TYPE_get(type).entryType == ENTRY_TYPE_ARRAY || type == STRING_INDEX;
 }
 static bool isNumeric(int type) {
   return (type <= NUMERICAL_INDEX && type > BOOL_INDEX) || isPointer(type);
@@ -76,9 +76,9 @@ static bool isCompatible(int type1, int type2) {
     || (isNumeric(type1) && isLiteral(type2))
     || (isLiteral(type1) && isNumeric(type2))
     || (isLiteral(type1) && isLiteral(type2))
-    || (type1 == STRING_INDEX && type2 == TYPE_TABLE_lookup("^char"))
-    || (type2 == STRING_INDEX && type1 == TYPE_TABLE_lookup("^char"))
-    || (isPointer(type1) && isPointer(type2) && typeTable[type1].parent == typeTable[type2].parent);
+    || (type1 == STRING_INDEX && type2 == TYPE_getIdByName(NULL, "^char"))
+    || (type2 == STRING_INDEX && type1 == TYPE_getIdByName(NULL, "^char"))
+    || (isPointer(type1) && isPointer(type2) && TYPE_getParentId(type1) == TYPE_getParentId(type2));
 }
 static int coerceType(int type1, int type2) {
   if (type1 == type2) {
@@ -92,7 +92,7 @@ static int coerceType(int type1, int type2) {
   }
   /*
   if (isNumeric(type1) && isNumeric(type2)) {
-    return typeTable[type1].byteSize > typeTable[type2].byteSize ? type1 : type2;
+    return TYPE_get(type1).byteSize > TYPE_get(type2).byteSize ? type1 : type2;
   }
   */
   if (isPointer(type1)) {
@@ -129,22 +129,6 @@ static int valueToType(Value value) {
   return 0;
 }
 
-static SYMBOL_KIND getSymbolKind(int typeIndex) {
-  if (typeTable[typeIndex].entryType == ENTRY_TYPE_FUNCTION) {
-    return SYMBOL_KIND_FUNCTION;
-  }
-  if (typeTable[typeIndex].entryType == ENTRY_TYPE_ARRAY) {
-    return SYMBOL_KIND_ARRAY;
-  }
-  if (typeTable[typeIndex].entryType == ENTRY_TYPE_RECORD) {
-    return SYMBOL_KIND_RECORD;
-  }
-  if (typeTable[typeIndex].entryType == ENTRY_TYPE_POINTER) {
-    return SYMBOL_KIND_POINTER;
-  }
-  return SYMBOL_KIND_SCALAR;
-}
-
 static bool traverse(AST* ptr);
 static int resolveType(AST* ptr) {
   if (ptr == NULL) {
@@ -162,7 +146,7 @@ static int resolveType(AST* ptr) {
     case AST_TYPE_NAME:
       {
         struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-        int i = TYPE_TABLE_lookupWithString(data.typeName);
+        int i = TYPE_getIdByName(NULL, data.typeName->chars);
         ptr->type = i;
         return i;
       }
@@ -173,15 +157,19 @@ static int resolveType(AST* ptr) {
         // Get type name from typetable
         // prepend ^
         // store in type table and record index
-        STRING* name = typeTable[subType].name;
+        STRING* name = TYPE_get(subType).name;
         STRING* typeName = STRING_prepend(name, "^");
-        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+        STRING* module = NULL;
+        ptr->type = TYPE_declare(module, typeName);
+        TYPE_FIELD_ENTRY* field = NULL;
+        arrput(field, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
+        TYPE_define(ptr->type, ENTRY_TYPE_POINTER, field);
         return ptr->type;
       }
     case AST_TYPE_FN:
       {
         struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
-        TYPE_TABLE_FIELD_ENTRY* entries = NULL;
+        TYPE_FIELD_ENTRY* entries = NULL;
         // generate the fn type string here
         size_t bufLen = 1;
         size_t strLen = 0;
@@ -189,20 +177,22 @@ static int resolveType(AST* ptr) {
         APPEND_STR(buffer, bufLen, strLen, "fn (");
         for (int i = 0; i < arrlen(data.params); i++) {
           int index = resolveType(data.params[i]);
-          APPEND_STR(buffer, bufLen, strLen, "%s", typeTable[index].name->chars);
-          arrput(entries, ((TYPE_TABLE_FIELD_ENTRY){ NULL, index }));
+          APPEND_STR(buffer, bufLen, strLen, "%s", TYPE_get(index).name->chars);
+          arrput(entries, ((TYPE_FIELD_ENTRY){ index, NULL, 0 }));
           if (i < arrlen(data.params) - 1) {
             APPEND_STR(buffer, bufLen, strLen, ", ");
           }
         }
         APPEND_STR(buffer, bufLen, strLen, "): ");
         int returnType = resolveType(data.returnType);
-        APPEND_STR(buffer, bufLen, strLen, "%s", typeTable[returnType].name->chars);
+        arrput(entries, ((TYPE_FIELD_ENTRY){ returnType, NULL, 0 }));
+        APPEND_STR(buffer, bufLen, strLen, "%s", TYPE_get(returnType).name->chars);
 
         STRING* typeName = copyString(buffer, strLen);
         FREE(char, buffer);
-        ptr->type = TYPE_TABLE_declare(typeName);
-        TYPE_TABLE_defineCallable(ptr->type, FN_INDEX, entries, returnType);
+        STRING* module = NULL;
+        ptr->type = TYPE_declare(module, typeName);
+        TYPE_define(ptr->type, ENTRY_TYPE_FUNCTION, entries);
         return ptr->type;
       }
     case AST_TYPE_ARRAY:
@@ -219,12 +209,16 @@ static int resolveType(AST* ptr) {
         }
 
         int subType = resolveType(data.subType);
-        STRING* name = typeTable[subType].name;
+        STRING* name = TYPE_get(subType).name;
 
         STRING* ptrName = STRING_prepend(name, "^");
-        TYPE_TABLE_registerType(ptrName, ENTRY_TYPE_POINTER, subType, NULL);
+
         STRING* typeName = STRING_prepend(name, "[]");
-        ptr->type = TYPE_TABLE_registerArray(typeName, ENTRY_TYPE_ARRAY, subType);
+        STRING* module = NULL;
+        ptr->type = TYPE_declare(module, typeName);
+        TYPE_FIELD_ENTRY* subTypeField = NULL;
+        arrput(subTypeField, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
+        TYPE_define(ptr->type, ENTRY_TYPE_ARRAY, subTypeField);
         return ptr->type;
       }
   }
@@ -269,14 +263,12 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_EXT data = ast.data.AST_EXT;
         int resolvedType = resolveType(data.type);
         if (data.symbolType == SYMBOL_TYPE_FUNCTION) {
-          SYMBOL_TABLE_declareWithKind(data.identifier, data.symbolType, SYMBOL_KIND_FUNCTION, resolvedType, STORAGE_TYPE_GLOBAL);
+          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
         } else {
-          SYMBOL_KIND kind = getSymbolKind(resolvedType);
+          TYPE_ENTRY_TYPE kind = TYPE_getKind(resolvedType);
 
-          if (data.symbolType == SYMBOL_TYPE_CONSTANT) {
-            SYMBOL_TABLE_declareWithKind(data.identifier, data.symbolType, kind, resolvedType, STORAGE_TYPE_GLOBAL);
-          } else if (data.symbolType == SYMBOL_TYPE_VARIABLE) {
-            SYMBOL_TABLE_declareWithKind(data.identifier, data.symbolType, kind, resolvedType, STORAGE_TYPE_GLOBAL);
+          if (data.symbolType == SYMBOL_TYPE_CONSTANT || data.symbolType == SYMBOL_TYPE_VARIABLE) {
+            SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
           }
         }
         return true;
@@ -314,8 +306,9 @@ static bool resolveTopLevel(AST* ptr) {
       {
         struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
         STRING* identifier = data.name;
-        int index = TYPE_TABLE_declare(identifier);
-        TYPE_TABLE_FIELD_ENTRY* fields = NULL;
+        STRING* module = NULL;
+        int index = TYPE_declare(module, identifier);
+        TYPE_FIELD_ENTRY* fields = NULL;
         // should we resolve type fields before main verification?
 
         for (int i = 0; i < arrlen(data.fields); i++) {
@@ -326,13 +319,18 @@ static bool resolveTopLevel(AST* ptr) {
             arrfree(fields);
             return false;
           }
-          SYMBOL_KIND kind = getSymbolKind(index);
+          TYPE_ENTRY_TYPE kind = TYPE_getKind(index);
           int elementCount = 0;
-          if (typeTable[index].entryType == ENTRY_TYPE_ARRAY) {
-            int subType = typeTable[index].parent;
-            STRING* name = typeTable[subType].name;
+          if (TYPE_get(index).entryType == ENTRY_TYPE_ARRAY) {
+            int subType = TYPE_getParentId(index);
+            STRING* name = TYPE_get(subType).name;
+            printf("%i\n", subType);
             STRING* typeName = STRING_prepend(name, "[]");
-            index = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_ARRAY, subType, NULL);
+            STRING* module = NULL;
+            index = TYPE_declare(module, typeName);
+            TYPE_FIELD_ENTRY* parent = NULL;
+            arrput(parent, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
+            TYPE_define(index, ENTRY_TYPE_ARRAY, parent);
             if (field.value->tag == AST_TYPE) {
               Value length = evalConstTree(field.value);
               if (!IS_EMPTY(length) && !IS_ERROR(length)) {
@@ -340,14 +338,13 @@ static bool resolveTopLevel(AST* ptr) {
               }
             }
           }
-          arrput(fields, ((TYPE_TABLE_FIELD_ENTRY){
+          arrput(fields, ((TYPE_FIELD_ENTRY){
                 .typeIndex = index,
                 .name = field.identifier,
-                .elementCount = elementCount,
-                .kind = kind
+                .elementCount = elementCount
           } ));
         }
-        TYPE_TABLE_define(index, ENTRY_TYPE_RECORD, 0, fields);
+        TYPE_define(index, ENTRY_TYPE_RECORD, fields);
         return true;
       }
     case AST_FN:
@@ -358,7 +355,7 @@ static bool resolveTopLevel(AST* ptr) {
           compileError(ast.token, "function \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_TABLE_define(data.identifier, SYMBOL_TYPE_FUNCTION, SYMBOL_KIND_FUNCTION, ptr->type, STORAGE_TYPE_GLOBAL);
+        SYMBOL_TABLE_define(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type, STORAGE_TYPE_GLOBAL);
         return true;
       }
     default:
@@ -410,7 +407,7 @@ static bool traverse(AST* ptr) {
           printTree(data.value);
           printf("'\n");
           printf("%*s", indent, "");
-          printf("Expected type '%s' but instead found '%s'\n", typeTable[PEEK(typeStack)].name->chars, typeTable[data.value->type].name->chars);
+          printf("Expected type '%s' but instead found '%s'\n", TYPE_get(PEEK(typeStack)).name->chars, TYPE_get(data.value->type).name->chars);
           return false;
         }
         return r;
@@ -464,7 +461,7 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r  = traverse(data.type);
         int leftType = data.type->type;
-        SYMBOL_KIND kind = getSymbolKind(leftType);
+        TYPE_ENTRY_TYPE kind = TYPE_getKind(leftType);
         PUSH(kindStack, kind);
         PUSH(typeStack, leftType);
         PUSH(evaluateStack, true);
@@ -478,14 +475,14 @@ static bool traverse(AST* ptr) {
         }
 
         bool result = r && isCompatible(leftType, rightType);
-        if ((typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD)
+        if ((TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD)
             && leftType != rightType) {
 
           if (leftType == STRING_INDEX && data.expr->type == STRING_INDEX) {
 
           } else {
             char* initType = data.expr->data.AST_INITIALIZER.initType == INIT_TYPE_ARRAY ? "array" : "record";
-            compileError(ast.token, "Attempting to initialize %s using literal '", typeTable[leftType].name->chars);
+            compileError(ast.token, "Attempting to initialize %s using literal '", TYPE_get(leftType).name->chars);
             printTree(data.expr);
             printf("'.\n");
             return false;
@@ -494,7 +491,7 @@ static bool traverse(AST* ptr) {
         if (!isCompatible(leftType, rightType)) {
           int indent = compileError(data.expr->token, "Incompatible initialization for variable '%s'", data.identifier->chars);
           printf("%*s", indent, "");
-          printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          printf("Expected type '%s' but instead found '%s'\n", TYPE_get(leftType).name->chars, TYPE_get(rightType).name->chars);
           return false;
         }
         if (SYMBOL_TABLE_getCurrentOnly(identifier).defined) {
@@ -503,18 +500,22 @@ static bool traverse(AST* ptr) {
         }
         SYMBOL_TABLE_STORAGE_TYPE storageType = functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL;
         int index = leftType;
-        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
-          int subType = typeTable[leftType].parent;
-          STRING* name = typeTable[subType].name;
+        if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY) {
+          int subType = TYPE_getParentId(leftType);
+          STRING* name = TYPE_get(subType).name;
           STRING* typeName = STRING_prepend(name, "^");
-          // index = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+          STRING* module = NULL;
+          index = TYPE_declare(module, typeName);
+          TYPE_FIELD_ENTRY* field = NULL;
+          arrput(field, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
+          TYPE_define(index, ENTRY_TYPE_POINTER, field);
         }
-        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD) {
+        if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
         }
-        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, kind, index, storageType);
+        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, index, storageType);
         int elementCount = 0;
-        if (kind == SYMBOL_KIND_ARRAY) {
+        if (kind == ENTRY_TYPE_ARRAY) {
           Value length = evalConstTree(data.type);
           if (!IS_EMPTY(length) && !IS_ERROR(length)) {
             elementCount = getNumber(length);
@@ -541,12 +542,12 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "variable \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        SYMBOL_KIND kind = getSymbolKind(typeIndex);
+        TYPE_ENTRY_TYPE kind = TYPE_getKind(typeIndex);
         SYMBOL_TABLE_STORAGE_TYPE storageType = functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL;
-        if (typeTable[typeIndex].entryType == ENTRY_TYPE_ARRAY || typeTable[typeIndex].entryType == ENTRY_TYPE_RECORD) {
+        if (TYPE_get(typeIndex).entryType == ENTRY_TYPE_ARRAY || TYPE_get(typeIndex).entryType == ENTRY_TYPE_RECORD) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
         }
-        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, kind, typeIndex, storageType);
+        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, typeIndex, storageType);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
       }
@@ -556,7 +557,7 @@ static bool traverse(AST* ptr) {
         STRING* identifier = data.identifier;
         bool r = traverse(data.type);
         int leftType = data.type->type;
-        SYMBOL_KIND kind = getSymbolKind(leftType);
+        TYPE_ENTRY_TYPE kind = TYPE_getKind(leftType);
         PUSH(kindStack, kind);
         PUSH(typeStack, leftType);
         PUSH(evaluateStack, true);
@@ -570,7 +571,7 @@ static bool traverse(AST* ptr) {
         if (!isCompatible(leftType, rightType)) {
           int indent = compileError(data.expr->token, "Incompatible initialization for constant value '%s'", data.identifier->chars);
           printf("%*s", indent, "");
-          printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          printf("Expected type '%s' but instead found '%s'\n", TYPE_get(leftType).name->chars, TYPE_get(rightType).name->chars);
           return false;
         }
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
@@ -579,25 +580,29 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "constant \"%s\" is already defined.\n", data.identifier->chars);
           return false;
         }
-        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY || typeTable[leftType].entryType == ENTRY_TYPE_RECORD) {
+        if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
         }
-        if (typeTable[leftType].entryType == ENTRY_TYPE_ARRAY) {
+        if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY) {
           Value length = evalConstTree(data.type);
 
-          int subType = typeTable[leftType].parent;
-          STRING* name = typeTable[subType].name;
+          int subType = TYPE_getParentId(leftType);
+          STRING* name = TYPE_get(subType).name;
           STRING* typeName = STRING_prepend(name, "^");
-          TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+          STRING* module = NULL;
+          int index = TYPE_declare(module, typeName);
+          TYPE_FIELD_ENTRY* field = NULL;
+          arrput(field, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
+          TYPE_define(index, ENTRY_TYPE_POINTER, field);
         }
         ptr->type = leftType;
         if (ptr->scopeIndex <= 1 || ast.tag == AST_CONST_DECL) {
-          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_CONSTANT, kind, leftType, storageType);
+          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_CONSTANT, leftType, storageType);
         } else {
-          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, kind, leftType, storageType);
+          SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, leftType, storageType);
         }
         int elementCount = 0;
-        if (kind == SYMBOL_KIND_ARRAY) {
+        if (kind == ENTRY_TYPE_ARRAY) {
           Value length = evalConstTree(data.type);
           if (!IS_EMPTY(length) && !IS_ERROR(length)) {
             elementCount = getNumber(length);
@@ -644,7 +649,7 @@ static bool traverse(AST* ptr) {
           printTree(data.lvalue);
           printf("'\n");
           printf("%*s", indent, "");
-          printf("Expected type '%s' but instead found '%s'\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+          printf("Expected type '%s' but instead found '%s'\n", TYPE_get(leftType).name->chars, TYPE_get(rightType).name->chars);
         }
         return isCompatible(leftType, rightType);
       }
@@ -677,11 +682,10 @@ static bool traverse(AST* ptr) {
         for (int i = 0; i < arrlen(data.params); i++) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
           STRING* paramName = param.identifier;
-          uint32_t index = typeTable[ast.type].fields[i].typeIndex;
-          SYMBOL_KIND kind = SYMBOL_KIND_SCALAR;
-          SYMBOL_TABLE_define(paramName, SYMBOL_TYPE_PARAMETER, kind, index, STORAGE_TYPE_PARAMETER);
+          uint32_t index = TYPE_get(ast.type).fields[i].typeIndex;
+          SYMBOL_TABLE_define(paramName, SYMBOL_TYPE_PARAMETER, index, STORAGE_TYPE_PARAMETER);
         }
-        PUSH(typeStack, typeTable[ast.type].returnType);
+        PUSH(typeStack, TYPE_get(ast.type).fields[0].typeIndex);
         functionScope = true;
         r &= traverse(data.body);
         functionScope = false;
@@ -732,18 +736,18 @@ static bool traverse(AST* ptr) {
     case AST_INITIALIZER:
       {
         struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
-        TYPE_TABLE_ENTRY entry = typeTable[PEEK(typeStack)];
+        TYPE_ENTRY entry = TYPE_get(PEEK(typeStack));
         ptr->type = PEEK(typeStack);
-        if ((data.initType == INIT_TYPE_RECORD && PEEK(kindStack) != SYMBOL_KIND_RECORD)
-            || (data.initType == INIT_TYPE_ARRAY && PEEK(kindStack) != SYMBOL_KIND_ARRAY)) {
+        if ((data.initType == INIT_TYPE_RECORD && PEEK(kindStack) != ENTRY_TYPE_RECORD)
+            || (data.initType == INIT_TYPE_ARRAY && PEEK(kindStack) != ENTRY_TYPE_ARRAY)) {
 
           char* initType = data.initType == INIT_TYPE_ARRAY ? "array" : "record";
           char* subType;
-          if (PEEK(kindStack) == SYMBOL_KIND_ARRAY) {
-            subType = typeTable[entry.parent].name->chars;
+          if (PEEK(kindStack) == ENTRY_TYPE_ARRAY) {
+            subType = TYPE_get(TYPE_getParentId(PEEK(typeStack))).name->chars;
             compileError(ast.token, "Incompatible %s initializer for an array of '%s'.\n", initType, subType);
-          } else if (PEEK(kindStack) == SYMBOL_KIND_RECORD) {
-            subType = typeTable[ptr->type].name->chars;
+          } else if (PEEK(kindStack) == ENTRY_TYPE_RECORD) {
+            subType = TYPE_get(ptr->type).name->chars;
             compileError(ast.token, "Incompatible %s initializer for an record of '%s'.\n", initType, subType);
           } else {
             printf("Impossible initializer type.\n");
@@ -754,7 +758,7 @@ static bool traverse(AST* ptr) {
         }
         bool r = true;
         if (entry.entryType == ENTRY_TYPE_ARRAY) {
-          int subType = typeTable[ptr->type].parent;
+          int subType = TYPE_getParentId(ptr->type);
           for (int i = 0; i < arrlen(data.assignments); i++) {
 
             PUSH(typeStack, subType);
@@ -765,7 +769,7 @@ static bool traverse(AST* ptr) {
               return false;
             }
             if (!isCompatible(data.assignments[i]->type, subType)) {
-              printf("Initializer doesn't assign correct type %s vs %s\n.", typeTable[data.assignments[i]->type].name->chars, typeTable[subType].name->chars);
+              printf("Initializer doesn't assign correct type %s vs %s\n.", TYPE_get(data.assignments[i]->type).name->chars, TYPE_get(subType).name->chars);
               return false;
             }
           }
@@ -788,7 +792,7 @@ static bool traverse(AST* ptr) {
               return false;
             }
             PUSH(typeStack, entry.fields[fieldIndex].typeIndex);
-            PUSH(kindStack, entry.fields[fieldIndex].kind);
+            PUSH(kindStack, TYPE_get(entry.fields[fieldIndex].typeIndex).entryType);
             r &= traverse(field.value);
             POP(typeStack);
             POP(kindStack);
@@ -799,7 +803,7 @@ static bool traverse(AST* ptr) {
             if (!r) {
               int indent = compileError(data.assignments[i]->token, "Invalid assignment to field '%s' of composite type '%s'.\n", name->chars, entry.name->chars);
               printf("%*s", indent, "");
-              printf("You attempted to assign a value of type '%s' to '%s', which are incompatible.\n", typeTable[field.value->type].name->chars, typeTable[entry.fields[fieldIndex].typeIndex].name->chars);
+              printf("You attempted to assign a value of type '%s' to '%s', which are incompatible.\n", TYPE_get(field.value->type).name->chars, TYPE_get(entry.fields[fieldIndex].typeIndex).name->chars);
               return false;
             }
             data.assignments[i]->type = entry.fields[fieldIndex].typeIndex;
@@ -812,9 +816,13 @@ static bool traverse(AST* ptr) {
         struct AST_REF data = ast.data.AST_REF;
         bool r = traverse(data.expr);
         int subType = data.expr->type;
-        STRING* name = typeTable[subType].name;
+        STRING* name = TYPE_get(subType).name;
         STRING* typeName = STRING_prepend(name, "^");
-        ptr->type = TYPE_TABLE_registerType(typeName, ENTRY_TYPE_POINTER, subType, NULL);
+        STRING* module = NULL;
+        ptr->type = TYPE_declare(module, typeName);
+        TYPE_FIELD_ENTRY* subTypeField = NULL;
+        arrput(subTypeField, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
+        TYPE_define(ptr->type, ENTRY_TYPE_POINTER, subTypeField);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         ptr->rvalue = false;
         return r;
@@ -826,19 +834,19 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.expr);
         POP(evaluateStack);
         int subType = data.expr->type;
-        TYPE_TABLE_ENTRY entry = typeTable[subType];
+        TYPE_ENTRY entry = TYPE_get(subType);
 
-        if (entry.parent == 0) {
+        if (TYPE_getParentId(subType) == 0) {
           printf("trap %d\n", __LINE__);
           return false;
         }
-        ptr->type = typeTable[subType].parent;
-        TYPE_TABLE_ENTRY parent = typeTable[ptr->type];
+        ptr->type = TYPE_getParentId(subType);
+        TYPE_ENTRY parent = TYPE_get(ptr->type);
         if (ptr->type == 0) {
           printf("trap %d\n", __LINE__);
           return false;
         }
-        printf("%i -> %zu\n", subType, entry.parent);
+        printf("%i -> %i\n", subType, TYPE_getParentId(subType));
 
         if (parent.entryType == ENTRY_TYPE_ARRAY || parent.entryType == ENTRY_TYPE_RECORD) {
           ptr->rvalue = false;
@@ -894,7 +902,7 @@ static bool traverse(AST* ptr) {
                 compatible = false;
                 int indent = compileError(ast.token, "Invalid operands to arithmetic operator '%.*s'\n", ast.token.length, ast.token.start);
                 printf("%*s", indent, "");
-                printf("Operands were of type '%s' and '%s', which are incompatible.\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+                printf("Operands were of type '%s' and '%s', which are incompatible.\n", TYPE_get(leftType).name->chars, TYPE_get(rightType).name->chars);
               } else {
                 ptr->type = coerceType(leftType, rightType);
               }
@@ -919,7 +927,7 @@ static bool traverse(AST* ptr) {
                 compatible = false;
                 int indent = compileError(ast.token, "Invalid operands to bitwise operator '%.*s'\n", ast.token.length, ast.token.start);
                 printf("%*s", indent, "");
-                printf("Operands were of type '%s' and '%s', which are incompatible.\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+                printf("Operands were of type '%s' and '%s', which are incompatible.\n", TYPE_get(leftType).name->chars, TYPE_get(rightType).name->chars);
               }
               break;
             }
@@ -939,7 +947,7 @@ static bool traverse(AST* ptr) {
                 ptr->type = BOOL_INDEX;
               } else {
                 // TODO
-                printf("Comparison: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+                printf("Comparison: %s vs %s\n", TYPE_get(leftType).name->chars, TYPE_get(rightType).name->chars);
                 compatible = false;
               }
               break;
@@ -954,7 +962,7 @@ static bool traverse(AST* ptr) {
               } else {
                 compatible = false;
                 // TODO
-                printf("Comparison: %s vs %s\n", typeTable[leftType].name->chars, typeTable[rightType].name->chars);
+                printf("Comparison: %s vs %s\n", TYPE_get(leftType).name->chars, TYPE_get(rightType).name->chars);
               }
               break;
             }
@@ -1042,12 +1050,12 @@ static bool traverse(AST* ptr) {
           return false;
         }
         // Need to pass type upwards to validate field name
-        TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
-        if (entry.entryType == ENTRY_TYPE_POINTER && typeTable[entry.parent].entryType == ENTRY_TYPE_RECORD) {
-          entry = typeTable[entry.parent];
+        TYPE_ENTRY entry = TYPE_get(data.left->type);
+        if (entry.entryType == ENTRY_TYPE_POINTER && TYPE_get(TYPE_getParentId(data.left->type)).entryType == ENTRY_TYPE_RECORD) {
+          entry = TYPE_getParent(data.left->type);
         } else if (entry.entryType != ENTRY_TYPE_RECORD) {
           compileError(ast.token, "Attempting to access field '%s' ", data.name->chars);
-          printf("of type '%s' but it is not a record type.\n", typeTable[data.left->type].name->chars);
+          printf("of type '%s' but it is not a record type.\n", TYPE_get(data.left->type).name->chars);
           return false;
         }
         STRING* name = data.name;
@@ -1083,7 +1091,7 @@ static bool traverse(AST* ptr) {
         }
 
         int arrType = data.left->type;
-        ptr->type = typeTable[arrType].parent;
+        ptr->type = TYPE_getParentId(arrType);
         return ptr->type != 0;
       }
     case AST_CALL:
@@ -1095,8 +1103,8 @@ static bool traverse(AST* ptr) {
         }
         // resolve data.identifier to string
         uint32_t leftType = data.identifier->type;
-        TYPE_TABLE_ENTRY fnType = typeTable[leftType];
-        if (fnType.parent != FN_INDEX) {
+        TYPE_ENTRY fnType = TYPE_get(leftType);
+        if (TYPE_getKind(leftType) == ENTRY_TYPE_FUNCTION) {
           compileError(data.identifier->token, "Attempting to call '");
           printTree(data.identifier);
           printf("' but it is not a function.\n");
@@ -1135,12 +1143,12 @@ static bool traverse(AST* ptr) {
             printTree(data.identifier);
             printf("'\n");
             printf("%*s", indent, "");
-            printf("Expected type '%s' but instead found '%s'\n", typeTable[fnType.fields[i].typeIndex].name->chars, typeTable[data.arguments[i]->type].name->chars);
+            printf("Expected type '%s' but instead found '%s'\n", TYPE_get(fnType.fields[i].typeIndex).name->chars, TYPE_get(data.arguments[i]->type).name->chars);
             return false;
           }
           data.arguments[i]->type = fnType.fields[i].typeIndex;
         }
-        ptr->type = typeTable[leftType].returnType;
+        ptr->type = TYPE_get(leftType).fields[0].typeIndex;
         return true;
       }
     default:

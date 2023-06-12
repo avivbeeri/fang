@@ -42,10 +42,10 @@ STRING** fnStack = NULL;
 uint32_t* rStack = NULL;
 bool lvalue = false;
 static bool isPointer(int type) {
-  return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY || type == 8;
+  return TYPE_get(type).entryType == ENTRY_TYPE_POINTER || TYPE_get(type).entryType == ENTRY_TYPE_ARRAY || type == 8;
 }
 
-static void printEntry(TYPE_TABLE_ENTRY entry) {
+static void printEntry(TYPE_ENTRY entry) {
   printf("%s\n", entry.name->chars);
 }
 
@@ -286,12 +286,12 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
-        // printf("%s: alloc %s\n", symbol.key, typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
+        // printf("%s: alloc %s\n", symbol.key, TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
         int rvalue = -1;
         int storage = traverse(f, data.type);
         // TODO: return to VLA
         if (storage != -1) {
-          //rvalue = p.genAllocStack(f, storage, typeTable[data.type->type].parent);
+          //rvalue = p.genAllocStack(f, storage, TYPE_getParentId(data.type->type));
         } else {
           //rvalue = p.genLoad(f, 0, 1);
         }
@@ -315,7 +315,7 @@ static int traverse(FILE* f, AST* ptr) {
             traverse(f, data.expr);
             POP(rStack);
           } else if (init.initType == INIT_TYPE_ARRAY) {
-            int dataType = typeTable[data.type->type].parent;
+            int dataType = TYPE_getParentId(data.type->type);
             rvalue = p.genIdentifierAddr(f, symbol);
             PUSH(rStack, rvalue);
             traverse(f, data.expr);
@@ -326,7 +326,8 @@ static int traverse(FILE* f, AST* ptr) {
             rvalue = baseReg;
           }
           return rvalue;
-        } else if (typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_RECORD || typeTable[symbol.typeIndex].entryType == ENTRY_TYPE_ARRAY) {
+        } else if (TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_RECORD ||
+              TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_ARRAY) {
           int l = p.genIdentifierAddr(f, symbol);
           rvalue = traverse(f, data.expr);
           return p.genCopyObject(f, l, rvalue, symbol.typeIndex);
@@ -354,7 +355,7 @@ static int traverse(FILE* f, AST* ptr) {
             }
           }
         } else if (init.initType == INIT_TYPE_ARRAY) {
-          int dataType = typeTable[ast.type].parent;
+          int dataType = TYPE_getParentId(ast.type);
           for (int i = 0; i < arrlen(init.assignments); i++) {
             p.holdRegister(rvalue);
             int index = p.genLoad(f, i, 1);
@@ -373,10 +374,10 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         int r = traverse(f, data.expr);
         int l = traverse(f, data.lvalue);
-        if (typeTable[data.lvalue->type].entryType == ENTRY_TYPE_RECORD && typeTable[data.expr->type].entryType == ENTRY_TYPE_RECORD) {
+        if (TYPE_get(data.lvalue->type).entryType == ENTRY_TYPE_RECORD && TYPE_get(data.expr->type).entryType == ENTRY_TYPE_RECORD) {
           return p.genCopyObject(f, l, r, data.lvalue->type);
         }
-        if (typeTable[data.lvalue->type].entryType == ENTRY_TYPE_ARRAY && typeTable[data.expr->type].entryType == ENTRY_TYPE_ARRAY) {
+        if (TYPE_get(data.lvalue->type).entryType == ENTRY_TYPE_ARRAY && TYPE_get(data.expr->type).entryType == ENTRY_TYPE_ARRAY) {
           return p.genCopyObject(f, l, r, data.lvalue->type);
         }
         return p.genAssign(f, l, r, data.lvalue->type);
@@ -427,11 +428,11 @@ static int traverse(FILE* f, AST* ptr) {
         if (ast.rvalue) {
           return p.genDeref(f, r, typeIndex);
         }
-        printEntry(typeTable[data.expr->type]);
+        printEntry(TYPE_get(data.expr->type));
 
-        if (typeTable[data.expr->type].entryType == ENTRY_TYPE_POINTER && (typeTable[typeIndex].entryType != ENTRY_TYPE_RECORD && typeTable[typeIndex].entryType != ENTRY_TYPE_ARRAY)) {
+        if (TYPE_get(data.expr->type).entryType == ENTRY_TYPE_POINTER && (TYPE_get(typeIndex).entryType != ENTRY_TYPE_RECORD && TYPE_get(typeIndex).entryType != ENTRY_TYPE_ARRAY)) {
           r = p.genDeref(f, r, ptrType);
-          typeIndex = typeTable[ptrType].parent;
+          typeIndex = TYPE_getParentId(ptrType);
         }
         return r;
       }
@@ -501,13 +502,15 @@ static int traverse(FILE* f, AST* ptr) {
           switch (data.op) {
             case OP_ADD:
               {
-                int scale = p.genLoad(f, typeTable[typeTable[ptr->type].parent].byteSize, ptr->type);
+                int byteSize = p.getSize(TYPE_getParentId(ptr->type));
+                int scale = p.genLoad(f, byteSize, ptr->type);
                 r = p.genMul(f, r, scale, ptr->type);
                 return p.genAdd(f, l, r, ptr->type);
               }
             case OP_SUB:
               {
-                int scale = p.genLoad(f, typeTable[typeTable[ptr->type].parent].byteSize, ptr->type);
+                int byteSize = p.getSize(TYPE_getParentId(ptr->type));
+                int scale = p.genLoad(f, byteSize, ptr->type);
                 r = p.genMul(f, r, scale, ptr->type);
                 return p.genSub(f, l, r, ptr->type);
               }
@@ -602,28 +605,30 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_DOT data = ast.data.AST_DOT;
         int left = traverse(f, data.left);
-        TYPE_TABLE_ENTRY entry = typeTable[data.left->type];
-        int parent = entry.parent;
-        int typeIndex = data.left->type;
-        if (entry.entryType == ENTRY_TYPE_POINTER && typeTable[parent].entryType == ENTRY_TYPE_RECORD) {
+        TYPE_ENTRY entry = TYPE_get(data.left->type);
+        TYPE_ID parent = TYPE_getParentId(data.left->type);
+        TYPE_ID typeIndex = data.left->type;
+        if (entry.entryType == ENTRY_TYPE_POINTER && TYPE_get(parent).entryType == ENTRY_TYPE_RECORD) {
           typeIndex = parent;
-          entry = typeTable[typeIndex];
-          parent = entry.parent;
+          entry = TYPE_get(typeIndex);
+          parent = TYPE_getParentId(typeIndex);
         }
-        TYPE_TABLE_FIELD_ENTRY field;
+        TYPE_FIELD_ENTRY field;
         for (int i = 0; i < arrlen(entry.fields); i++) {
           if (STRING_equality(entry.fields[i].name, data.name)) {
             field = entry.fields[i];
             break;
           }
         }
+        TYPE_ENTRY fieldEntry = TYPE_get(field.typeIndex);
 
         int r = p.genFieldOffset(f, left, typeIndex, data.name);
-        if (typeTable[data.left->type].entryType == ENTRY_TYPE_POINTER && (field.kind != SYMBOL_KIND_RECORD && field.kind != SYMBOL_KIND_ARRAY)) {
+        if (TYPE_get(data.left->type).entryType == ENTRY_TYPE_POINTER && (fieldEntry.entryType != ENTRY_TYPE_RECORD && fieldEntry.entryType != ENTRY_TYPE_ARRAY)) {
           // r = p.genDeref(f, r, parent);
         }
         if (ast.rvalue) {
-          if (field.kind == SYMBOL_KIND_ARRAY || field.kind == SYMBOL_KIND_RECORD) {
+          if (fieldEntry.entryType == ENTRY_TYPE_RECORD || fieldEntry.entryType == ENTRY_TYPE_ARRAY) {
+          // r = p.genDeref(f, r, parent);
             ptr->rvalue = false;
           } else {
             r = p.genDeref(f, r, ast.type);
@@ -634,12 +639,12 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-        TYPE_TABLE_ENTRY type = typeTable[data.left->type];
-        int typeIndex = type.parent;
+        TYPE_ENTRY type = TYPE_get(data.left->type);
+        TYPE_ID typeIndex = TYPE_getParentId(data.left->type);
         int left = traverse(f, data.left);
         int index = traverse(f, data.index);
         if (ast.rvalue) {
-          if (typeTable[typeIndex].entryType != ENTRY_TYPE_ARRAY && typeTable[typeIndex].entryType != ENTRY_TYPE_RECORD) {
+          if (TYPE_get(typeIndex).entryType != ENTRY_TYPE_ARRAY && TYPE_get(typeIndex).entryType != ENTRY_TYPE_RECORD) {
             left = p.genIndexRead(f, left, index, typeIndex);
           } else {
             left = p.genIndexAddr(f, left, index, typeIndex);

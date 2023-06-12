@@ -21,8 +21,11 @@ static char *regList[REG_SIZE] = { "X8", "X9", "X10", "X11" };
 #define FN_INDEX 9
 #define CHAR_INDEX 10
 
+static int getSize(TYPE_ID id) {
+  return 8;
+}
 static bool isPointer(int type) {
-  return typeTable[type].entryType == ENTRY_TYPE_POINTER || typeTable[type].entryType == ENTRY_TYPE_ARRAY;
+  return TYPE_get(type).entryType == ENTRY_TYPE_POINTER || TYPE_get(type).entryType == ENTRY_TYPE_ARRAY;
 }
 
 static int labelCreate() {
@@ -69,38 +72,41 @@ static int holdRegister(int r) {
 static bool calculateSizes() {
   // Init primitives
   /*
-  TYPE_TABLE_setPrimitiveSize("void", 0);
+  TYPE_setPrimitiveSize("void", 0);
 
-  TYPE_TABLE_setPrimitiveSize("bool", 8);
-  TYPE_TABLE_setPrimitiveSize("i8", 8);
-  TYPE_TABLE_setPrimitiveSize("u8", 8);
-  TYPE_TABLE_setPrimitiveSize("char", 8);
+  TYPE_setPrimitiveSize("bool", 8);
+  TYPE_setPrimitiveSize("i8", 8);
+  TYPE_setPrimitiveSize("u8", 8);
+  TYPE_setPrimitiveSize("char", 8);
 
-  TYPE_TABLE_setPrimitiveSize("u16", 8);
-  TYPE_TABLE_setPrimitiveSize("i16", 8);
+  TYPE_setPrimitiveSize("u16", 8);
+  TYPE_setPrimitiveSize("i16", 8);
 
-  TYPE_TABLE_setPrimitiveSize("number", 8);
+  TYPE_setPrimitiveSize("number", 8);
 
-  TYPE_TABLE_setPrimitiveSize("string", 8);
-  TYPE_TABLE_setPrimitiveSize("fn", 8);
-  TYPE_TABLE_setPrimitiveSize("ptr", 8);
+  TYPE_setPrimitiveSize("string", 8);
+  TYPE_setPrimitiveSize("fn", 8);
+  TYPE_setPrimitiveSize("ptr", 8);
   */
-  TYPE_TABLE_setPrimitiveSize("void", 0);
+  /*
+  TYPE_setPrimitiveSize("void", 0);
 
-  TYPE_TABLE_setPrimitiveSize("bool", 1);
-  TYPE_TABLE_setPrimitiveSize("i8", 1);
-  TYPE_TABLE_setPrimitiveSize("u8", 1);
-  TYPE_TABLE_setPrimitiveSize("char", 1);
+  TYPE_setPrimitiveSize("bool", 1);
+  TYPE_setPrimitiveSize("i8", 1);
+  TYPE_setPrimitiveSize("u8", 1);
+  TYPE_setPrimitiveSize("char", 1);
 
-  TYPE_TABLE_setPrimitiveSize("u16", 2);
-  TYPE_TABLE_setPrimitiveSize("i16", 2);
+  TYPE_setPrimitiveSize("u16", 2);
+  TYPE_setPrimitiveSize("i16", 2);
 
-  TYPE_TABLE_setPrimitiveSize("number", 4);
+  TYPE_setPrimitiveSize("number", 4);
 
-  TYPE_TABLE_setPrimitiveSize("string", 8);
-  TYPE_TABLE_setPrimitiveSize("fn", 8);
-  TYPE_TABLE_setPrimitiveSize("ptr", 8);
-  return TYPE_TABLE_calculateSizes();
+  TYPE_setPrimitiveSize("string", 8);
+  TYPE_setPrimitiveSize("fn", 8);
+  TYPE_setPrimitiveSize("ptr", 8);
+  */
+  //return TYPE_calculateSizes();
+  return true;
 }
 
 static void genMacros(FILE* f) {
@@ -131,15 +137,15 @@ static int genConstant(FILE* f, int i) {
   int r = allocateRegister();
   fprintf(f, "  ADRP %s, _fang_str_%i@PAGE\n", regList[r], i);
   // Strings store their length at the front, so nudge the pointer by 1
-  fprintf(f, "  ADD %s, %s, _fang_str_%i@PAGEOFF + %zu\n", regList[r], regList[r], i, typeTable[U8_INDEX].byteSize);
+  fprintf(f, "  ADD %s, %s, _fang_str_%i@PAGEOFF + %i\n", regList[r], regList[r], i, getSize(U8_INDEX));
   return r;
 }
 static int genLoad(FILE* f, int i, int type) {
   // Load i into a register
   // return the register index
-  int size = typeTable[type].byteSize;
+  int size = getSize(type);
   int r = allocateRegister();
-  if (typeTable[type].byteSize == 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (getSize(type) == 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     int8_t value = i;
     fprintf(f, "  MOV %s, #%" PRIi8 "\n", regList[r], value);
   } else if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
@@ -162,7 +168,7 @@ static void genNotEqual(FILE* f, int r, int jumpLabel) {
 
 static int genAllocStack(FILE* f, int storage, int type) {
   char* store = regList[storage];
-  int offset = typeTable[type].byteSize;
+  int offset = getSize(type);
 
   if (offset > 1) {
     int temp = genLoad(f, offset, 8);
@@ -190,9 +196,9 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
     SYMBOL_TABLE_ENTRY tableEntry = scope.table[i];
     if (tableEntry.defined) {
       if (tableEntry.elementCount > 0) {
-        offset += typeTable[tableEntry.typeIndex].byteSize * tableEntry.elementCount;
+        offset += getSize(tableEntry.typeIndex) * tableEntry.elementCount;
       } else {
-        offset += typeTable[tableEntry.typeIndex].byteSize;
+        offset += getSize(tableEntry.typeIndex);
       }
       // The stack is subtractive, so we need to account for the current byte size
       // when calculating its offset.
@@ -209,9 +215,9 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
     for (int i = 0; i < hmlen(current.table); i++) {
       SYMBOL_TABLE_ENTRY tableEntry = current.table[i];
       if (tableEntry.elementCount > 0) {
-        offset += typeTable[tableEntry.typeIndex].byteSize * tableEntry.elementCount;
+        offset += getSize(tableEntry.typeIndex) * tableEntry.elementCount;
       } else {
-        offset += typeTable[tableEntry.typeIndex].byteSize;
+        offset += getSize(tableEntry.typeIndex);
       }
     }
   }
@@ -272,7 +278,7 @@ static int genLoadRegister(FILE* f, int i, int r) {
   r = r == -1 ? allocateRegister() : r;
   int8_t value = i;
   fprintf(f, "  MOV %s, #%"PRIi8"\n", regList[r], value);
-  if (typeTable[U8_INDEX].byteSize != 1){
+  if (getSize(U8_INDEX) != 1){
     fprintf(f, "  LSL %s, %s, #56\n", regList[r], regList[r]);
     fprintf(f, "  ASR %s, %s, #56\n", regList[r], regList[r]);
   }
@@ -303,7 +309,7 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
 
 static int genDeref(FILE* f, int baseReg, int typeIndex) {
   // TODO: handle different types here
-  uint32_t size = typeTable[typeIndex].byteSize;
+  uint32_t size = getSize(typeIndex);
   freeRegister(baseReg);
   int leftReg = allocateRegister();
   if (size == 1) {
@@ -346,13 +352,13 @@ static int genRef(FILE* f, int leftReg) {
 }
 
 static int genFieldOffset(FILE* f, int baseReg, int typeIndex, STRING* fieldName) {
-  TYPE_TABLE_ENTRY entry = typeTable[typeIndex];
+  TYPE_ENTRY entry = TYPE_get(typeIndex);
   int offset = 0;
   for (int i = 0; i < arrlen(entry.fields); i++) {
     if (STRING_equality(entry.fields[i].name, fieldName)) {
       break;
     }
-    offset += typeTable[entry.fields[i].typeIndex].byteSize;
+    offset += getSize(entry.fields[i].typeIndex);
   }
 
   freeRegister(baseReg);
@@ -361,7 +367,7 @@ static int genFieldOffset(FILE* f, int baseReg, int typeIndex, STRING* fieldName
   return leftReg;
 }
 static int genIndexAddr(FILE* f, int baseReg, int index, int type) {
-  int dataSize = typeTable[type].byteSize;
+  int dataSize = getSize(type);
   if (dataSize > 1) {
     int temp = genLoad(f, dataSize, 8);
     // TODO: Convert to MADD
@@ -377,7 +383,7 @@ static int genIndexAddr(FILE* f, int baseReg, int index, int type) {
   return leftReg;
 }
 static int genIndexRead(FILE* f, int baseReg, int index, int type) {
-  int dataSize = typeTable[type].byteSize;
+  int dataSize = getSize(type);
   if (dataSize > 1) {
     int temp = genLoad(f, dataSize, 8);
     // TODO: Convert to MADD
@@ -407,12 +413,12 @@ static void genCompletePreamble(FILE* f) {
 
     fprintf(f, ".balign 8\n");
     fprintf(f, "_fang_str_%i: ", i);
-    if (typeTable[CHAR_INDEX].byteSize == 1) {
+    if (getSize(CHAR_INDEX) == 1) {
       fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length) % 256);
     } else {
       fprintf(f, ".quad %i\n", (uint8_t)(AS_STRING(constTable[i].value)->length) % 256);
     }
-    if (typeTable[CHAR_INDEX].byteSize == 1) {
+    if (getSize(CHAR_INDEX) == 1) {
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(constTable[i].value)->chars);
     } else {
       for (int j = 0; j < AS_STRING(constTable[i].value)->length; j++) {
@@ -426,9 +432,9 @@ static void emitValue(FILE* f, Value value, int typeIndex) {
   if (IS_RECORD(value)) {
     Record record = AS_RECORD(value);
     int typeIndex = record.typeIndex;
-    int len = arrlen(typeTable[typeIndex].fields);
+    int len = arrlen(TYPE_get(typeIndex).fields);
     for (int i = 0; i < len; i++) {
-      TYPE_TABLE_FIELD_ENTRY field = typeTable[typeIndex].fields[i];
+      TYPE_FIELD_ENTRY field = TYPE_get(typeIndex).fields[i];
       bool found = false;
       int j = 0;
       for (; j < arrlen(record.names); j++) {
@@ -438,21 +444,21 @@ static void emitValue(FILE* f, Value value, int typeIndex) {
         }
       }
       if (found) {
-        emitValue(f, record.values[j], typeTable[typeIndex].fields[i].typeIndex);
+        emitValue(f, record.values[j], TYPE_get(typeIndex).fields[i].typeIndex);
       } else {
-        fprintf(f, ".quad %zu\n", typeTable[typeTable[typeIndex].fields[i].typeIndex].byteSize);
+        fprintf(f, ".quad %i\n", getSize(TYPE_get(typeIndex).fields[i].typeIndex));
       }
     }
   } else if (IS_ARRAY(value)) {
     Value* values = AS_ARRAY(value);
     // TODO: check for 16bit nums
     for (int i = 0; i < arrlen(values); i++) {
-      emitValue(f, values[i], typeTable[typeIndex].parent);
+      emitValue(f, values[i], TYPE_getParentId(typeIndex));
     }
 //    fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
   } else if (IS_PTR(value)) {
-    fprintf(f, ".xword _fang_str_%zu + %zu\n", AS_PTR(value), typeTable[U8_INDEX].byteSize);
-  } else if (typeTable[typeIndex].byteSize == 1) {
+    fprintf(f, ".xword _fang_str_%zu + %i\n", AS_PTR(value), getSize(U8_INDEX));
+  } else if (getSize(typeIndex) == 1) {
   //  || IS_I8(value) || IS_U8(value) || IS_CHAR(value)) {
     fprintf(f, ".byte %i\n", AS_I8(value));
   } else if (IS_EMPTY(value)) {
@@ -462,7 +468,7 @@ static void emitValue(FILE* f, Value value, int typeIndex) {
   }
 }
 static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
-  uint32_t size = typeTable[entry.typeIndex].byteSize;
+  uint32_t size = getSize(entry.typeIndex);
   fprintf(f, ".global %s\n", symbol(entry));
   fprintf(f, ".balign 8\n");
   if (IS_STRING(value)) {
@@ -476,9 +482,9 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
    // fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
-  if (entry.kind == SYMBOL_KIND_RECORD) {
+  if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_RECORD) {
     emitValue(f, value, 0);
-  } else if (entry.kind == SYMBOL_KIND_ARRAY) {
+  } else if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_ARRAY) {
     if (IS_STRING(value)) {
       fprintf(f, ".asciz \"%s\"\n", AS_STRING(value)->chars);
     } else if (IS_PTR(value)) {
@@ -491,8 +497,8 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       // TODO: check for 16bit nums
       for (int i = 0; i < arrlen(values); i++) {
         if (IS_PTR(values[i])) {
-          fprintf(f, ".xword _fang_str_%zu + %zu\n", AS_PTR(values[i]), typeTable[U8_INDEX].byteSize);
-        } else if (typeTable[typeTable[entry.typeIndex].parent].byteSize == 1) {
+          fprintf(f, ".xword _fang_str_%zu + %i\n", AS_PTR(values[i]), getSize(U8_INDEX));
+        } else if (getSize(TYPE_getParentId(entry.typeIndex)) == 1) {
           fprintf(f, ".byte %i\n", AS_I8(values[i]));
         } else {
           fprintf(f, ".quad %i\n", AS_U8(values[i]));
@@ -502,8 +508,8 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     }
   } else {
     if (IS_PTR(value)) {
-      fprintf(f, ".xword _fang_str_%zu + %zu\n", AS_PTR(value), typeTable[U8_INDEX].byteSize);
-    } else if (typeTable[entry.typeIndex].byteSize == 1) {
+      fprintf(f, ".xword _fang_str_%zu + %i\n", AS_PTR(value), getSize(U8_INDEX));
+    } else if (getSize(entry.typeIndex) == 1) {
     //  || IS_I8(value) || IS_U8(value) || IS_CHAR(value)) {
     fprintf(f, ".byte %i\n", AS_I8(value));
     } else {
@@ -514,7 +520,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
 
 
 static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
-  uint32_t size = typeTable[entry.typeIndex].byteSize;
+  uint32_t size = getSize(entry.typeIndex);
   fprintf(f, ".global %s\n ", symbol(entry));
   fprintf(f, ".balign 8\n");
   if (IS_STRING(value)) {
@@ -527,9 +533,9 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     fprintf(f, ".byte %i\n", (uint8_t)(AS_STRING(s)->length) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
-  if (entry.kind == SYMBOL_KIND_RECORD) {
+  if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_RECORD) {
     emitValue(f, value, 0);
-  } else if (entry.kind == SYMBOL_KIND_ARRAY) {
+  } else if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_ARRAY) {
     // RECORD too
     if (IS_EMPTY(value)) {
       if (size > 8) {
@@ -548,8 +554,8 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       // TODO: check for 16bit nums
       for (int i = 0; i < arrlen(values); i++) {
         if (IS_PTR(values[i])) {
-          fprintf(f, ".xword _fang_str_%zu + %zu\n", AS_PTR(values[i]), typeTable[U8_INDEX].byteSize);
-        } else if (typeTable[typeTable[entry.typeIndex].parent].byteSize == 1) {
+          fprintf(f, ".xword _fang_str_%zu + %i\n", AS_PTR(values[i]), getSize(U8_INDEX));
+        } else if (getSize(TYPE_getParentId(entry.typeIndex)) == 1) {
           fprintf(f, ".byte %i\n", AS_I8(values[i]));
         } else {
           fprintf(f, ".quad %i\n", AS_U8(values[i]));
@@ -561,8 +567,8 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     if (IS_EMPTY(value)) {
       fprintf(f, ".quad 0\n");
     } else if (IS_PTR(value)) {
-      fprintf(f, ".xword _fang_str_%zu + %zu\n", AS_PTR(value), typeTable[U8_INDEX].byteSize);
-    } else if (typeTable[entry.typeIndex].byteSize == 1) {
+      fprintf(f, ".xword _fang_str_%zu + %i\n", AS_PTR(value), getSize(U8_INDEX));
+    } else if (getSize(entry.typeIndex) == 1) {
       //  || IS_I8(value) || IS_U8(value) || IS_CHAR(value)) {
       fprintf(f, ".byte %i\n", AS_I8(value));
     } else {
@@ -652,14 +658,14 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
 
-    if (typeTable[entry.typeIndex].byteSize == 1) {
+    if (getSize(entry.typeIndex) == 1) {
       fprintf(f, "  STURB %s, [%s]\n", storeRegList[rvalue], regList[r]);
     } else {
       fprintf(f, "  STUR %s, [%s]\n", regList[rvalue], regList[r]);
     }
     freeRegister(r);
   } else if (entry.storageType == STORAGE_TYPE_LOCAL || entry.storageType == STORAGE_TYPE_LOCAL_OBJECT) {
-    if (typeTable[entry.typeIndex].byteSize == 1) {
+    if (getSize(entry.typeIndex) == 1) {
       fprintf(f, "  STURB %s, %s\n", storeRegList[rvalue], symbol(entry));
     } else {
       fprintf(f, "  STUR %s, %s\n", regList[rvalue], symbol(entry));
@@ -668,7 +674,7 @@ static int genInitSymbol(FILE* f, SYMBOL_TABLE_ENTRY entry, int rvalue) {
   return rvalue;
 }
 static int genCopyObject(FILE* f, int lvalue, int rvalue, int type) {
-  int size = typeTable[type].byteSize;
+  int size = getSize(type);
   int current = size;
   int r = allocateRegister();
   int i = 0;
@@ -736,7 +742,7 @@ static int genCopyObject(FILE* f, int lvalue, int rvalue, int type) {
   return lvalue;
 }
 static int genAssign(FILE* f, int lvalue, int rvalue, int type) {
-  int size = typeTable[type].byteSize;
+  int size = getSize(type);
   if (size == 1) {
     fprintf(f, "  STURB %s, [%s] ; assign\n", storeRegList[rvalue], regList[lvalue]);
   } else {
@@ -767,13 +773,13 @@ static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
 }
 
 static int genAdd(FILE* f, int leftReg, int rightReg, int type) {
-  int size = typeTable[type].byteSize;
-  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  int size = getSize(type);
+  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  LSL %s, %s, #56\n", regList[leftReg], regList[leftReg]);
     fprintf(f, "  LSL %s, %s, #56\n", regList[rightReg], regList[rightReg]);
   }
   fprintf(f, "  ADDS %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  ASR %s, %s, #56\n", regList[leftReg], regList[leftReg]);
   }
 
@@ -782,12 +788,12 @@ static int genAdd(FILE* f, int leftReg, int rightReg, int type) {
 }
 
 static int genSub(FILE* f, int leftReg, int rightReg, int type) {
-  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  LSL %s, %s, #56\n", regList[leftReg], regList[leftReg]);
     fprintf(f, "  LSL %s, %s, #56\n", regList[rightReg], regList[rightReg]);
   }
   fprintf(f, "  SUBS %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  ASR %s, %s, #56\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
@@ -795,18 +801,18 @@ static int genSub(FILE* f, int leftReg, int rightReg, int type) {
 }
 
 static int genMul(FILE* f, int leftReg, int rightReg, int type) {
-  int size = typeTable[type].byteSize;
+  int size = getSize(type);
   fprintf(f, "  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
   return leftReg;
 }
 static int genDiv(FILE* f, int leftReg, int rightReg, int type) {
-  int size = typeTable[type].byteSize;
+  int size = getSize(type);
   fprintf(f, "  SDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (typeTable[type].byteSize != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
@@ -970,7 +976,8 @@ PLATFORM platform_apple_arm64 = {
   .genIndexRead = genIndexRead,
   .genGlobalVariable = genGlobalVariable,
   .genGlobalConstant = genGlobalConstant,
-  .genFieldOffset = genFieldOffset
+  .genFieldOffset = genFieldOffset,
+  .getSize = getSize
 
 
 };

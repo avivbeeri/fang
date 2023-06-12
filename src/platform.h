@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include "memory.h"
 #include "symbol_table.h"
+#include "type_table.h"
 #include "value.h"
 
 typedef struct {
@@ -38,6 +39,7 @@ typedef struct {
   void (*freeRegister)(int r);
   int (*holdRegister)(int r);
   void (*freeAllRegisters)(void);
+  int (*getSize)(TYPE_ID);
   bool (*calculateSizes)();
 
   void (*genPreamble)(FILE* f);

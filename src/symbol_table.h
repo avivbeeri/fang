@@ -27,6 +27,7 @@
 #define symbol_table_h
 
 #include "memory.h"
+#include "type_table.h"
 typedef enum SYMBOL_TABLE_ENTRY_STATUS {
   SYMBOL_TABLE_STATUS_INVALID,
   SYMBOL_TABLE_STATUS_DECLARED,
@@ -50,27 +51,17 @@ typedef enum SYMBOL_TYPE {
   SYMBOL_TYPE_CONSTANT,
 } SYMBOL_TYPE;
 
-typedef enum SYMBOL_KIND {
-  SYMBOL_KIND_UNKNOWN,
-  SYMBOL_KIND_SCALAR,
-  SYMBOL_KIND_POINTER,
-  SYMBOL_KIND_FUNCTION,
-  SYMBOL_KIND_ARRAY,
-  SYMBOL_KIND_RECORD,
-} SYMBOL_KIND;
-
 typedef struct SYMBOL_TABLE_ENTRY {
   char* key;
   SYMBOL_TYPE entryType;
   bool defined;
   SYMBOL_TABLE_ENTRY_STATUS status;
   SYMBOL_TABLE_STORAGE_TYPE storageType;
-  SYMBOL_KIND kind;
 
   uint32_t ordinal; // posiiton in scope
   uint32_t paramOrdinal; // posiiton in scope
   uint32_t offset;
-  int typeIndex;
+  TYPE_ID typeIndex;
   uint32_t scopeIndex;
   // only for constants
   uint32_t constantIndex;
@@ -113,9 +104,8 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType);
 void SYMBOL_TABLE_closeScope();
 void SYMBOL_TABLE_calculateAllocations();
 void SYMBOL_TABLE_report();
-void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
-void SYMBOL_TABLE_declareWithKind(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND kind, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
-void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND kind, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
+void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
+void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
 bool SYMBOL_TABLE_scopeHas(STRING* name);
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getCurrentScope();
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STRING* name);

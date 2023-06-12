@@ -31,11 +31,23 @@
 
 // typedef struct { int key; bool value; } TYPE_VISIT_SET;
 // typedef struct { int size; bool error; } TYPE_TABLE_RESULT;
-// struct { char *key; TYPE_ID value; }* aliasTable = NULL;
+struct { char *key; TYPE_ID value; }* aliasTable = NULL;
 
 TYPE_ENTRY* typeTable = NULL;
 
 TYPE_ENTRY* TYPE_TABLE_init(void) {
+  TYPE_registerPrimitive(NULL);
+  TYPE_registerPrimitive("void");
+  TYPE_registerPrimitive("bool");
+  TYPE_registerPrimitive("i8");
+  TYPE_registerPrimitive("u8");
+  TYPE_registerPrimitive("char");
+  TYPE_registerPrimitive("u16");
+  TYPE_registerPrimitive("i16");
+  TYPE_registerPrimitive("number");
+  TYPE_registerPrimitive("string");
+  TYPE_registerPrimitive("fn");
+  TYPE_registerPrimitive("ptr");
   return typeTable;
 }
 
@@ -68,16 +80,27 @@ TYPE_ID TYPE_define(TYPE_ID index, TYPE_ENTRY_TYPE entryType, TYPE_FIELD_ENTRY* 
   return index;
 }
 
-TYPE_ID TYPE_registerPrimitive(STRING* name) {
+TYPE_ID TYPE_registerPrimitive(char* name) {
   TYPE_ID id = arrlen(typeTable);
-  arrput(typeTable, ((TYPE_ENTRY){
-        .index = id,
-        .module = NULL,
-        .name = name,
-        .entryType = ENTRY_TYPE_PRIMITIVE,
-        .fields = NULL,
-        .status = STATUS_COMPLETE
-  }));
+  if (name == NULL) {
+    arrput(typeTable, ((TYPE_ENTRY){
+          .index = id,
+          .module = NULL,
+          .name = NULL,
+          .entryType = ENTRY_TYPE_PRIMITIVE,
+          .fields = NULL,
+          .status = STATUS_COMPLETE
+    }));
+  } else {
+    arrput(typeTable, ((TYPE_ENTRY){
+          .index = id,
+          .module = NULL,
+          .name = createString(name),
+          .entryType = ENTRY_TYPE_PRIMITIVE,
+          .fields = NULL,
+          .status = STATUS_COMPLETE
+    }));
+  }
   return id;
 }
 
@@ -85,12 +108,25 @@ TYPE_ENTRY TYPE_get(TYPE_ID index) {
   return typeTable[index];
 }
 
-TYPE_ENTRY TYPE_getByName(char* module, char* name) {
-  return typeTable[0];
+TYPE_ID TYPE_getIdByName(char* module, char* name) {
+  for (int i = 1; i < arrlen(typeTable); i++) {
+    TYPE_ENTRY entry = typeTable[i];
+    if ((module != NULL && entry.module == NULL) || (module == NULL && entry.module != NULL)) {
+      continue;
+    }
+    if (entry.module != NULL && strcmp(entry.module->chars, module) != 0) {
+      continue;
+    }
+
+    if (strcmp(entry.name->chars, name) == 0) {
+      return i;
+    }
+  }
+  return 0;
 }
 
 bool TYPE_hasParent(TYPE_ID index) {
-  TYPE_ENTRY entry = typeIndex[index];
+  TYPE_ENTRY entry = typeTable[index];
   if (entry.entryType != ENTRY_TYPE_ARRAY && entry.entryType != ENTRY_TYPE_POINTER) {
     return false;
   }
@@ -98,13 +134,24 @@ bool TYPE_hasParent(TYPE_ID index) {
   return true;
 }
 
-TYPE_ID TYPE_getParent(TYPE_ID index) {
-  if (TYPE_hasParent(index)) {
+TYPE_ID TYPE_getParentId(TYPE_ID index) {
+  if (!TYPE_hasParent(index)) {
     return 0;
   }
-  TYPE_ENTRY entry = typeIndex[index];
+  TYPE_ENTRY entry = typeTable[index];
   return entry.fields[0].typeIndex;
 }
+
+TYPE_ENTRY TYPE_getParent(TYPE_ID index) {
+  TYPE_ENTRY entry = TYPE_get(index);
+  return TYPE_get(entry.fields[0].typeIndex);
+}
+
+TYPE_ENTRY_TYPE TYPE_getKind(TYPE_ID type) {
+  return TYPE_get(type).entryType;
+}
+
+
 
 void TYPE_TABLE_report(void) {
 

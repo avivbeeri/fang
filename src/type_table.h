@@ -39,9 +39,9 @@ typedef enum TYPE_ENTRY_TYPE {
   ENTRY_TYPE_PRIMITIVE,
   ENTRY_TYPE_POINTER,
   ENTRY_TYPE_FUNCTION,
-  ENTRY_TYPE_ARRAY
+  ENTRY_TYPE_ARRAY,
   ENTRY_TYPE_RECORD,
-  ENTRY_TYPE_UNION,
+  ENTRY_TYPE_UNION
 } TYPE_ENTRY_TYPE;
 
 typedef uint32_t TYPE_ID;
@@ -75,12 +75,15 @@ void TYPE_TABLE_free(void);
 
 TYPE_ID TYPE_declare(STRING* module, STRING* name);
 TYPE_ID TYPE_define(TYPE_ID index, TYPE_ENTRY_TYPE entryType, TYPE_FIELD_ENTRY* fields);
-TYPE_ID TYPE_registerPrimitive(STRING* name);
+TYPE_ID TYPE_registerPrimitive(char* name);
 
 TYPE_ENTRY TYPE_get(TYPE_ID index);
-TYPE_ENTRY TYPE_getByName(char* name);
+TYPE_ENTRY TYPE_getByName(char* module, char* name);
+TYPE_ID TYPE_getIdByName(char* module, char* name);
 bool TYPE_hasParent(TYPE_ID index);
-TYPE_ID TYPE_getParent(TYPE_ID index);
+TYPE_ID TYPE_getParentId(TYPE_ID index);
+TYPE_ENTRY TYPE_getParent(TYPE_ID index);
+TYPE_ENTRY_TYPE TYPE_getKind(TYPE_ID type);
 
 /*
    // These belong in the platform layer

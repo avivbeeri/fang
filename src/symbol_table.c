@@ -80,6 +80,10 @@ bool SYMBOL_TABLE_scopeHas(STRING* name) {
   return false;
 }
 
+int getSize(TYPE_ID type) {
+  return 8;
+}
+
 static uint32_t SYMBOL_TABLE_calculateTableSize(uint32_t index) {
   SYMBOL_TABLE_SCOPE closingScope = SYMBOL_TABLE_getScope(index);
   uint32_t size = 0;
@@ -88,9 +92,9 @@ static uint32_t SYMBOL_TABLE_calculateTableSize(uint32_t index) {
     SYMBOL_TABLE_ENTRY tableEntry = closingScope.table[i];
     if (tableEntry.defined) {
       if (tableEntry.elementCount > 0) {
-        size += typeTable[tableEntry.typeIndex].byteSize * tableEntry.elementCount;
+        size += getSize(tableEntry.typeIndex) * tableEntry.elementCount;
       } else {
-        size += typeTable[tableEntry.typeIndex].byteSize;
+        size += getSize(tableEntry.typeIndex);
       }
     }
   }
@@ -137,7 +141,6 @@ void SYMBOL_TABLE_updateElementCount(STRING* name, uint32_t elementCount) {
     SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
     if (entry.defined) {
       entry.elementCount = elementCount;
-      entry.kind = SYMBOL_KIND_ARRAY;
       shputs(scope.table, entry);
       return;
     }
@@ -176,7 +179,7 @@ void SYMBOL_TABLE_init(void) {
   SYMBOL_TABLE_openScope(SCOPE_TYPE_INVALID);
 }
 
-void SYMBOL_TABLE_declareWithKind(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND kind, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
+void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
@@ -185,7 +188,6 @@ void SYMBOL_TABLE_declareWithKind(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND ki
     .defined = true,
     .entryType = type,
     .status = SYMBOL_TABLE_STATUS_DECLARED,
-    .kind = kind,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
     .constantIndex = 0
@@ -193,10 +195,7 @@ void SYMBOL_TABLE_declareWithKind(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND ki
   shputs(scope.table, entry);
   hmputs(scopes, scope);
 }
-void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
-  SYMBOL_TABLE_declareWithKind(name, type, typeIndex, SYMBOL_KIND_UNKNOWN, storageType);
-}
-void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND kind, uint32_t typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
+void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
@@ -207,7 +206,6 @@ void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, SYMBOL_KIND kind, uint3
     .entryType = type,
     .defined = true,
     .status = SYMBOL_TABLE_STATUS_DEFINED,
-    .kind = kind,
     .storageType = storageType,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
@@ -294,7 +292,7 @@ void SYMBOL_TABLE_report(void) {
       SYMBOL_TABLE_ENTRY entry = scope.table[j];
 
       printf("%s - ", entry.key);
-      printf("%s - ", typeTable[entry.typeIndex].name->chars);
+      printf("%s - ", TYPE_get(entry.typeIndex).name->chars);
       switch (entry.entryType) {
         case SYMBOL_TYPE_UNKNOWN: { printf("UNKNOWN"); break; }
         case SYMBOL_TYPE_FUNCTION: { printf("FUNCTION"); break; }
