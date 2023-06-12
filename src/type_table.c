@@ -39,14 +39,14 @@ TYPE_ENTRY* TYPE_TABLE_init(void) {
   TYPE_registerPrimitive(NULL);
   TYPE_registerPrimitive("void");
   TYPE_registerPrimitive("bool");
-  TYPE_registerPrimitive("i8");
   TYPE_registerPrimitive("u8");
-  TYPE_registerPrimitive("char");
+  TYPE_registerPrimitive("i8");
   TYPE_registerPrimitive("u16");
   TYPE_registerPrimitive("i16");
   TYPE_registerPrimitive("number");
   TYPE_registerPrimitive("string");
   TYPE_registerPrimitive("fn");
+  TYPE_registerPrimitive("char");
   TYPE_registerPrimitive("ptr");
   return typeTable;
 }

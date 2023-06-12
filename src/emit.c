@@ -46,6 +46,9 @@ static bool isPointer(int type) {
 }
 
 static void printEntry(TYPE_ENTRY entry) {
+  if (entry.name == NULL) {
+    printf("null entry?\n");
+  }
   printf("%s\n", entry.name->chars);
 }
 

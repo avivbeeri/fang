@@ -196,7 +196,7 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
     SYMBOL_TABLE_ENTRY tableEntry = scope.table[i];
     if (tableEntry.defined) {
       if (tableEntry.elementCount > 0) {
-        offset += getSize(tableEntry.typeIndex) * tableEntry.elementCount;
+        offset += getSize(TYPE_getParentId(tableEntry.typeIndex)) * tableEntry.elementCount;
       } else {
         offset += getSize(tableEntry.typeIndex);
       }
@@ -215,7 +215,7 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
     for (int i = 0; i < hmlen(current.table); i++) {
       SYMBOL_TABLE_ENTRY tableEntry = current.table[i];
       if (tableEntry.elementCount > 0) {
-        offset += getSize(tableEntry.typeIndex) * tableEntry.elementCount;
+        offset += getSize(TYPE_getParentId(tableEntry.typeIndex)) * tableEntry.elementCount;
       } else {
         offset += getSize(tableEntry.typeIndex);
       }

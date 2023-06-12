@@ -55,12 +55,15 @@ static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
 }
 static void printKind(int kind) {
-  switch (kind) {
+  switch (TYPE_getKind(kind)) {
     case ENTRY_TYPE_PRIMITIVE: printf("primitive"); break;
     case ENTRY_TYPE_POINTER: printf("pointer"); break;
     case ENTRY_TYPE_RECORD: printf("record"); break;
+    case ENTRY_TYPE_UNION: printf("union"); break;
     case ENTRY_TYPE_ARRAY: printf("array"); break;
     case ENTRY_TYPE_FUNCTION: printf("fun"); break;
+    default:
+    case ENTRY_TYPE_UNKNOWN: printf("unknown"); break;
   }
 }
 
@@ -193,6 +196,7 @@ static int resolveType(AST* ptr) {
         STRING* module = NULL;
         ptr->type = TYPE_declare(module, typeName);
         TYPE_define(ptr->type, ENTRY_TYPE_FUNCTION, entries);
+
         return ptr->type;
       }
     case AST_TYPE_ARRAY:
@@ -1104,7 +1108,7 @@ static bool traverse(AST* ptr) {
         // resolve data.identifier to string
         uint32_t leftType = data.identifier->type;
         TYPE_ENTRY fnType = TYPE_get(leftType);
-        if (TYPE_getKind(leftType) == ENTRY_TYPE_FUNCTION) {
+        if (TYPE_getKind(leftType) != ENTRY_TYPE_FUNCTION) {
           compileError(data.identifier->token, "Attempting to call '");
           printTree(data.identifier);
           printf("' but it is not a function.\n");
@@ -1120,7 +1124,7 @@ static bool traverse(AST* ptr) {
           printf("Expected %li argument(s) but instead found %li argument(s)\n", arrlen(data.arguments), arrlen(fnType.fields));
           return false;
         }
-        if (arrlen(fnType.fields) > arrlen(data.arguments)) {
+        if (arrlen(fnType.fields) > arrlen(data.arguments) + 1) {
           int indent = compileError(data.identifier->token, "Too many arguments for function call of '");
           printTree(data.identifier);
           printf("'\n");
