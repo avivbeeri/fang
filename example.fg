@@ -1,17 +1,14 @@
 import "lib.fg"
-
 fn main(): void {
-  var i: char = 'A';
-  var j: char = 'J';
-  var z: char = 'Z';
-  if (i < j) {
-    sys::writeChar('O');
-  } else {
-    sys::writeChar('X');
+  const list: [5]string = [ "a", "b", "c", "d", "e"];
+  const s: string = "hello world";
+  for (var q: u8 = 0; q < 11; q = q + 1) {
+    sys::writeChar(s[q]);
   }
-  if (z > i) {
-    sys::writeChar('O');
-  } else {
-    sys::writeChar('X');
+//  sys::writeChar(' ');
+  for (var q: u8 = 0; q < 5; q = q + 1) {
+//    var s: string = list[q];
+ //   sys::writeChar(s[0]);
   }
 }
+

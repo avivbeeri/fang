@@ -44,7 +44,10 @@ TYPE_ENTRY* TYPE_TABLE_init(void) {
   TYPE_registerPrimitive("u16");
   TYPE_registerPrimitive("i16");
   TYPE_registerPrimitive("number");
-  TYPE_registerPrimitive("string");
+  int strIndex = TYPE_declare(NULL, createString("string"));
+  TYPE_FIELD_ENTRY* subType = NULL;
+  arrput(subType, ((TYPE_FIELD_ENTRY){ 10, NULL, 0 }));
+  TYPE_define(strIndex, ENTRY_TYPE_POINTER, subType);
   TYPE_registerPrimitive("fn");
   TYPE_registerPrimitive("char");
   TYPE_registerPrimitive("ptr");

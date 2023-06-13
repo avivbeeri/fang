@@ -208,6 +208,7 @@ static int resolveType(AST* ptr) {
           traverse(data.length);
           int lenType = data.length->type;
           if (!isNumeric(lenType)) {
+            printf("trap %d\n", __LINE__);
             return 0;
           }
         }
@@ -321,6 +322,7 @@ static bool resolveTopLevel(AST* ptr) {
           int index = field.value->type;
           if (index == 0) {
             arrfree(fields);
+            printf("trap %d\n", __LINE__);
             return false;
           }
           TYPE_ENTRY_TYPE kind = TYPE_getKind(index);
@@ -512,7 +514,7 @@ static bool traverse(AST* ptr) {
           index = TYPE_declare(module, typeName);
           TYPE_FIELD_ENTRY* field = NULL;
           arrput(field, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
-          TYPE_define(index, ENTRY_TYPE_POINTER, field);
+          TYPE_define(index, ENTRY_TYPE_ARRAY, field);
         }
         if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
@@ -539,6 +541,7 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.type);
         int typeIndex = data.type->type;
         if (typeIndex == STRING_INDEX) {
+          printf("trap %d\n", __LINE__);
           return false;
         }
         ptr->type = typeIndex;
@@ -597,7 +600,7 @@ static bool traverse(AST* ptr) {
           int index = TYPE_declare(module, typeName);
           TYPE_FIELD_ENTRY* field = NULL;
           arrput(field, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
-          TYPE_define(index, ENTRY_TYPE_POINTER, field);
+          TYPE_define(index, ENTRY_TYPE_ARRAY, field);
         }
         ptr->type = leftType;
         if (ptr->scopeIndex <= 1 || ast.tag == AST_CONST_DECL) {
@@ -1085,17 +1088,22 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.left);
         POP(evaluateStack);
         if (!r) {
+          printf("trap %d\n", __LINE__);
           return false;
         }
         PUSH(assignStack, false);
         r &= traverse(data.index);
         POP(assignStack);
         if (!r || !isNumeric(data.index->type)) {
+          printf("trap %d\n", __LINE__);
           return false;
         }
 
         int arrType = data.left->type;
         ptr->type = TYPE_getParentId(arrType);
+        if (ptr->type == 0) {
+          printf("trap %d\n", __LINE__);
+        }
         return ptr->type != 0;
       }
     case AST_CALL:
