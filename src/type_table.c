@@ -29,11 +29,7 @@
 #include "memory.h"
 #include "type_table.h"
 
-// typedef struct { int key; bool value; } TYPE_VISIT_SET;
-// typedef struct { int size; bool error; } TYPE_TABLE_RESULT;
-struct { char *key; TYPE_ID value; }* aliasTable = NULL;
-
-TYPE_ENTRY* typeTable = NULL;
+static TYPE_ENTRY* typeTable = NULL;
 
 TYPE_ENTRY* TYPE_TABLE_init(void) {
   TYPE_registerPrimitive(NULL);
