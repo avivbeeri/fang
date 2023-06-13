@@ -67,7 +67,7 @@ bool compile(const SourceFile* sources) {
   }
   result &= p.calculateSizes();
   if (options.report) {
-    TYPE_TABLE_report();
+    p.reportTypeTable();
   }
   if (!result) {
     goto cleanup;

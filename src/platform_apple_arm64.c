@@ -21,8 +21,17 @@ static char *regList[REG_SIZE] = { "X8", "X9", "X10", "X11" };
 #define FN_INDEX 9
 #define CHAR_INDEX 10
 
+int* sizeTable = NULL;
 static int getSize(TYPE_ID id) {
   TYPE_ENTRY entry = TYPE_get(id);
+  if (entry.entryType == ENTRY_TYPE_PRIMITIVE) {
+    return sizeTable[id];
+  }
+  if (entry.entryType == ENTRY_TYPE_ARRAY) {
+    // PTR
+    return sizeTable[11];
+  }
+
   if (entry.entryType != ENTRY_TYPE_RECORD) {
     return 8;
   }
@@ -100,6 +109,18 @@ static bool calculateSizes() {
   TYPE_setPrimitiveSize("fn", 8);
   TYPE_setPrimitiveSize("ptr", 8);
   */
+  arrput(sizeTable, 0);
+  arrput(sizeTable, 0);
+  arrput(sizeTable, 1);
+  arrput(sizeTable, 1);
+  arrput(sizeTable, 1);
+  arrput(sizeTable, 2);
+  arrput(sizeTable, 2);
+  arrput(sizeTable, 4);
+  arrput(sizeTable, 8);
+  arrput(sizeTable, 8);
+  arrput(sizeTable, 1);
+  arrput(sizeTable, 8);
   /*
   TYPE_setPrimitiveSize("void", 0);
 
@@ -370,7 +391,11 @@ static int genFieldOffset(FILE* f, int baseReg, int typeIndex, STRING* fieldName
     if (STRING_equality(entry.fields[i].name, fieldName)) {
       break;
     }
-    offset += getSize(entry.fields[i].typeIndex);
+    if (entry.fields[i].elementCount == 0) {
+      offset += getSize(entry.fields[i].typeIndex);
+    } else {
+      offset += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
+    }
   }
 
   freeRegister(baseReg);
@@ -931,6 +956,15 @@ static int genLogicalNot(FILE* f, int valueReg) {
   return valueReg;
 }
 
+void reportTypeTable(void) {
+  printf("-------- TYPE TABLE (%zu)-----------\n", TYPE_TABLE_total());
+  for (int i = 1; i < TYPE_TABLE_total(); i++) {
+    TYPE_ENTRY entry = TYPE_get(i);
+    printf("%s - %s | %i bytes", entry.name->chars, entry.status == STATUS_COMPLETE ? "complete" : "incomplete", getSize(i));
+    printf("\n");
+  }
+  printf("-------------------------------\n");
+}
 
 PLATFORM platform_apple_arm64 = {
   .key = "apple_arm64",
@@ -989,7 +1023,8 @@ PLATFORM platform_apple_arm64 = {
   .genGlobalVariable = genGlobalVariable,
   .genGlobalConstant = genGlobalConstant,
   .genFieldOffset = genFieldOffset,
-  .getSize = getSize
+  .getSize = getSize,
+  .reportTypeTable = reportTypeTable
 };
 
 #undef emitf

@@ -164,16 +164,9 @@ TYPE_ENTRY_TYPE TYPE_getKind(TYPE_ID type) {
   return TYPE_get(type).entryType;
 }
 
-void TYPE_TABLE_report(void) {
-  /*
-  printf("-------- TYPE TABLE (%zu)-----------\n", arrlen(typeTable));
-  for (int i = 1; i < arrlen(typeTable); i++) {
-    TYPE_ENTRY* entry = typeTable + i;
-    printf("%s - %s | %i bytes", entry->name->chars, entry->status == STATUS_COMPLETE ? "complete" : "incomplete", getSize(i));
-    printf("\n");
-  }
-  printf("-------------------------------\n");
-  */
+
+size_t TYPE_TABLE_total(void) {
+  return arrlen(typeTable);
 }
 
 void printKind(int kind) {

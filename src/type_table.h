@@ -85,12 +85,6 @@ TYPE_ID TYPE_getParentId(TYPE_ID index);
 TYPE_ENTRY TYPE_getParent(TYPE_ID index);
 TYPE_ENTRY_TYPE TYPE_getKind(TYPE_ID type);
 
-/*
-   // These belong in the platform layer
-bool TYPE_setPrimitiveSize(char* name, int size);
-bool TYPE_calculateSizes();
-*/
-
-void TYPE_TABLE_report();
+size_t TYPE_TABLE_total();
 void printKind(int kind);
 #endif
