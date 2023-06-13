@@ -251,6 +251,11 @@ SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STRING* name) {
   }
   return (SYMBOL_TABLE_ENTRY){0};
 }
+
+STRING* SYMBOL_TABLE_getNameFromCurrent(void) {
+  return SYMBOL_TABLE_getNameFromStart(SYMBOL_TABLE_getCurrentScopeIndex());
+}
+
 STRING* SYMBOL_TABLE_getNameFromStart(int start) {
   uint32_t current = start;
   while (current > 0) {

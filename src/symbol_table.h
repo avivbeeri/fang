@@ -121,5 +121,6 @@ void SYMBOL_TABLE_updateElementCount(STRING* name, uint32_t elementCount);
 void SYMBOL_TABLE_pushScope(int index);
 void SYMBOL_TABLE_popScope();
 STRING* SYMBOL_TABLE_getNameFromStart(int start);
+STRING* SYMBOL_TABLE_getNameFromCurrent(void);
 
 #endif
