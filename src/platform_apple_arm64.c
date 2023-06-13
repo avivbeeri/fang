@@ -990,8 +990,6 @@ PLATFORM platform_apple_arm64 = {
   .genGlobalConstant = genGlobalConstant,
   .genFieldOffset = genFieldOffset,
   .getSize = getSize
-
-
 };
 
 #undef emitf

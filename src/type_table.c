@@ -164,24 +164,8 @@ TYPE_ENTRY_TYPE TYPE_getKind(TYPE_ID type) {
   return TYPE_get(type).entryType;
 }
 
-
-static int getSize(TYPE_ID id) {
-  TYPE_ENTRY entry = TYPE_get(id);
-  if (entry.entryType != ENTRY_TYPE_RECORD) {
-    return 8;
-  }
-  int size = 0;
-  for (int i = 0; i < arrlen(entry.fields); i++) {
-    if (entry.fields[i].elementCount == 0) {
-      size += getSize(entry.fields[i].typeIndex);
-    } else {
-      size += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
-    }
-  }
-  return size;
-}
-
 void TYPE_TABLE_report(void) {
+  /*
   printf("-------- TYPE TABLE (%zu)-----------\n", arrlen(typeTable));
   for (int i = 1; i < arrlen(typeTable); i++) {
     TYPE_ENTRY* entry = typeTable + i;
@@ -189,6 +173,7 @@ void TYPE_TABLE_report(void) {
     printf("\n");
   }
   printf("-------------------------------\n");
+  */
 }
 
 void printKind(int kind) {

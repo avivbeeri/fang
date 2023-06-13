@@ -73,7 +73,7 @@ bool compile(const SourceFile* sources) {
     goto cleanup;
   }
 
-  SYMBOL_TABLE_calculateAllocations();
+  SYMBOL_TABLE_calculateAllocations(p);
   if (options.report) {
     SYMBOL_TABLE_report();
   }

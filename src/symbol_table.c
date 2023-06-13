@@ -28,6 +28,7 @@
 #include "common.h"
 #include "memory.h"
 #include "type_table.h"
+#include "platform.h"
 #include "symbol_table.h"
 #include <math.h>
 
@@ -80,23 +81,7 @@ bool SYMBOL_TABLE_scopeHas(STRING* name) {
   return false;
 }
 
-static int getSize(TYPE_ID id) {
-  TYPE_ENTRY entry = TYPE_get(id);
-  if (entry.entryType != ENTRY_TYPE_RECORD) {
-    return 8;
-  }
-  int size = 0;
-  for (int i = 0; i < arrlen(entry.fields); i++) {
-    if (entry.fields[i].elementCount == 0) {
-      size += getSize(entry.fields[i].typeIndex);
-    } else {
-      size += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
-    }
-  }
-  return size;
-}
-
-static uint32_t SYMBOL_TABLE_calculateTableSize(uint32_t index) {
+static uint32_t SYMBOL_TABLE_calculateTableSize(PLATFORM p, uint32_t index) {
   SYMBOL_TABLE_SCOPE closingScope = SYMBOL_TABLE_getScope(index);
   uint32_t size = 0;
   uint32_t scopeCount = hmlen(closingScope.table);
@@ -107,16 +92,16 @@ static uint32_t SYMBOL_TABLE_calculateTableSize(uint32_t index) {
         continue;
       }
       if (tableEntry.elementCount > 0) {
-        size += getSize(TYPE_getParentId(tableEntry.typeIndex)) * tableEntry.elementCount;
+        size += p.getSize(TYPE_getParentId(tableEntry.typeIndex)) * tableEntry.elementCount;
       } else {
-        size += getSize(tableEntry.typeIndex);
+        size += p.getSize(tableEntry.typeIndex);
       }
     }
   }
 
   return size;
 }
-static void SYMBOL_TABLE_calculateAllocation(uint32_t start) {
+static void SYMBOL_TABLE_calculateAllocation(PLATFORM p, uint32_t start) {
   SYMBOL_TABLE_SCOPE current = SYMBOL_TABLE_getScope(start);
   uint32_t index = start;
   while (current.scopeType != SCOPE_TYPE_MODULE && current.scopeType != SCOPE_TYPE_INVALID) {
@@ -133,18 +118,18 @@ static void SYMBOL_TABLE_calculateAllocation(uint32_t start) {
   uint32_t size = 0;
 }
 
-void SYMBOL_TABLE_calculateAllocations() {
+void SYMBOL_TABLE_calculateAllocations(PLATFORM p) {
   // Cache the table sizes
   for (int i = 0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(i);
-    scope.tableSize = SYMBOL_TABLE_calculateTableSize(i);
+    scope.tableSize = SYMBOL_TABLE_calculateTableSize(p, i);
     hmputs(scopes, scope);
   }
 
   for (int i = 0; i < arrlen(leafScopes); i++) {
     SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(leafScopes[i]);
     if (scope.leaf) {
-      SYMBOL_TABLE_calculateAllocation(leafScopes[i]);
+      SYMBOL_TABLE_calculateAllocation(p, leafScopes[i]);
     }
   }
 }
