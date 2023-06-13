@@ -54,19 +54,6 @@ bool functionScope = false;
 static bool isLiteral(int type) {
   return type == NUMERICAL_INDEX;
 }
-static void printKind(int kind) {
-  switch (TYPE_getKind(kind)) {
-    case ENTRY_TYPE_PRIMITIVE: printf("primitive"); break;
-    case ENTRY_TYPE_POINTER: printf("pointer"); break;
-    case ENTRY_TYPE_RECORD: printf("record"); break;
-    case ENTRY_TYPE_UNION: printf("union"); break;
-    case ENTRY_TYPE_ARRAY: printf("array"); break;
-    case ENTRY_TYPE_FUNCTION: printf("fun"); break;
-    default:
-    case ENTRY_TYPE_UNKNOWN: printf("unknown"); break;
-  }
-}
-
 static bool isPointer(int type) {
   return TYPE_get(type).entryType == ENTRY_TYPE_POINTER || TYPE_get(type).entryType == ENTRY_TYPE_ARRAY || type == STRING_INDEX;
 }
@@ -215,9 +202,6 @@ static int resolveType(AST* ptr) {
 
         int subType = resolveType(data.subType);
         STRING* name = TYPE_get(subType).name;
-
-        STRING* ptrName = STRING_prepend(name, "^");
-
         STRING* typeName = STRING_prepend(name, "[]");
         STRING* module = NULL;
         ptr->type = TYPE_declare(module, typeName);
@@ -495,7 +479,7 @@ static bool traverse(AST* ptr) {
           }
         }
         if (!isCompatible(leftType, rightType)) {
-          int indent = compileError(data.expr->token, "Incompatible initialization for variable '%s'", data.identifier->chars);
+          int indent = compileError(data.expr->token, "Incompatible initialization for variable '%s'\n", data.identifier->chars);
           printf("%*s", indent, "");
           printf("Expected type '%s' but instead found '%s'\n", TYPE_get(leftType).name->chars, TYPE_get(rightType).name->chars);
           return false;
@@ -509,7 +493,7 @@ static bool traverse(AST* ptr) {
         if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY) {
           int subType = TYPE_getParentId(leftType);
           STRING* name = TYPE_get(subType).name;
-          STRING* typeName = STRING_prepend(name, "^");
+          STRING* typeName = STRING_prepend(name, "[]");
           STRING* module = NULL;
           index = TYPE_declare(module, typeName);
           TYPE_FIELD_ENTRY* field = NULL;
@@ -525,8 +509,7 @@ static bool traverse(AST* ptr) {
           Value length = evalConstTree(data.type);
           if (!IS_EMPTY(length) && !IS_ERROR(length)) {
             elementCount = getNumber(length);
-            printf("Array length: %i\n", elementCount);
-            printf("%i\n", elementCount);
+            //printf("Array length: %i\n", elementCount);
             SYMBOL_TABLE_updateElementCount(identifier, elementCount);
           }
         }
@@ -555,6 +538,15 @@ static bool traverse(AST* ptr) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
         }
         SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, typeIndex, storageType);
+        int elementCount = 0;
+        if (kind == ENTRY_TYPE_ARRAY) {
+          Value length = evalConstTree(data.type);
+          if (!IS_EMPTY(length) && !IS_ERROR(length)) {
+            elementCount = getNumber(length);
+            //printf("Array length: %i\n", elementCount);
+            SYMBOL_TABLE_updateElementCount(identifier, elementCount);
+          }
+        }
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         return r;
       }
@@ -595,7 +587,7 @@ static bool traverse(AST* ptr) {
 
           int subType = TYPE_getParentId(leftType);
           STRING* name = TYPE_get(subType).name;
-          STRING* typeName = STRING_prepend(name, "^");
+          STRING* typeName = STRING_prepend(name, "[]");
           STRING* module = NULL;
           int index = TYPE_declare(module, typeName);
           TYPE_FIELD_ENTRY* field = NULL;
@@ -613,8 +605,7 @@ static bool traverse(AST* ptr) {
           Value length = evalConstTree(data.type);
           if (!IS_EMPTY(length) && !IS_ERROR(length)) {
             elementCount = getNumber(length);
-            printf("Array length: %i\n", elementCount);
-            printf("%i\n", elementCount);
+            //printf("Array length: %i\n", elementCount);
             SYMBOL_TABLE_updateElementCount(identifier, elementCount);
           }
         }

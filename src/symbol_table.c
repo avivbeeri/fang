@@ -80,8 +80,20 @@ bool SYMBOL_TABLE_scopeHas(STRING* name) {
   return false;
 }
 
-int getSize(TYPE_ID type) {
-  return 8;
+static int getSize(TYPE_ID id) {
+  TYPE_ENTRY entry = TYPE_get(id);
+  if (entry.entryType != ENTRY_TYPE_RECORD) {
+    return 8;
+  }
+  int size = 0;
+  for (int i = 0; i < arrlen(entry.fields); i++) {
+    if (entry.fields[i].elementCount == 0) {
+      size += getSize(entry.fields[i].typeIndex);
+    } else {
+      size += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
+    }
+  }
+  return size;
 }
 
 static uint32_t SYMBOL_TABLE_calculateTableSize(uint32_t index) {
@@ -91,8 +103,11 @@ static uint32_t SYMBOL_TABLE_calculateTableSize(uint32_t index) {
   for (int i = 0; i < scopeCount; i++) {
     SYMBOL_TABLE_ENTRY tableEntry = closingScope.table[i];
     if (tableEntry.defined) {
+      if (tableEntry.entryType == SYMBOL_TYPE_PARAMETER) {
+        continue;
+      }
       if (tableEntry.elementCount > 0) {
-        size += getSize(tableEntry.typeIndex) * tableEntry.elementCount;
+        size += getSize(TYPE_getParentId(tableEntry.typeIndex)) * tableEntry.elementCount;
       } else {
         size += getSize(tableEntry.typeIndex);
       }

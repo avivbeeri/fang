@@ -59,6 +59,11 @@ void TYPE_TABLE_free(void) {
 }
 
 TYPE_ID TYPE_declare(STRING* module, STRING* name) {
+  char* moduleChars = module == NULL ? NULL : module->chars;
+  char* nameChars = name == NULL ? NULL : name->chars;
+  if (TYPE_getIdByName(moduleChars, nameChars) != 0) {
+    return TYPE_getIdByName(moduleChars, nameChars);
+  }
   TYPE_ID id = arrlen(typeTable);
   arrput(typeTable, ((TYPE_ENTRY){
     .index = id,
@@ -72,6 +77,11 @@ TYPE_ID TYPE_declare(STRING* module, STRING* name) {
 }
 
 TYPE_ID TYPE_define(TYPE_ID index, TYPE_ENTRY_TYPE entryType, TYPE_FIELD_ENTRY* fields) {
+  if (typeTable[index].status != STATUS_DECLARED) {
+    // printf("duplicate definition: %s\n", typeTable[index].name->chars);
+    return index;
+  }
+
   if (index > arrlen(typeTable) - 1) {
     return 0;
   }
@@ -155,8 +165,42 @@ TYPE_ENTRY_TYPE TYPE_getKind(TYPE_ID type) {
 }
 
 
+static int getSize(TYPE_ID id) {
+  TYPE_ENTRY entry = TYPE_get(id);
+  if (entry.entryType != ENTRY_TYPE_RECORD) {
+    return 8;
+  }
+  int size = 0;
+  for (int i = 0; i < arrlen(entry.fields); i++) {
+    if (entry.fields[i].elementCount == 0) {
+      size += getSize(entry.fields[i].typeIndex);
+    } else {
+      size += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
+    }
+  }
+  return size;
+}
 
 void TYPE_TABLE_report(void) {
+  printf("-------- TYPE TABLE (%zu)-----------\n", arrlen(typeTable));
+  for (int i = 1; i < arrlen(typeTable); i++) {
+    TYPE_ENTRY* entry = typeTable + i;
+    printf("%s - %s | %i bytes", entry->name->chars, entry->status == STATUS_COMPLETE ? "complete" : "incomplete", getSize(i));
+    printf("\n");
+  }
+  printf("-------------------------------\n");
+}
 
+void printKind(int kind) {
+  switch (TYPE_getKind(kind)) {
+    case ENTRY_TYPE_PRIMITIVE: printf("primitive"); break;
+    case ENTRY_TYPE_POINTER: printf("pointer"); break;
+    case ENTRY_TYPE_RECORD: printf("record"); break;
+    case ENTRY_TYPE_UNION: printf("union"); break;
+    case ENTRY_TYPE_ARRAY: printf("array"); break;
+    case ENTRY_TYPE_FUNCTION: printf("fun"); break;
+    default:
+    case ENTRY_TYPE_UNKNOWN: printf("unknown"); break;
+  }
 }
 

@@ -22,7 +22,19 @@ static char *regList[REG_SIZE] = { "X8", "X9", "X10", "X11" };
 #define CHAR_INDEX 10
 
 static int getSize(TYPE_ID id) {
-  return 8;
+  TYPE_ENTRY entry = TYPE_get(id);
+  if (entry.entryType != ENTRY_TYPE_RECORD) {
+    return 8;
+  }
+  int size = 0;
+  for (int i = 0; i < arrlen(entry.fields); i++) {
+    if (entry.fields[i].elementCount == 0) {
+      size += getSize(entry.fields[i].typeIndex);
+    } else {
+      size += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
+    }
+  }
+  return size;
 }
 static bool isPointer(int type) {
   return TYPE_get(type).entryType == ENTRY_TYPE_POINTER || TYPE_get(type).entryType == ENTRY_TYPE_ARRAY;

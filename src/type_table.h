@@ -92,4 +92,5 @@ bool TYPE_calculateSizes();
 */
 
 void TYPE_TABLE_report();
+void printKind(int kind);
 #endif
