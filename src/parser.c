@@ -381,8 +381,13 @@ static AST* parseType(bool signature) {
   } else if (match(TOKEN_FN)) {
     return typeFn(signature);
   } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
-    STRING* string = copyString(parser.previous.start, parser.previous.length);
-    return AST_NEW_T(AST_TYPE_NAME, parser.previous, string);
+    STRING* module = NULL;
+    STRING* name = copyString(parser.previous.start, parser.previous.length);
+    if (match(TOKEN_COLON_COLON) && (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER))) {
+      module = name;
+      name = copyString(parser.previous.start, parser.previous.length);
+    }
+    return AST_NEW_T(AST_TYPE_NAME, parser.previous, module, name);
   } else {
     errorAtCurrent("Expecting a type declaration.");
   }

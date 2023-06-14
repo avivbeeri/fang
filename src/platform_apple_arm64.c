@@ -960,7 +960,7 @@ void reportTypeTable(void) {
   printf("-------- TYPE TABLE (%zu)-----------\n", TYPE_TABLE_total());
   for (int i = 1; i < TYPE_TABLE_total(); i++) {
     TYPE_ENTRY entry = TYPE_get(i);
-    printf("%s - %s | %i bytes", entry.name->chars, entry.status == STATUS_COMPLETE ? "complete" : "incomplete", getSize(i));
+    printf("%s::%s - %s | %i bytes", entry.module == NULL ? "none" : entry.module->chars, entry.name->chars, entry.status == STATUS_COMPLETE ? "complete" : "incomplete", getSize(i));
     printf("\n");
   }
   printf("-------------------------------\n");

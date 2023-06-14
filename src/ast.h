@@ -117,7 +117,7 @@ struct AST {
     struct AST_IDENTIFIER { STRING* module; STRING* identifier; } AST_IDENTIFIER;
 
     struct AST_TYPE { AST* type; } AST_TYPE;
-    struct AST_TYPE_NAME { STRING* typeName; } AST_TYPE_NAME;
+    struct AST_TYPE_NAME { STRING* module; STRING* typeName; } AST_TYPE_NAME;
     struct AST_TYPE_ARRAY { AST* length; AST* subType; } AST_TYPE_ARRAY;
     struct AST_TYPE_FN { AST** params; AST* returnType; } AST_TYPE_FN;
     struct AST_TYPE_PTR { AST* subType; } AST_TYPE_PTR;

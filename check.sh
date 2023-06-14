@@ -50,6 +50,7 @@ allTests() {
   testFile examples/pointer-arithmetic.fg "OK" 0 "-3296" 0
   testFile examples/pointer-ref-deref.fg "OK" 0 "54" 0
   testFile examples/record-copy-init.fg "OK" 0 "4242" 0
+  testFile examples/scoped-type.fg "OK" 0 "42"$'\n'"7" 0
 }
 
 testFile() {

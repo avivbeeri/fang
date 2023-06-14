@@ -30,8 +30,10 @@
 #include "type_table.h"
 
 static TYPE_ENTRY* typeTable = NULL;
+struct { char *key; bool value; }* moduleSet = NULL;
 
 TYPE_ENTRY* TYPE_TABLE_init(void) {
+  sh_new_strdup(moduleSet);
   TYPE_registerPrimitive(NULL);
   TYPE_registerPrimitive("void");
   TYPE_registerPrimitive("bool");
@@ -46,7 +48,8 @@ TYPE_ENTRY* TYPE_TABLE_init(void) {
   TYPE_define(strIndex, ENTRY_TYPE_POINTER, subType);
   TYPE_registerPrimitive("fn");
   TYPE_registerPrimitive("char");
-  TYPE_registerPrimitive("ptr");
+  TYPE_ID id = TYPE_declare(createString("sys"), createString("ptr"));
+  TYPE_define(id, ENTRY_TYPE_PRIMITIVE, NULL);
   return typeTable;
 }
 
@@ -57,6 +60,9 @@ void TYPE_TABLE_free(void) {
 TYPE_ID TYPE_declare(STRING* module, STRING* name) {
   char* moduleChars = module == NULL ? NULL : module->chars;
   char* nameChars = name == NULL ? NULL : name->chars;
+  if (moduleChars != NULL) {
+    shput(moduleSet, moduleChars, true);
+  }
   if (TYPE_getIdByName(moduleChars, nameChars) != 0) {
     return TYPE_getIdByName(moduleChars, nameChars);
   }
@@ -118,13 +124,16 @@ TYPE_ENTRY TYPE_get(TYPE_ID index) {
 }
 
 TYPE_ID TYPE_getIdByName(char* module, char* name) {
+  int moduleCount = shlen(moduleSet);
   for (int i = 1; i < arrlen(typeTable); i++) {
     TYPE_ENTRY entry = typeTable[i];
-    if ((module != NULL && entry.module == NULL) || (module == NULL && entry.module != NULL)) {
-      continue;
-    }
-    if (entry.module != NULL && strcmp(entry.module->chars, module) != 0) {
-      continue;
+    if (moduleCount > 0) {
+      if ((module != NULL && entry.module == NULL) || (module == NULL && entry.module != NULL)) {
+        continue;
+      }
+      if (entry.module != NULL && strcmp(entry.module->chars, module) != 0) {
+        continue;
+      }
     }
 
     if (strcmp(entry.name->chars, name) == 0) {

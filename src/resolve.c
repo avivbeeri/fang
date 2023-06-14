@@ -136,8 +136,13 @@ static int resolveType(AST* ptr) {
     case AST_TYPE_NAME:
       {
         struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-        int i = TYPE_getIdByName(NULL, data.typeName->chars);
+        char* module = data.module == NULL ? NULL : data.module->chars;
+        int i = TYPE_getIdByName(module, data.typeName->chars);
         ptr->type = i;
+        if (ptr->type == 0) {
+          int indent = compileError(ast.token, "Type '%.*s' has not been defined and could not be found.\n", ast.token.length, ast.token.start);
+          printf("trap %d\n", __LINE__);
+        }
         return i;
       }
     case AST_TYPE_PTR:
@@ -295,7 +300,7 @@ static bool resolveTopLevel(AST* ptr) {
       {
         struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
         STRING* identifier = data.name;
-        STRING* module = NULL;
+        STRING* module = SYMBOL_TABLE_getNameFromCurrent();
         int index = TYPE_declare(module, identifier);
         TYPE_FIELD_ENTRY* fields = NULL;
         // should we resolve type fields before main verification?
@@ -316,7 +321,7 @@ static bool resolveTopLevel(AST* ptr) {
             STRING* name = TYPE_get(subType).name;
             printf("%i\n", subType);
             STRING* typeName = STRING_prepend(name, "[]");
-            STRING* module = NULL;
+            STRING* module = SYMBOL_TABLE_getNameFromCurrent();
             index = TYPE_declare(module, typeName);
             TYPE_FIELD_ENTRY* parent = NULL;
             arrput(parent, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
@@ -494,7 +499,7 @@ static bool traverse(AST* ptr) {
           int subType = TYPE_getParentId(leftType);
           STRING* name = TYPE_get(subType).name;
           STRING* typeName = STRING_prepend(name, "[]");
-          STRING* module = NULL;
+          STRING* module = SYMBOL_TABLE_getNameFromCurrent();
           index = TYPE_declare(module, typeName);
           TYPE_FIELD_ENTRY* field = NULL;
           arrput(field, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
@@ -588,7 +593,7 @@ static bool traverse(AST* ptr) {
           int subType = TYPE_getParentId(leftType);
           STRING* name = TYPE_get(subType).name;
           STRING* typeName = STRING_prepend(name, "[]");
-          STRING* module = NULL;
+          STRING* module = SYMBOL_TABLE_getNameFromCurrent();
           int index = TYPE_declare(module, typeName);
           TYPE_FIELD_ENTRY* field = NULL;
           arrput(field, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));
@@ -816,7 +821,7 @@ static bool traverse(AST* ptr) {
         int subType = data.expr->type;
         STRING* name = TYPE_get(subType).name;
         STRING* typeName = STRING_prepend(name, "^");
-        STRING* module = NULL;
+        STRING* module = SYMBOL_TABLE_getNameFromCurrent();
         ptr->type = TYPE_declare(module, typeName);
         TYPE_FIELD_ENTRY* subTypeField = NULL;
         arrput(subTypeField, ((TYPE_FIELD_ENTRY){ subType, NULL, 0 }));

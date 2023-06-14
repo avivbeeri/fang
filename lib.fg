@@ -7,6 +7,11 @@ ext fn writeChar(c: char): void;
 ext fn writeI8(num: i8): void;
 */
 
+type Sprite {
+  id: u8;
+  alive: bool;
+}
+
 fn syscall_write(c: char): void {
   asm {
     "MOV X0, #1" // STDOUT
