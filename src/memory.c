@@ -23,10 +23,11 @@
   SOFTWARE.
 */
 
+#include <stdio.h>
 #include "common.h"
 #include "memory.h"
 
-
+/*
 char* strdup (const char* s)
 {
   size_t slen = strlen(s);
@@ -39,6 +40,7 @@ char* strdup (const char* s)
   memcpy(result, s, slen+1);
   return result;
 }
+*/
 
 char* readFile(const char* path) {
   FILE* file = fopen(path, "rb");
@@ -146,8 +148,9 @@ STR STR_copy(const char* chars, size_t length) {
       .length = newLength
     });
     shputs(stringTable, entry);
-    STR str = shgeti(stringTable, escapedChars);
+    str = shgeti(stringTable, escapedChars);
   }
+  // printf("Storing \"%s\" with id %zu\n", escapedChars, str);
   free(escapedChars);
   return str;
 }

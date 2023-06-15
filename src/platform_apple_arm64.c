@@ -274,25 +274,25 @@ static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   static char buffer[128];
   snprintf(buffer, sizeof(buffer), "_fang");
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
-  if (scope.moduleName != NULL) {
+  if (scope.moduleName != EMPTY_STRING) {
     sprintf(buffer + strlen(buffer), "_%s", CHARS(scope.moduleName));
   }
   if (entry.storageType == STORAGE_TYPE_GLOBAL || entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
     if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
-      sprintf(buffer + strlen(buffer), "_fn_%s", entry.key);
+      sprintf(buffer + strlen(buffer), "_fn_%s", CHARS(entry.key));
     } else if (entry.entryType == SYMBOL_TYPE_CONSTANT) {
-      sprintf(buffer + strlen(buffer), "_const_%s", entry.key);
+      sprintf(buffer + strlen(buffer), "_const_%s", CHARS(entry.key));
     } else if (entry.entryType == SYMBOL_TYPE_VARIABLE) {
-      sprintf(buffer + strlen(buffer), "_var_%s", entry.key);
+      sprintf(buffer + strlen(buffer), "_var_%s", CHARS(entry.key));
     } else {
       printf("trap %d\n", __LINE__);
       exit(1);
     }
   } else if (entry.storageType == STORAGE_TYPE_PARAMETER) {
-    snprintf(buffer, sizeof(buffer), "[FP, #%i] ; %s", (entry.paramOrdinal + 1) * 16, entry.key);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i] ; %s", (entry.paramOrdinal + 1) * 16, CHARS(entry.key));
   } else {
     uint32_t offset = getStackOffset(entry);
-    snprintf(buffer, sizeof(buffer), "[FP, #%i] ; %s", -offset, entry.key);
+    snprintf(buffer, sizeof(buffer), "[FP, #%i] ; %s", -offset, CHARS(entry.key));
   }
   return buffer;
 }
@@ -323,7 +323,7 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.storageType == STORAGE_TYPE_PARAMETER) {
-    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], (entry.paramOrdinal + 1) * 16, entry.key);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], (entry.paramOrdinal + 1) * 16, CHARS(entry.key));
   } else if (entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
@@ -332,10 +332,10 @@ static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
   } else if (entry.storageType == STORAGE_TYPE_LOCAL) {
     uint32_t offset = getStackOffset(entry);
-    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, CHARS(entry.key));
   } else if (entry.storageType == STORAGE_TYPE_LOCAL_OBJECT) {
     uint32_t offset = getStackOffset(entry);
-    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, CHARS(entry.key));
   }
   return r;
 }
@@ -361,16 +361,16 @@ static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
     return r;
   } else if (entry.storageType == STORAGE_TYPE_PARAMETER) {
-    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], (entry.paramOrdinal + 1) * 16, entry.key);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], (entry.paramOrdinal + 1) * 16, CHARS(entry.key));
   } else if (entry.storageType == STORAGE_TYPE_GLOBAL) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
   } else if (entry.storageType == STORAGE_TYPE_LOCAL) {
     uint32_t offset = getStackOffset(entry);
-    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, CHARS(entry.key));
   } else if (entry.storageType == STORAGE_TYPE_LOCAL_OBJECT) {
     uint32_t offset = getStackOffset(entry);
-    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, entry.key);
+    fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], -offset, CHARS(entry.key));
     return r;
   } else if (entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
@@ -388,7 +388,7 @@ static int genFieldOffset(FILE* f, int baseReg, int typeIndex, STR fieldName) {
   TYPE_ENTRY entry = TYPE_get(typeIndex);
   int offset = 0;
   for (int i = 0; i < arrlen(entry.fields); i++) {
-    if (STRING_equality(entry.fields[i].name, fieldName)) {
+    if (entry.fields[i].name == fieldName) {
       break;
     }
     if (entry.fields[i].elementCount == 0) {
@@ -444,22 +444,22 @@ static void genCompletePreamble(FILE* f) {
   fprintf(f, ".text\n");
   for (int i = 0; i < arrlen(constTable); i++) {
     Value v = constTable[i].value;
-    if (!IS_CHARS(v)) {
+    if (!IS_STRING(v)) {
       continue;
     }
 
     fprintf(f, ".balign 8\n");
     fprintf(f, "_fang_str_%i: ", i);
     if (getSize(CHAR_INDEX) == 1) {
-      fprintf(f, ".byte %i\n", (uint8_t)(STR_len(AS_CHARS(constTable[i].value)) % 256);
+      fprintf(f, ".byte %i\n", (uint8_t)(STR_len(AS_STRING(constTable[i].value))) % 256);
     } else {
-      fprintf(f, ".quad %i\n", (uint8_t)(STR_len(AS_CHARS(constTable[i].value)) % 256);
+      fprintf(f, ".quad %i\n", (uint8_t)(STR_len(AS_STRING(constTable[i].value))) % 256);
     }
     if (getSize(CHAR_INDEX) == 1) {
-      fprintf(f, ".asciz \"%s\"\n", CHARS(AS_CHARS(constTable[i].value)));
+      fprintf(f, ".asciz \"%s\"\n", CHARS(AS_STRING(constTable[i].value)));
     } else {
-      for (int j = 0; j < STR_len(AS_CHARS(constTable[i].value)); j++) {
-        fprintf(f, ".quad '%c'\n", (char)(CHARS(AS_CHARS(constTable[i].value))[j]));
+      for (int j = 0; j < STR_len(AS_STRING(constTable[i].value)); j++) {
+        fprintf(f, ".quad '%c'\n", (char)(CHARS(AS_STRING(constTable[i].value))[j]));
       }
     }
   }
@@ -475,7 +475,7 @@ static void emitValue(FILE* f, Value value, int typeIndex) {
       bool found = false;
       int j = 0;
       for (; j < arrlen(record.names); j++) {
-        if (STRING_equality(field.name, record.names[j])) {
+        if (field.name == record.names[j]) {
           found = true;
           break;
         }
@@ -492,7 +492,7 @@ static void emitValue(FILE* f, Value value, int typeIndex) {
     for (int i = 0; i < arrlen(values); i++) {
       emitValue(f, values[i], TYPE_getParentId(typeIndex));
     }
-//    fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
+//    fprintf(f, "_fang_size_const_%s: .byte %u\n", CHARS(entry.key), AS_I8(count));
   } else if (IS_PTR(value)) {
     fprintf(f, ".xword _fang_str_%zu + %i\n", AS_PTR(value), getSize(U8_INDEX));
   } else if (getSize(typeIndex) == 1) {
@@ -508,26 +508,26 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   uint32_t size = getSize(entry.typeIndex);
   fprintf(f, ".global %s\n", symbol(entry));
   fprintf(f, ".balign 8\n");
-  if (IS_CHARS(value)) {
-    //fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHARS(value))) % 256);
+  if (IS_STRING(value)) {
+    //fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHAR(value))) % 256);
     //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
   }
   if (IS_PTR(value)) {
     Value s = CONST_TABLE_get(AS_PTR(value));
 
     //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
-   // fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHARS(s))) % 256);
+   // fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHAR(s))) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
   if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_RECORD) {
     emitValue(f, value, 0);
   } else if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_ARRAY) {
-    if (IS_CHARS(value)) {
-      fprintf(f, ".asciz \"%s\"\n", CHARS(AS_CHARS(value)));
+    if (IS_STRING(value)) {
+      fprintf(f, ".asciz \"%s\"\n", CHARS(AS_STRING (value)));
     } else if (IS_PTR(value)) {
       Value s = CONST_TABLE_get(AS_PTR(value));
-      // fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHARS(s))) % 256);
-      fprintf(f, ".asciz \"%s\"\n", CHARS(AS_CHARS(s)));
+      // fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHAR(s))) % 256);
+      fprintf(f, ".asciz \"%s\"\n", CHARS(AS_STRING(s)));
     } else {
       // RECORD too
       Value* values = AS_ARRAY(value);
@@ -541,7 +541,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
           fprintf(f, ".quad %i\n", AS_U8(values[i]));
         }
       }
-      fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
+      fprintf(f, "_fang_size_const_%s: .byte %u\n", CHARS(entry.key), AS_I8(count));
     }
   } else {
     if (IS_PTR(value)) {
@@ -560,14 +560,14 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   uint32_t size = getSize(entry.typeIndex);
   fprintf(f, ".global %s\n ", symbol(entry));
   fprintf(f, ".balign 8\n");
-  if (IS_CHARS(value)) {
-    fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHARS(value))) % 256);
+  if (IS_STRING(value)) {
+    fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_STRING(value))) % 256);
    // fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
   }
   if (IS_PTR(value)) {
     Value s = CONST_TABLE_get(AS_PTR(value));
     //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
-    fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHARS(s))) % 256);
+    fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_STRING(s))) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
   if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_RECORD) {
@@ -580,12 +580,12 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
       } else {
         fprintf(f, ".fill %i, %i, 0\n", AS_U8(count), size);
       }
-    } else if (IS_CHARS(value)) {
-      fprintf(f, ".asciz \"%s\"\n", AS_CHARS(value));
+    } else if (IS_STRING(value)) {
+      fprintf(f, ".asciz \"%s\"\n", CHARS(AS_STRING(value)));
     } else if (IS_PTR(value)) {
       Value s = CONST_TABLE_get(AS_PTR(value));
-      // fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHARS(s))) % 256);
-      fprintf(f, ".asciz \"%s\"\n", AS_CHARS(s));
+      // fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHAR(s))) % 256);
+      fprintf(f, ".asciz \"%s\"\n", CHARS(AS_STRING(s)));
     } else {
       Value* values = AS_ARRAY(value);
       // TODO: check for 16bit nums
@@ -599,7 +599,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
         }
       }
     }
-    fprintf(f, "_fang_size_const_%s: .byte %u\n", entry.key, AS_I8(count));
+    fprintf(f, "_fang_size_const_%s: .byte %u\n", CHARS(entry.key), AS_I8(count));
   } else {
     if (IS_EMPTY(value)) {
       fprintf(f, ".quad 0\n");
@@ -646,7 +646,7 @@ static void genFunction(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope) {
 
   // get scope name
   STR module = SYMBOL_TABLE_getNameFromStart(scope.key);
-  if (module == NULL) {
+  if (module == EMPTY_STRING) {
     fprintf(f, "\n.global _fang_fn_%s\n", CHARS(name));
     fprintf(f, "\n.balign 8\n");
 
@@ -665,7 +665,7 @@ static void genFunctionEpilogue(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope) {
   // get max function scope offset
   // and round to next 16
   STR module = SYMBOL_TABLE_getNameFromStart(scope.key);
-  if (module == NULL) {
+  if (module == EMPTY_STRING) {
     fprintf(f, "\n_fang_fn_ep_%s:\n", CHARS(name));
   } else {
     fprintf(f, "\n_fang_%s_fn_ep_%s:\n", CHARS(module), CHARS(name));
@@ -960,7 +960,7 @@ void reportTypeTable(void) {
   printf("-------- TYPE TABLE (%zu)-----------\n", TYPE_TABLE_total());
   for (int i = 1; i < TYPE_TABLE_total(); i++) {
     TYPE_ENTRY entry = TYPE_get(i);
-    printf("%s::%s - %s | %i bytes", entry.module == NULL ? "none" : CHARS(entry.module), CHARS(entry.name), entry.status == STATUS_COMPLETE ? "complete" : "incomplete", getSize(i));
+    printf("%s::%s - %s | %i bytes", entry.module == EMPTY_STRING ? "none" : CHARS(entry.module), CHARS(entry.name), entry.status == STATUS_COMPLETE ? "complete" : "incomplete", getSize(i));
     printf("\n");
   }
   printf("-------------------------------\n");

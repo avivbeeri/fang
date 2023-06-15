@@ -27,6 +27,7 @@
 #include <stdlib.h>
 
 #include "common.h"
+#include "memory.h"
 #include "value.h"
 
 
@@ -38,12 +39,12 @@ typedef struct {
 
 typedef struct Environment {
   struct Environment *enclosing;
-  struct { char *key; ENV_ENTRY value; } *values;
+  struct { STR key; ENV_ENTRY value; } *values;
 } Environment;
 
 
-bool assign(Environment* env, char* name, Value value);
-bool define(Environment* env, char* name, Value value, bool constant);
-Value getSymbol(Environment* env, char* name);
+bool assign(Environment* env, STR name, Value value);
+bool define(Environment* env, STR name, Value value, bool constant);
+Value getSymbol(Environment* env, STR name);
 Environment beginScope(Environment* env);
 void endScope(Environment* env);

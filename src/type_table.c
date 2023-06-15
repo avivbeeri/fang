@@ -30,10 +30,9 @@
 #include "type_table.h"
 
 static TYPE_ENTRY* typeTable = NULL;
-struct { char *key; bool value; }* moduleSet = NULL;
+struct { STR key; bool value; }* moduleSet = NULL;
 
 TYPE_ENTRY* TYPE_TABLE_init(void) {
-  sh_new_strdup(moduleSet);
   TYPE_registerPrimitive(NULL);
   TYPE_registerPrimitive("void");
   TYPE_registerPrimitive("bool");
@@ -42,13 +41,13 @@ TYPE_ENTRY* TYPE_TABLE_init(void) {
   TYPE_registerPrimitive("u16");
   TYPE_registerPrimitive("i16");
   TYPE_registerPrimitive("number");
-  int strIndex = TYPE_declare(NULL, createString("string"));
+  int strIndex = TYPE_declare(EMPTY_STRING, STR_create("string"));
   TYPE_FIELD_ENTRY* subType = NULL;
-  arrput(subType, ((TYPE_FIELD_ENTRY){ 10, NULL, 0 }));
+  arrput(subType, ((TYPE_FIELD_ENTRY){ 10, EMPTY_STRING, 0 }));
   TYPE_define(strIndex, ENTRY_TYPE_POINTER, subType);
   TYPE_registerPrimitive("fn");
   TYPE_registerPrimitive("char");
-  TYPE_ID id = TYPE_declare(createString("sys"), createString("ptr"));
+  TYPE_ID id = TYPE_declare(STR_create("sys"), STR_create("ptr"));
   TYPE_define(id, ENTRY_TYPE_PRIMITIVE, NULL);
   return typeTable;
 }
@@ -58,13 +57,11 @@ void TYPE_TABLE_free(void) {
 }
 
 TYPE_ID TYPE_declare(STR module, STR name) {
-  char* moduleChars = STR(module);
-  char* nameChars = STR(name);
-  if (moduleChars != NULL) {
-    shput(moduleSet, moduleChars, true);
+  if (module != EMPTY_STRING) {
+    hmput(moduleSet, module, true);
   }
-  if (TYPE_getIdByName(moduleChars, nameChars) != 0) {
-    return TYPE_getIdByName(moduleChars, nameChars);
+  if (TYPE_getIdByName(module, name) != 0) {
+    return TYPE_getIdByName(module, name);
   }
   TYPE_ID id = arrlen(typeTable);
   arrput(typeTable, ((TYPE_ENTRY){
@@ -100,8 +97,8 @@ TYPE_ID TYPE_registerPrimitive(char* name) {
   if (name == NULL) {
     arrput(typeTable, ((TYPE_ENTRY){
           .index = id,
-          .module = NULL,
-          .name = NULL,
+          .module = EMPTY_STRING,
+          .name = EMPTY_STRING,
           .entryType = ENTRY_TYPE_PRIMITIVE,
           .fields = NULL,
           .status = STATUS_COMPLETE
@@ -109,8 +106,8 @@ TYPE_ID TYPE_registerPrimitive(char* name) {
   } else {
     arrput(typeTable, ((TYPE_ENTRY){
           .index = id,
-          .module = NULL,
-          .name = createString(name),
+          .module = EMPTY_STRING,
+          .name = STR_create(name),
           .entryType = ENTRY_TYPE_PRIMITIVE,
           .fields = NULL,
           .status = STATUS_COMPLETE
@@ -123,15 +120,12 @@ TYPE_ENTRY TYPE_get(TYPE_ID index) {
   return typeTable[index];
 }
 
-TYPE_ID TYPE_getIdByName(char* module, char* name) {
-  int moduleCount = shlen(moduleSet);
+TYPE_ID TYPE_getIdByName(STR module, STR name) {
+  int moduleCount = hmlen(moduleSet);
   for (int i = 1; i < arrlen(typeTable); i++) {
     TYPE_ENTRY entry = typeTable[i];
     if (moduleCount > 0) {
-      if ((module != NULL && entry.module == NULL) || (module == NULL && entry.module != NULL)) {
-        continue;
-      }
-      if (entry.module != NULL && entry.module != module) {
+      if (entry.module != module) {
         continue;
       }
     }

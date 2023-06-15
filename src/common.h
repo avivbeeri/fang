@@ -25,7 +25,6 @@
 
 #ifndef fang_common_h
 #define fang_common_h
-#define _POSIX_C_SOURCE 1
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

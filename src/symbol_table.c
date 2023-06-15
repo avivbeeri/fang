@@ -46,7 +46,7 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   hmputs(scopes, ((SYMBOL_TABLE_SCOPE){
         .key = scopeId,
         .parent = parent,
-        .moduleName = NULL,
+        .moduleName = EMPTY_STRING,
         .scopeType = scopeType,
         .table = NULL,
         .ordinal = 0,
@@ -73,7 +73,7 @@ bool SYMBOL_TABLE_scopeHas(STR name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    if (hmgeti(scope.table, STR(name)) != -1) {
+    if (hmgeti(scope.table, name) != -1) {
       return true;
     }
     current = scope.parent;
@@ -114,8 +114,6 @@ static void SYMBOL_TABLE_calculateAllocation(PLATFORM p, uint32_t start) {
     index = current.parent;
     current = SYMBOL_TABLE_getScope(index);
   }
-
-  uint32_t size = 0;
 }
 
 void SYMBOL_TABLE_calculateAllocations(PLATFORM p) {
@@ -138,7 +136,7 @@ void SYMBOL_TABLE_updateElementCount(STR name, uint32_t elementCount) {
   uint32_t current = SYMBOL_TABLE_getCurrentScopeIndex();
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, STR(name));
+    SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, name);
     if (entry.defined) {
       entry.elementCount = elementCount;
       hmputs(scope.table, entry);
@@ -260,18 +258,18 @@ STR SYMBOL_TABLE_getNameFromStart(int start) {
   uint32_t current = start;
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    if (scope.moduleName != NULL) {
+    if (scope.moduleName != EMPTY_STRING) {
       return scope.moduleName;
     }
     current = scope.parent;
   }
-  return NULL;
+  return EMPTY_STRING;
 }
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STR name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, STR(name));
+    SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, name);
     if (entry.defined) {
       return entry;
     }
@@ -285,8 +283,8 @@ void SYMBOL_TABLE_report(void) {
   for (int i = 0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
     printf("Scope %u (parent %u):\n", scope.key, scope.parent);
-    if (scope.scopeType == SCOPE_TYPE_MODULE && scope.moduleName != NULL) {
-      printf(" (module: %s):\n", STR(scope.moduleName));
+    if (scope.scopeType == SCOPE_TYPE_MODULE && scope.moduleName != EMPTY_STRING) {
+      printf(" (module: %s):\n", CHARS(scope.moduleName));
     }
     printf(" (table size %u):\n", scope.tableSize);
     if (scope.scopeType == SCOPE_TYPE_FUNCTION) {
@@ -296,8 +294,8 @@ void SYMBOL_TABLE_report(void) {
     for (int j = 0; j < hmlen(scope.table); j++) {
       SYMBOL_TABLE_ENTRY entry = scope.table[j];
 
-      printf("%s - ", entry.key);
-      printf("%s - ", STR(TYPE_get(entry.typeIndex).name));
+      printf("%s - ", CHARS(entry.key));
+      printf("%s - ", CHARS(TYPE_get(entry.typeIndex).name));
       switch (entry.entryType) {
         case SYMBOL_TYPE_UNKNOWN: { printf("UNKNOWN"); break; }
         case SYMBOL_TYPE_FUNCTION: { printf("FUNCTION"); break; }
@@ -318,11 +316,11 @@ void SYMBOL_TABLE_report(void) {
 
 bool SYMBOL_TABLE_nameScope(STR name) {
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getCurrentScope();
-  if (scope.moduleName != NULL) {
+  if (scope.moduleName != EMPTY_STRING) {
     return true;
   }
   for (int i = 0; i < hmlen(scopes); i++) {
-    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && STRING_equality(scopes[i].moduleName, name)) {
+    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && scopes[i].moduleName == name) {
       return false;
     }
   }
@@ -334,7 +332,7 @@ bool SYMBOL_TABLE_nameScope(STR name) {
 
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STR name) {
   for (int i = 0; i < hmlen(scopes); i++) {
-    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && STRING_equality(scopes[i].moduleName, name)) {
+    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && scopes[i].moduleName == name) {
       return scopes[i];
     }
   }
@@ -342,7 +340,7 @@ SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STR name) {
 }
 int SYMBOL_TABLE_getScopeIndexByName(STR name) {
   for (int i = 0; i < hmlen(scopes); i++) {
-    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && STRING_equality(scopes[i].moduleName, name)) {
+    if (scopes[i].scopeType != SCOPE_TYPE_INVALID && scopes[i].moduleName == name) {
       return scopes[i].key;
     }
   }
@@ -354,8 +352,7 @@ void SYMBOL_TABLE_free(void) {
   for (int i=0; i < hmlen(scopes); i++) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
     // TODO: free the param list in each scope entry
-    shfree(scope.table);
-    STRING_free(scope.moduleName);
+    hmfree(scope.table);
   }
   hmfree(scopes);
   arrfree(scopeStack);
