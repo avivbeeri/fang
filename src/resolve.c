@@ -214,6 +214,9 @@ static int resolveType(AST* ptr) {
         TYPE_define(ptr->type, ENTRY_TYPE_ARRAY, subTypeField);
         return ptr->type;
       }
+    default:
+      printf("impossible trap %d\n", __LINE__);
+      exit(1);
   }
   return 0;
 }
@@ -865,6 +868,9 @@ static bool traverse(AST* ptr) {
               ptr->type = BOOL_INDEX; // to bool
               break;
             }
+          default:
+            printf("impossible trap %d\n", __LINE__);
+            exit(1);
         }
         return r;
       }
@@ -960,6 +966,10 @@ static bool traverse(AST* ptr) {
               }
               break;
             }
+          default:
+            printf("impossible trap %d\n", __LINE__);
+            exit(1);
+            break;
         }
 
         return compatible;

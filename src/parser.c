@@ -890,7 +890,6 @@ static AST* topLevel() {
 
 static AST* declaration() {
   AST* decl = NULL;
-  Token next = parser.current;
   if (match(TOKEN_VAR)) {
     decl = varInit();
   } else if (match(TOKEN_CONST)) {

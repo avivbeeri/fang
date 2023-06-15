@@ -45,9 +45,6 @@ static int getSize(TYPE_ID id) {
   }
   return size;
 }
-static bool isPointer(int type) {
-  return TYPE_get(type).entryType == ENTRY_TYPE_POINTER || TYPE_get(type).entryType == ENTRY_TYPE_ARRAY;
-}
 
 static int labelCreate() {
   return labelId++;
@@ -178,7 +175,7 @@ static int genLoad(FILE* f, int i, int type) {
   // return the register index
   int size = getSize(type);
   int r = allocateRegister();
-  if (getSize(type) == 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (size == 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     int8_t value = i;
     fprintf(f, "  MOV %s, #%" PRIi8 "\n", regList[r], value);
   } else if (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX) {
@@ -256,19 +253,6 @@ static int getStackOffset(SYMBOL_TABLE_ENTRY entry) {
   }
   return offset + 16; // offset by 1 from frame pointer
 }
-static int getStackOrdinal(SYMBOL_TABLE_ENTRY entry) {
-  uint32_t ordinal = entry.ordinal;
-  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
-  uint32_t index = entry.scopeIndex;
-
-  SYMBOL_TABLE_SCOPE current = scope;
-  while (current.scopeType != SCOPE_TYPE_FUNCTION) {
-    index = current.parent;
-    current = SYMBOL_TABLE_getScope(index);
-    ordinal += current.ordinal;
-  }
-  return ordinal + 1; // offset by 1 from frame pointer
-}
 
 static const char* symbol(SYMBOL_TABLE_ENTRY entry) {
   static char buffer[128];
@@ -321,7 +305,6 @@ static int genLoadRegister(FILE* f, int i, int r) {
 
 static int genIdentifierAddr(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
-  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.storageType == STORAGE_TYPE_PARAMETER) {
     fprintf(f, "  ADD %s, FP, #%i ; %s\n", regList[r], (entry.paramOrdinal + 1) * 16, CHARS(entry.key));
   } else if (entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
@@ -355,7 +338,6 @@ static int genDeref(FILE* f, int baseReg, int typeIndex) {
 
 static int genIdentifier(FILE* f, SYMBOL_TABLE_ENTRY entry) {
   int r = allocateRegister();
-  SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(entry.scopeIndex);
   if (entry.entryType == SYMBOL_TYPE_FUNCTION) {
     fprintf(f, "  ADRP %s, %s@PAGE\n", regList[r], symbol(entry));
     fprintf(f, "  ADD %s, %s, %s@PAGEOFF\n", regList[r], regList[r], symbol(entry));
@@ -505,7 +487,6 @@ static void emitValue(FILE* f, Value value, int typeIndex) {
   }
 }
 static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count) {
-  uint32_t size = getSize(entry.typeIndex);
   fprintf(f, ".global %s\n", symbol(entry));
   fprintf(f, ".balign 8\n");
   if (IS_STRING(value)) {
@@ -513,8 +494,7 @@ static void genGlobalConstant(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
     //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
   }
   if (IS_PTR(value)) {
-    Value s = CONST_TABLE_get(AS_PTR(value));
-
+    //Value s = CONST_TABLE_get(AS_PTR(value));
     //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
    // fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_CHAR(s))) % 256);
   }
@@ -561,13 +541,13 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   fprintf(f, ".global %s\n ", symbol(entry));
   fprintf(f, ".balign 8\n");
   if (IS_STRING(value)) {
-    fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_STRING(value))) % 256);
+    fprintf(f, ".byte %i\n", (uint8_t)STR_len(AS_STRING(value)) % 256);
    // fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
   }
   if (IS_PTR(value)) {
     Value s = CONST_TABLE_get(AS_PTR(value));
     //fprintf(f, ".xword _fang_str_%zu + 1\n", AS_PTR(value));
-    fprintf(f, ".byte %i\n", STR_len((uint8_t)(AS_STRING(s))) % 256);
+    fprintf(f, ".byte %i\n", (uint8_t)STR_len(AS_STRING(s)) % 256);
   }
   fprintf(f, "%s: ", symbol(entry));
   if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_RECORD) {
@@ -811,12 +791,12 @@ static int genBitwiseAnd(FILE* f, int leftReg, int rightReg) {
 
 static int genAdd(FILE* f, int leftReg, int rightReg, int type) {
   int size = getSize(type);
-  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (size != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  LSL %s, %s, #56\n", regList[leftReg], regList[leftReg]);
     fprintf(f, "  LSL %s, %s, #56\n", regList[rightReg], regList[rightReg]);
   }
   fprintf(f, "  ADDS %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (size != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  ASR %s, %s, #56\n", regList[leftReg], regList[leftReg]);
   }
 
@@ -840,7 +820,7 @@ static int genSub(FILE* f, int leftReg, int rightReg, int type) {
 static int genMul(FILE* f, int leftReg, int rightReg, int type) {
   int size = getSize(type);
   fprintf(f, "  MUL %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (size != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);
@@ -849,7 +829,7 @@ static int genMul(FILE* f, int leftReg, int rightReg, int type) {
 static int genDiv(FILE* f, int leftReg, int rightReg, int type) {
   int size = getSize(type);
   fprintf(f, "  SDIV %s, %s, %s\n", regList[leftReg], regList[leftReg], regList[rightReg]);
-  if (getSize(type) != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
+  if (size != 1 && (type == I8_INDEX || type == U8_INDEX || type == CHAR_INDEX || type == BOOL_INDEX)) {
     fprintf(f, "  AND %s, %s, #255\n", regList[leftReg], regList[leftReg]);
   }
   freeRegister(rightReg);

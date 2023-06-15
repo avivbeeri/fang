@@ -46,7 +46,7 @@ static bool isPointer(int type) {
 }
 
 static void printEntry(TYPE_ENTRY entry) {
-  if (entry.name == NULL) {
+  if (entry.name == EMPTY_STRING) {
     printf("null entry?\n");
   }
   printf("%s\n", CHARS(entry.name));
@@ -88,6 +88,7 @@ static void emitGlobal(FILE* f, AST* ptr) {
         p.genGlobalConstant(f, symbol, value, count);
         break;
       }
+    default: break;
   }
 }
 
@@ -288,7 +289,7 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_VAR_DECL:
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        //SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         // printf("%s: alloc %s\n", symbol.key, TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
         int rvalue = -1;
         int storage = traverse(f, data.type);
@@ -318,13 +319,11 @@ static int traverse(FILE* f, AST* ptr) {
             traverse(f, data.expr);
             POP(rStack);
           } else if (init.initType == INIT_TYPE_ARRAY) {
-            int dataType = TYPE_getParentId(data.type->type);
             rvalue = p.genIdentifierAddr(f, symbol);
             PUSH(rStack, rvalue);
             traverse(f, data.expr);
             POP(rStack);
           } else {
-            int dataType = data.type->type;
             int baseReg = traverse(f, data.type);
             rvalue = baseReg;
           }
@@ -517,6 +516,7 @@ static int traverse(FILE* f, AST* ptr) {
                 r = p.genMul(f, r, scale, ptr->type);
                 return p.genSub(f, l, r, ptr->type);
               }
+            default: break;
           }
         }
         switch (data.op) {
@@ -602,6 +602,7 @@ static int traverse(FILE* f, AST* ptr) {
             {
               return p.genEqualGreaterThan(f, l, r);
             }
+          default: break;
         }
       }
     case AST_DOT:
@@ -642,7 +643,6 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-        TYPE_ENTRY type = TYPE_get(data.left->type);
         TYPE_ID typeIndex = TYPE_getParentId(data.left->type);
         int left = traverse(f, data.left);
         int index = traverse(f, data.index);
@@ -670,6 +670,7 @@ static int traverse(FILE* f, AST* ptr) {
         arrfree(rs);
         return r;
       }
+    default: break;
   }
   return 0;
 }

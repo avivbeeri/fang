@@ -132,7 +132,7 @@ void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
 }
 
 typedef struct {
-  char* key;
+  const char* key;
   size_t length;
 } STR_ENTRY;
 
@@ -151,7 +151,7 @@ STR STR_copy(const char* chars, size_t length) {
     str = shgeti(stringTable, escapedChars);
   }
   // printf("Storing \"%s\" with id %zu\n", escapedChars, str);
-  free(escapedChars);
+  free((void*)escapedChars);
   return str;
 }
 

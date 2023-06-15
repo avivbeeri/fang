@@ -35,6 +35,7 @@ Value getTypedNumberValue(ValueType type, int32_t n) {
     case VAL_U16: return U16(n % 32768); break;
     case VAL_PTR: return PTR(n % 32768); break;
     case VAL_LIT_NUM: return LIT_NUM(n); break;
+    default: return ERROR(1);
   }
   return ERROR(1);
 }
