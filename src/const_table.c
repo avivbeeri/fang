@@ -46,10 +46,5 @@ int CONST_TABLE_store(Value value) {
 }
 
 void CONST_TABLE_free() {
-  for (int i = 0; i < arrlen(constTable); i++) {
-    if (IS_STRING(constTable[i].value)) {
-      STRING_free(AS_STRING(constTable[i].value));
-    }
-  }
   arrfree(constTable);
 }

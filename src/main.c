@@ -57,6 +57,7 @@ int main(int argc, const char* argv[]) {
   double elapsedTime;
 
   OPTIONS_init();
+  STR_init();
 
   // start timer
   gettimeofday(&t1, NULL);
@@ -91,5 +92,6 @@ int main(int argc, const char* argv[]) {
   } else {
     printf("Fail\n");
   }
+  STR_free();
   return success ? 0 : 1;
 }

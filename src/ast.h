@@ -115,10 +115,10 @@ struct AST {
     struct AST_ERROR { int number; } AST_ERROR;
     struct AST_LITERAL { int constantIndex; Value value; } AST_LITERAL;
     struct AST_INITIALIZER { AST** assignments; INIT_TYPE initType; } AST_INITIALIZER;
-    struct AST_IDENTIFIER { STRING* module; STRING* identifier; } AST_IDENTIFIER;
+    struct AST_IDENTIFIER { STR module; STR identifier; } AST_IDENTIFIER;
 
     struct AST_TYPE { AST* type; } AST_TYPE;
-    struct AST_TYPE_NAME { STRING* module; STRING* typeName; } AST_TYPE_NAME;
+    struct AST_TYPE_NAME { STR module; STR typeName; } AST_TYPE_NAME;
     struct AST_TYPE_ARRAY { AST* length; AST* subType; } AST_TYPE_ARRAY;
     struct AST_TYPE_FN { AST** params; AST* returnType; } AST_TYPE_FN;
     struct AST_TYPE_PTR { AST* subType; } AST_TYPE_PTR;
@@ -127,7 +127,7 @@ struct AST {
     struct AST_DEREF { AST *expr; } AST_DEREF;
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
-    struct AST_DOT { AST *left; STRING* name; } AST_DOT;
+    struct AST_DOT { AST *left; STR name; } AST_DOT;
     struct AST_IF { AST* condition; AST* body; AST* elseClause; } AST_IF;
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
     struct AST_DO_WHILE { AST* condition; AST* body; } AST_DO_WHILE;
@@ -136,20 +136,20 @@ struct AST {
     struct AST_SUBSCRIPT { AST* left; AST* index; } AST_SUBSCRIPT;
     struct AST_CAST { AST* expr; AST* type; } AST_CAST;
     struct AST_RETURN { AST* value; } AST_RETURN;
-    struct AST_PARAM { STRING* identifier; AST* value;  } AST_PARAM;
+    struct AST_PARAM { STR identifier; AST* value;  } AST_PARAM;
 
     struct AST_ASSIGNMENT { AST* lvalue; AST* expr; } AST_ASSIGNMENT;
-    struct AST_VAR_DECL { STRING* identifier; AST* type; } AST_VAR_DECL;
-    struct AST_VAR_INIT { STRING* identifier; AST* type; AST* expr; } AST_VAR_INIT;
-    struct AST_CONST_DECL { STRING* identifier; AST* type; AST* expr; } AST_CONST_DECL;
+    struct AST_VAR_DECL { STR identifier; AST* type; } AST_VAR_DECL;
+    struct AST_VAR_INIT { STR identifier; AST* type; AST* expr; } AST_VAR_INIT;
+    struct AST_CONST_DECL { STR identifier; AST* type; AST* expr; } AST_CONST_DECL;
 
-    struct AST_FN { STRING* identifier; AST** params; AST* returnType; AST* body; AST* fnType; int typeIndex; } AST_FN;
-    struct AST_TYPE_DECL { STRING* name; AST** fields; } AST_TYPE_DECL;
-    struct AST_ASM { STRING** strings; } AST_ASM;
+    struct AST_FN { STR identifier; AST** params; AST* returnType; AST* body; AST* fnType; int typeIndex; } AST_FN;
+    struct AST_TYPE_DECL { STR name; AST** fields; } AST_TYPE_DECL;
+    struct AST_ASM { STR* strings; } AST_ASM;
     struct AST_BLOCK { AST** decls; } AST_BLOCK;
-    struct AST_MODULE_DECL { STRING* name; } AST_MODULE_DECL;
-    struct AST_EXT { SYMBOL_TYPE symbolType; STRING* identifier; AST* type; } AST_EXT;
-    struct AST_BANK { STRING* annotation; AST** decls; } AST_BANK;
+    struct AST_BANK { STR annotation; AST** decls; } AST_BANK;
+    struct AST_MODULE_DECL { STR name; } AST_MODULE_DECL;
+    struct AST_EXT { SYMBOL_TYPE symbolType; STR identifier; AST* type; } AST_EXT;
     struct AST_MODULE { AST** decls; } AST_MODULE;
     struct AST_MAIN { AST** modules; } AST_MAIN;
   } data;

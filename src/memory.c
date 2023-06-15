@@ -23,8 +23,24 @@
   SOFTWARE.
 */
 
+#include <stdio.h>
 #include "common.h"
 #include "memory.h"
+
+/*
+char* strdup (const char* s)
+{
+  size_t slen = strlen(s);
+  char* result = malloc(slen + 1);
+  if(result == NULL)
+  {
+    return NULL;
+  }
+
+  memcpy(result, s, slen+1);
+  return result;
+}
+*/
 
 char* readFile(const char* path) {
   FILE* file = fopen(path, "rb");
@@ -104,45 +120,6 @@ static size_t strunesc(const char *dest, const char *str, size_t length) {
   return newLength;
 }
 
-bool STRING_equality(STRING* left, STRING* right) {
-  if (left == NULL || right == NULL) {
-    return left == right;
-  }
-  if (left->length != right->length) {
-    // different lengths, can't be equal
-    return false;
-  }
-
-  // left and right have same length
-  size_t len = left->length;
-
-  // char by char diff
-  return memcmp(left->chars, right->chars, len) == 0;
-}
-
-
-STRING* copyString(const char* chars, size_t length) {
-  STRING* string = reallocate(NULL, 0, sizeof(STRING));
-  string->chars = ALLOCATE(char, length + 1);
-  string->length = strunesc(string->chars, chars, length);
-
-  // Resize memory incase it got smaller
-  string->chars = reallocate(string->chars, length, string->length + 1);
-  return string;
-}
-
-STRING* createString(const char* chars) {
-  return copyString(chars, strlen(chars));
-}
-
-void STRING_free(STRING* str) {
-  if (str == NULL) {
-    return;
-  }
-  FREE(char, str->chars);
-  FREE(STRING, str);
-}
-
 void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
   if (newSize == 0) {
     free(pointer);
@@ -154,12 +131,65 @@ void* reallocate(void* pointer, size_t oldSize, size_t newSize) {
   return result;
 }
 
-STRING* STRING_prepend(STRING* str, const char* prepend) {
+typedef struct {
+  const char* key;
+  size_t length;
+} STR_ENTRY;
+
+STR_ENTRY* stringTable = NULL;
+
+STR STR_copy(const char* chars, size_t length) {
+  const char* escapedChars = strdup(chars);
+  size_t newLength = strunesc(escapedChars, chars, length);
+  STR str = shgeti(stringTable, escapedChars);
+  if (str == -1) {
+    STR_ENTRY entry = ((STR_ENTRY){
+      .key = escapedChars,
+      .length = newLength
+    });
+    shputs(stringTable, entry);
+    str = shgeti(stringTable, escapedChars);
+  }
+  // printf("Storing \"%s\" with id %zu\n", escapedChars, str);
+  free((void*)escapedChars);
+  return str;
+}
+
+STR STR_create(const char* chars) {
+  return STR_copy(chars, strlen(chars));
+}
+
+STR STR_prepend(STR str, const char* prepend) {
   size_t len = 4;
   size_t i = 0;
   char* buffer = ALLOC_STR(len);
-  APPEND_STR(buffer, len, i, "%s%s", prepend, str->chars);
-  STRING* newStr = copyString(buffer, i);
+  APPEND_STR(buffer, len, i, "%s%s", prepend, CHARS(str));
+  str = STR_copy(buffer, i);
   FREE(char, buffer);
-  return newStr;
+  return str;
+}
+
+size_t STR_len(STR str) {
+  if (str == -1) {
+    return 0;
+  }
+  return stringTable[str].length;
+}
+const char* CHARS(STR str) {
+  if (str == -1) {
+    return NULL;
+  }
+  return stringTable[str].key;
+}
+
+bool STR_compare(STR a, STR b) {
+  // Trivial, but for completeness
+  return a == b;
+}
+void STR_init(void) {
+  sh_new_arena(stringTable);
+}
+
+void STR_free(void) {
+  shfree(stringTable);
 }

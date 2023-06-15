@@ -100,7 +100,7 @@ static Value traverse(AST* ptr, Environment* context) {
         }
         return ARRAY(values);
       } else if (data.initType == INIT_TYPE_RECORD) {
-        STRING** names = NULL;
+        STR* names = NULL;
         Value* values = NULL;
         for (int i = 0; i < arrlen(data.assignments); i++) {
           struct AST_PARAM field = data.assignments[i]->data.AST_PARAM;
@@ -121,8 +121,8 @@ static Value traverse(AST* ptr, Environment* context) {
     case AST_IDENTIFIER:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-        STRING* identifier = data.identifier;
-        return getSymbol(context, identifier->chars);
+        STR identifier = data.identifier;
+        return getSymbol(context, identifier);
       }
     case AST_UNARY:
       {
@@ -142,6 +142,7 @@ static Value traverse(AST* ptr, Environment* context) {
             {
               return BOOL_VAL(!isTruthy(value));
             }
+          default: return ERROR(0);
         }
         return ERROR(0);
       }
@@ -224,32 +225,33 @@ static Value traverse(AST* ptr, Environment* context) {
           {
             return getTypedNumberValue(left.type, AS_NUMBER(left) & AS_NUMBER(right));
           };
-        return ERROR(0);
+        default:
+          return ERROR(0);
       }
       break;
     }
     case AST_CONST_DECL: {
       struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-      STRING* identifier = data.identifier;
-      Value type = traverse(data.type, context);
+      STR identifier = data.identifier;
+      traverse(data.type, context);
       Value expr = traverse(data.expr, context);
-      bool success = define(context, identifier->chars, expr, true);
+      bool success = define(context, identifier, expr, true);
       return success ? EMPTY() : ERROR(1);
     }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      STRING* identifier = data.identifier;
-      Value type = traverse(data.type, context);
-      define(context, identifier->chars, EMPTY(), false);
+      STR identifier = data.identifier;
+      traverse(data.type, context);
+      define(context, identifier, EMPTY(), false);
       return EMPTY();
     }
 
     case AST_VAR_INIT: {
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      STRING* identifier = data.identifier;
-      Value type = traverse(data.type, context);
+      STR identifier = data.identifier;
+      traverse(data.type, context);
       Value expr = traverse(data.expr, context);
-      define(context, identifier->chars, expr, false);
+      define(context, identifier, expr, false);
       return expr;
     }
     case AST_TYPE:
@@ -277,10 +279,13 @@ static Value traverse(AST* ptr, Environment* context) {
     case AST_SUBSCRIPT: {
       struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
       Value identifier = traverse(data.left, context);
-      Value index = traverse(data.index, context);
+      traverse(data.index, context);
       // TODO: index using identifier
       return identifier;
     }
+    default:
+      return ERROR(0);
+
   }
   return ERROR(0);
 }

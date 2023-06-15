@@ -38,7 +38,7 @@
 
 PLATFORM p;
 
-STRING** fnStack = NULL;
+STR* fnStack = NULL;
 uint32_t* rStack = NULL;
 bool lvalue = false;
 static bool isPointer(int type) {
@@ -46,10 +46,10 @@ static bool isPointer(int type) {
 }
 
 static void printEntry(TYPE_ENTRY entry) {
-  if (entry.name == NULL) {
+  if (entry.name == EMPTY_STRING) {
     printf("null entry?\n");
   }
-  printf("%s\n", entry.name->chars);
+  printf("%s\n", CHARS(entry.name));
 }
 
 static void emitGlobal(FILE* f, AST* ptr) {
@@ -62,7 +62,7 @@ static void emitGlobal(FILE* f, AST* ptr) {
     case AST_VAR_DECL:
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-        STRING* identifier = data.identifier;
+        STR identifier = data.identifier;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
         Value count = evalConstTree(data.type);
         p.genGlobalVariable(f, symbol, EMPTY(), count);
@@ -71,7 +71,7 @@ static void emitGlobal(FILE* f, AST* ptr) {
     case AST_VAR_INIT:
       {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-        STRING* identifier = data.identifier;
+        STR identifier = data.identifier;
         Value value = evalConstTree(data.expr);
         Value count = evalConstTree(data.type);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
@@ -81,13 +81,14 @@ static void emitGlobal(FILE* f, AST* ptr) {
     case AST_CONST_DECL:
       {
         struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-        STRING* identifier = data.identifier;
+        STR identifier = data.identifier;
         Value value = evalConstTree(data.expr);
         Value count = evalConstTree(data.type);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
         p.genGlobalConstant(f, symbol, value, count);
         break;
       }
+    default: break;
   }
 }
 
@@ -156,7 +157,7 @@ static int traverse(FILE* f, AST* ptr) {
         arrput(fnStack, data.identifier);
         traverse(f, data.body);
 
-        if (strcmp(data.identifier->chars, "main") == 0) {
+        if (strcmp(CHARS(data.identifier), "main") == 0) {
           struct AST_BLOCK block = data.body->data.AST_BLOCK;
           if (arrlen(block.decls) > 0) {
             size_t index = arrlen(block.decls) - 1;
@@ -169,7 +170,7 @@ static int traverse(FILE* f, AST* ptr) {
         arrdel(fnStack, 0);
 
         p.genFunctionEpilogue(f, data.identifier, scope);
-        if (strcmp(data.identifier->chars, "main") == 0) {
+        if (strcmp(CHARS(data.identifier), "main") == 0) {
           p.genRunMain(f);
           p.genSimpleExit(f);
         }
@@ -179,7 +180,7 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_ASM data = ast.data.AST_ASM;
         for (int i = 0; i < arrlen(data.strings); i++) {
-          p.genRaw(f, data.strings[i]->chars);
+          p.genRaw(f, CHARS(data.strings[i]));
         }
         break;
       }
@@ -288,7 +289,7 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_VAR_DECL:
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-        SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        //SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         // printf("%s: alloc %s\n", symbol.key, TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_ARRAY ? "array" : "not array");
         int rvalue = -1;
         int storage = traverse(f, data.type);
@@ -318,13 +319,11 @@ static int traverse(FILE* f, AST* ptr) {
             traverse(f, data.expr);
             POP(rStack);
           } else if (init.initType == INIT_TYPE_ARRAY) {
-            int dataType = TYPE_getParentId(data.type->type);
             rvalue = p.genIdentifierAddr(f, symbol);
             PUSH(rStack, rvalue);
             traverse(f, data.expr);
             POP(rStack);
           } else {
-            int dataType = data.type->type;
             int baseReg = traverse(f, data.type);
             rvalue = baseReg;
           }
@@ -390,7 +389,7 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r;
-        fprintf(f, "; %s\n", data.identifier->chars);
+        fprintf(f, "; %s\n", CHARS(data.identifier));
         if (ast.rvalue) {
           r = p.genIdentifier(f, symbol);
         } else {
@@ -418,7 +417,7 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_REF:
       {
         struct AST_REF data = ast.data.AST_REF;
-        STRING* identifier = data.expr->data.AST_IDENTIFIER.identifier;
+        STR identifier = data.expr->data.AST_IDENTIFIER.identifier;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
         return p.genIdentifierAddr(f, symbol);
       }
@@ -517,6 +516,7 @@ static int traverse(FILE* f, AST* ptr) {
                 r = p.genMul(f, r, scale, ptr->type);
                 return p.genSub(f, l, r, ptr->type);
               }
+            default: break;
           }
         }
         switch (data.op) {
@@ -602,6 +602,7 @@ static int traverse(FILE* f, AST* ptr) {
             {
               return p.genEqualGreaterThan(f, l, r);
             }
+          default: break;
         }
       }
     case AST_DOT:
@@ -618,7 +619,7 @@ static int traverse(FILE* f, AST* ptr) {
         }
         TYPE_FIELD_ENTRY field;
         for (int i = 0; i < arrlen(entry.fields); i++) {
-          if (STRING_equality(entry.fields[i].name, data.name)) {
+          if (entry.fields[i].name == data.name) {
             field = entry.fields[i];
             break;
           }
@@ -642,7 +643,6 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_SUBSCRIPT:
       {
         struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
-        TYPE_ENTRY type = TYPE_get(data.left->type);
         TYPE_ID typeIndex = TYPE_getParentId(data.left->type);
         int left = traverse(f, data.left);
         int index = traverse(f, data.index);
@@ -670,6 +670,7 @@ static int traverse(FILE* f, AST* ptr) {
         arrfree(rs);
         return r;
       }
+    default: break;
   }
   return 0;
 }

@@ -123,9 +123,9 @@ static void consume(TokenType type, const char* message) {
 
   errorAtCurrent(message);
 }
-static STRING* parseVariable(const char* errorMessage) {
+static STR parseVariable(const char* errorMessage) {
   consume(TOKEN_IDENTIFIER, errorMessage);
-  return copyString(parser.previous.start, parser.previous.length);
+  return STR_copy(parser.previous.start, parser.previous.length);
 }
 
 static bool check(TokenType type) {
@@ -140,11 +140,11 @@ static bool match(TokenType type) {
 
 static AST* variable(bool canAssign) {
   // copy the string to memory
-  STRING* namespace = NULL;
-  STRING* string = copyString(parser.previous.start, parser.previous.length);
+  STR namespace = EMPTY_STRING;
+  STR string = STR_copy(parser.previous.start, parser.previous.length);
   if (match(TOKEN_COLON_COLON) && match(TOKEN_IDENTIFIER)) {
     namespace = string;
-    string = copyString(parser.previous.start, parser.previous.length);
+    string = STR_copy(parser.previous.start, parser.previous.length);
   }
   AST* variable = AST_NEW_T(AST_IDENTIFIER, parser.previous, namespace, string);
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -166,7 +166,7 @@ static AST* character(bool canAssign) {
 
 static AST* string(bool canAssign) {
   // copy the string to memory
-  STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
+  STR string = STR_copy(parser.previous.start + 1, parser.previous.length - 2);
   int index = CONST_TABLE_store(STRING(string));
   return AST_NEW_T(AST_LITERAL, parser.previous, index, PTR(index));
 }
@@ -202,7 +202,7 @@ static AST* record() {
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
       // Becomes an assignment statement because of the coming equality sign
-      STRING* name = parseVariable("Expect field value name in record literal.");
+      STR name = parseVariable("Expect field value name in record literal.");
       Token paramToken = parser.previous;
       consume(TOKEN_EQUAL, "Expect '=' after field name in record literal.");
       AST* value = NULL;
@@ -317,11 +317,11 @@ static AST* unary(bool canAssign) {
 
 static AST* asmDecl() {
   consume(TOKEN_LEFT_BRACE, "Expect '{' after keyword 'asm'.");
-  STRING** output = NULL;
+  STR* output = NULL;
   if (!check(TOKEN_RIGHT_BRACE)) {
     consume(TOKEN_STRING, "ASM blocks can only contain strings.");
     do {
-      STRING* string = copyString(parser.previous.start + 1, parser.previous.length - 2);
+      STR string = STR_copy(parser.previous.start + 1, parser.previous.length - 2);
       arrput(output, string);
     } while (match(TOKEN_STRING));
   }
@@ -381,11 +381,11 @@ static AST* parseType(bool signature) {
   } else if (match(TOKEN_FN)) {
     return typeFn(signature);
   } else if (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER)) {
-    STRING* module = NULL;
-    STRING* name = copyString(parser.previous.start, parser.previous.length);
+    STR module = EMPTY_STRING;
+    STR name = STR_copy(parser.previous.start, parser.previous.length);
     if (match(TOKEN_COLON_COLON) && (match(TOKEN_TYPE_NAME) || match(TOKEN_IDENTIFIER))) {
       module = name;
-      name = copyString(parser.previous.start, parser.previous.length);
+      name = STR_copy(parser.previous.start, parser.previous.length);
     }
     return AST_NEW_T(AST_TYPE_NAME, parser.previous, module, name);
   } else {
@@ -453,7 +453,7 @@ static AST* block() {
 static AST* dot(bool canAssign, AST* left) {
   Token start = parser.previous;
   consume(TOKEN_IDENTIFIER, "Expect property name after '.'.");
-  STRING* field = copyString(parser.previous.start, parser.previous.length);
+  STR field = STR_copy(parser.previous.start, parser.previous.length);
   AST* expr = AST_NEW_T(AST_DOT, start, left, field);
 
   if (canAssign && match(TOKEN_EQUAL)) {
@@ -485,7 +485,7 @@ static AST** fieldList() {
   AST** params = NULL;
   if (!check(TOKEN_RIGHT_BRACE)) {
     do {
-      STRING* identifier = parseVariable("Expect parameter name.");
+      STR identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
       AST* typeName = type(false);
       consume(TOKEN_SEMICOLON, "Expect ';' after field declaration.");
@@ -498,7 +498,7 @@ static AST** fieldList() {
 }
 
 static AST* constInit() {
-  STRING* global = parseVariable("Expect constant name.");
+  STR global = parseVariable("Expect constant name.");
   Token token = parser.previous;
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type(false);
@@ -518,7 +518,7 @@ static AST* constInit() {
 }
 
 static AST* varInit() {
-  STRING* global = parseVariable("Expect variable name");
+  STR global = parseVariable("Expect variable name");
   Token token = parser.previous;
   consume(TOKEN_COLON, "Expect ':' after identifier.");
   AST* varType = type(false);
@@ -543,7 +543,7 @@ static AST* varInit() {
 }
 
 static AST* fnDecl() {
-  STRING* identifier = parseVariable("Expect function name.");
+  STR identifier = parseVariable("Expect function name.");
   Token token = parser.previous;
   consume(TOKEN_LEFT_PAREN, "Expect '(' after function identifier");
 
@@ -552,7 +552,7 @@ static AST* fnDecl() {
   if (!check(TOKEN_RIGHT_PAREN)) {
     do {
       // TODO: Fix a maximum number of parameters here
-      STRING* identifier = parseVariable("Expect parameter name.");
+      STR identifier = parseVariable("Expect parameter name.");
       consume(TOKEN_COLON, "Expect ':' after parameter name.");
       AST* typeName = type(true);
       AST* param = AST_NEW(AST_PARAM, identifier, typeName);
@@ -799,7 +799,7 @@ static AST* enumDecl() {
 */
 
 static AST* typeDecl() {
-  STRING* identifier = parseVariable("Expect a data type name");
+  STR identifier = parseVariable("Expect a data type name");
   consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
   AST** fields = fieldList();
   return AST_NEW(AST_TYPE_DECL, identifier, fields);
@@ -807,21 +807,21 @@ static AST* typeDecl() {
 
 static AST* importDecl() {
   consume(TOKEN_STRING, "Expect a file path to import");
-  STRING* path = copyString(parser.previous.start + 1, parser.previous.length - 2);
-  SCANNER_addFile(path->chars);
+  STR path = STR_copy(parser.previous.start + 1, parser.previous.length - 2);
+  SCANNER_addFile(CHARS(path));
   // add module namespace to symbol table
   return NULL;
 }
 static AST* moduleDecl() {
   consume(TOKEN_IDENTIFIER, "Keyword \"module\" should be followed by a module name");
-  STRING* name = copyString(parser.previous.start, parser.previous.length);
+  STR name = STR_copy(parser.previous.start, parser.previous.length);
   return AST_NEW_T(AST_MODULE_DECL, parser.previous, name);
 }
 
 static AST* extDecl() {
 
   SYMBOL_TYPE symbolType = SYMBOL_TYPE_UNKNOWN;
-  STRING* identifier;
+  STR identifier;
   AST* dataType = NULL;
   if (match(TOKEN_FN)) {
     identifier = parseVariable("Expect identifier");
@@ -832,7 +832,7 @@ static AST* extDecl() {
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         // TODO: Fix a maximum number of parameters here
-        STRING* identifier = parseVariable("Expect parameter name.");
+        STR identifier = parseVariable("Expect parameter name.");
         consume(TOKEN_COLON, "Expect ':' after parameter name.");
         AST* typeName = type(true);
         AST* param = AST_NEW(AST_PARAM, identifier, typeName);
@@ -861,11 +861,11 @@ static AST* extDecl() {
   return AST_NEW_T(AST_EXT, parser.previous, symbolType, identifier, dataType);
 }
 
-static STRING* annotation() {
-  STRING* str = NULL;
+static STR annotation() {
+  STR str = EMPTY_STRING;
   if (match(TOKEN_LESS)) {
     consume(TOKEN_IDENTIFIER, "Expect text inside annotation brackets.");
-    str = copyString(parser.previous.start, parser.previous.length);
+    str = STR_copy(parser.previous.start, parser.previous.length);
     consume(TOKEN_GREATER, "Expect '>' to conclude an annotation");
   }
   return str;
@@ -874,7 +874,7 @@ static STRING* annotation() {
 static AST* bank() {
   AST** declList = NULL;
   Token token = parser.previous;
-  STRING* str = annotation();
+  STR str = annotation();
   consume(TOKEN_LEFT_BRACE,"Expect '{' before bank body.");
   while (!check(TOKEN_EOF) && !check(TOKEN_END) && !check(TOKEN_RIGHT_BRACE)) {
     AST* decl = NULL;
@@ -930,7 +930,6 @@ static AST* topLevel() {
 
 static AST* declaration() {
   AST* decl = NULL;
-  Token next = parser.current;
   if (match(TOKEN_VAR)) {
     decl = varInit();
   } else if (match(TOKEN_CONST)) {
