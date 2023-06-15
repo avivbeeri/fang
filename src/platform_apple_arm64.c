@@ -947,7 +947,7 @@ void reportTypeTable(void) {
 }
 
 void beginSection(FILE* f, STR name, STR annotation) {
-  fprintf(f, "; SECTION (%s, %s)\n", CHARS(name), CHARS(annotation));
+  fprintf(f, "; SECTION (%s, %s)\n", CHARS(name), annotation == EMPTY_STRING ? "ROM0" : "ROM1");
 }
 void endSection(FILE* f) {
   fprintf(f, "; END SECTION\n");

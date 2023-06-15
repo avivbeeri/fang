@@ -115,7 +115,7 @@ static int traverse(FILE* f, AST* ptr) {
         for (int i = 0; i < arrlen(data.modules); i++) {
           traverse(f, data.modules[i]);
         }
-        p.beginSection(f, STR_create("main"), STR_create("ROM0"));
+        p.beginSection(f, STR_create("main"), EMPTY_STRING);
         for (int i = 0; i < arrlen(globals); i++) {
           emitGlobal(f, globals[i]);
         }
