@@ -95,6 +95,9 @@ static void emitGlobal(FILE* f, AST* ptr) {
 AST** globals = NULL;
 AST** functions = NULL;
 
+struct SECTION { AST** globals; AST** functions; };
+struct SECTION* sections = NULL;
+
 static int traverse(FILE* f, AST* ptr) {
   if (ptr == NULL) {
     return 0;
@@ -120,25 +123,44 @@ static int traverse(FILE* f, AST* ptr) {
           traverse(f, functions[i]);
           p.freeAllRegisters();
         }
+
+        for (int i = 0; i < arrlen(sections); i++) {
+          printf("One section\n");
+          struct SECTION section = sections[i];
+          // TODO: emit section
+          for (int j = 0; j < arrlen(section.globals); j++) {
+            emitGlobal(f, section.globals[j]);
+          }
+          p.genCompletePreamble(f);
+          for (int j = 0; j < arrlen(section.functions); j++) {
+            traverse(f, section.functions[j]);
+            p.freeAllRegisters();
+          }
+          arrfree(section.functions);
+          arrfree(section.globals);
+        }
         arrfree(functions);
         arrfree(globals);
+        arrfree(sections);
         return 0;
       }
     case AST_BANK:
       {
         struct AST_BANK body = ast.data.AST_BANK;
         // TODO: emit bank section code
+        struct SECTION section = { NULL, NULL };
         for (int i = 0; i < arrlen(body.decls); i++) {
           if (body.decls[i]->tag == AST_FN) {
-            arrput(functions, body.decls[i]);
+            arrput(section.functions, body.decls[i]);
           } else if (body.decls[i]->tag == AST_VAR_INIT) {
-            arrput(globals, body.decls[i]);
+            arrput(section.globals, body.decls[i]);
           } else if (body.decls[i]->tag == AST_VAR_DECL) {
-            arrput(globals, body.decls[i]);
+            arrput(section.globals, body.decls[i]);
           } else if (body.decls[i]->tag == AST_CONST_DECL) {
-            arrput(globals, body.decls[i]);
+            arrput(section.globals, body.decls[i]);
           }
         }
+        arrput(sections, section);
         return 0;
       }
     case AST_MODULE:

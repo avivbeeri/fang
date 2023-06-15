@@ -1,15 +1,21 @@
 import "lib.fg"
 
 bank <wram> {
+  fn goodbye(): void {
+    sys::writeChar('C');
+    sys::writeChar('\n');
+  }
+}
 
+bank <wram> {
   fn hello(): void {
     sys::writeChar('B');
     sys::writeChar('\n');
   }
-
 }
 
 fn main(): void {
   hello();
+  goodbye();
 }
 

@@ -255,7 +255,6 @@ SYMBOL_TABLE_ENTRY SYMBOL_TABLE_checkBanks(STR name) {
     if (scope.scopeType == SCOPE_TYPE_BANK) {
       SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, name);
       if (entry.defined) {
-        printf("%s\n", CHARS(entry.key));
         return entry;
       }
     }

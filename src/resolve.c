@@ -39,6 +39,7 @@ uint32_t* evaluateStack = NULL;
 uint32_t* typeStack = NULL;
 uint32_t* kindStack = NULL;
 bool functionScope = false;
+bool bankScope = false;
 
 #define VOID_INDEX 1
 #define BOOL_INDEX 2
@@ -466,7 +467,9 @@ static bool traverse(AST* ptr) {
         }
 
         for (int i = 0; i < arrlen(deferred); i++) {
+          bankScope = true;
           r = traverse(data.decls[deferred[i]]);
+          bankScope = false;
           if (!r) {
             arrfree(deferred);
             return false;
@@ -773,7 +776,7 @@ static bool traverse(AST* ptr) {
         } else {
           entry = SYMBOL_TABLE_getCurrent(identifier);
         }
-        if (!entry.defined) {
+        if (!entry.defined && !bankScope) {
           entry = SYMBOL_TABLE_checkBanks(identifier);
         }
         if (entry.defined) {
