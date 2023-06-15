@@ -40,7 +40,12 @@ PLATFORM p;
 
 STR* fnStack = NULL;
 uint32_t* rStack = NULL;
-bool lvalue = false;
+AST** globals = NULL;
+AST** functions = NULL;
+
+struct SECTION { STR name; STR annotation; AST** globals; AST** functions; };
+struct SECTION* sections = NULL;
+
 static bool isPointer(int type) {
   return TYPE_get(type).entryType == ENTRY_TYPE_POINTER || TYPE_get(type).entryType == ENTRY_TYPE_ARRAY || type == 8;
 }
@@ -92,11 +97,6 @@ static void emitGlobal(FILE* f, AST* ptr) {
   }
 }
 
-AST** globals = NULL;
-AST** functions = NULL;
-
-struct SECTION { STR name; AST** globals; AST** functions; };
-struct SECTION* sections = NULL;
 
 static int traverse(FILE* f, AST* ptr) {
   if (ptr == NULL) {
@@ -115,10 +115,25 @@ static int traverse(FILE* f, AST* ptr) {
         for (int i = 0; i < arrlen(data.modules); i++) {
           traverse(f, data.modules[i]);
         }
+        p.beginSection(f, STR_create("main"), STR_create("ROM0"));
         for (int i = 0; i < arrlen(globals); i++) {
           emitGlobal(f, globals[i]);
         }
+
+        for (int i = 0; i < arrlen(sections); i++) {
+          struct SECTION section = sections[i];
+          if (arrlen(section.globals) > 0) {
+            p.beginSection(f, section.name, section.annotation);
+            for (int j = 0; j < arrlen(section.globals); j++) {
+              emitGlobal(f, section.globals[j]);
+            }
+            p.endSection(f);
+          }
+        }
+
+        p.endSection(f);
         p.genCompletePreamble(f);
+
         for (int i = 0; i < arrlen(functions); i++) {
           traverse(f, functions[i]);
           p.freeAllRegisters();
@@ -126,15 +141,13 @@ static int traverse(FILE* f, AST* ptr) {
 
         for (int i = 0; i < arrlen(sections); i++) {
           struct SECTION section = sections[i];
-          printf("One section %s\n", CHARS(section.name));
-          // TODO: emit section
-          for (int j = 0; j < arrlen(section.globals); j++) {
-            emitGlobal(f, section.globals[j]);
-          }
-          p.genCompletePreamble(f);
-          for (int j = 0; j < arrlen(section.functions); j++) {
-            traverse(f, section.functions[j]);
-            p.freeAllRegisters();
+          if (arrlen(section.functions) > 0) {
+            p.beginSection(f, section.name, section.annotation);
+            for (int j = 0; j < arrlen(section.functions); j++) {
+              traverse(f, section.functions[j]);
+              p.freeAllRegisters();
+            }
+            p.endSection(f);
           }
           arrfree(section.functions);
           arrfree(section.globals);
@@ -148,7 +161,7 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_BANK body = ast.data.AST_BANK;
         // TODO: emit bank section code
-        struct SECTION section = { body.name, NULL, NULL };
+        struct SECTION section = { body.name, body.annotation, NULL, NULL };
         for (int i = 0; i < arrlen(body.decls); i++) {
           if (body.decls[i]->tag == AST_FN) {
             arrput(section.functions, body.decls[i]);

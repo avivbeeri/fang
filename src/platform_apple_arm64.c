@@ -946,6 +946,13 @@ void reportTypeTable(void) {
   printf("-------------------------------\n");
 }
 
+void beginSection(FILE* f, STR name, STR annotation) {
+  fprintf(f, "; SECTION (%s, %s)\n", CHARS(name), CHARS(annotation));
+}
+void endSection(FILE* f) {
+  fprintf(f, "; END SECTION\n");
+}
+
 PLATFORM platform_apple_arm64 = {
   .key = "apple_arm64",
   .init = init,
@@ -1004,7 +1011,9 @@ PLATFORM platform_apple_arm64 = {
   .genGlobalConstant = genGlobalConstant,
   .genFieldOffset = genFieldOffset,
   .getSize = getSize,
-  .reportTypeTable = reportTypeTable
+  .reportTypeTable = reportTypeTable,
+  .beginSection = beginSection,
+  .endSection = endSection,
 };
 
 #undef emitf

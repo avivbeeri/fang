@@ -92,6 +92,8 @@ typedef struct {
   void (*genGlobalConstant)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);
   void (*genGlobalVariable)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);
   void (*reportTypeTable)(void);
+  void (*beginSection)(FILE* f, STR name, STR annotation);
+  void (*endSection)(FILE* f);
 } PLATFORM;
 
 void PLATFORM_init();

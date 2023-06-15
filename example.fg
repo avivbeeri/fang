@@ -1,12 +1,12 @@
 import "lib.fg"
 
 bank <wram> test {
-  const i: i8 = 42;
   fn goodbye(): void {
     sys::writeChar('C');
     sys::writeChar('\n');
   }
 }
+const i: i8 = 42;
 fn main(): void {
   hello();
   goodbye();
