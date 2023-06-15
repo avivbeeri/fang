@@ -38,7 +38,7 @@
 
 PLATFORM p;
 
-STRING** fnStack = NULL;
+STR* fnStack = NULL;
 uint32_t* rStack = NULL;
 bool lvalue = false;
 static bool isPointer(int type) {
@@ -49,7 +49,7 @@ static void printEntry(TYPE_ENTRY entry) {
   if (entry.name == NULL) {
     printf("null entry?\n");
   }
-  printf("%s\n", entry.name->chars);
+  printf("%s\n", CHARS(entry.name));
 }
 
 static void emitGlobal(FILE* f, AST* ptr) {
@@ -62,7 +62,7 @@ static void emitGlobal(FILE* f, AST* ptr) {
     case AST_VAR_DECL:
       {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-        STRING* identifier = data.identifier;
+        STR identifier = data.identifier;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
         Value count = evalConstTree(data.type);
         p.genGlobalVariable(f, symbol, EMPTY(), count);
@@ -71,7 +71,7 @@ static void emitGlobal(FILE* f, AST* ptr) {
     case AST_VAR_INIT:
       {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-        STRING* identifier = data.identifier;
+        STR identifier = data.identifier;
         Value value = evalConstTree(data.expr);
         Value count = evalConstTree(data.type);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
@@ -81,7 +81,7 @@ static void emitGlobal(FILE* f, AST* ptr) {
     case AST_CONST_DECL:
       {
         struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-        STRING* identifier = data.identifier;
+        STR identifier = data.identifier;
         Value value = evalConstTree(data.expr);
         Value count = evalConstTree(data.type);
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
@@ -156,7 +156,7 @@ static int traverse(FILE* f, AST* ptr) {
         arrput(fnStack, data.identifier);
         traverse(f, data.body);
 
-        if (strcmp(data.identifier->chars, "main") == 0) {
+        if (strcmp(CHARS(data.identifier), "main") == 0) {
           struct AST_BLOCK block = data.body->data.AST_BLOCK;
           if (arrlen(block.decls) > 0) {
             size_t index = arrlen(block.decls) - 1;
@@ -169,7 +169,7 @@ static int traverse(FILE* f, AST* ptr) {
         arrdel(fnStack, 0);
 
         p.genFunctionEpilogue(f, data.identifier, scope);
-        if (strcmp(data.identifier->chars, "main") == 0) {
+        if (strcmp(CHARS(data.identifier), "main") == 0) {
           p.genRunMain(f);
           p.genSimpleExit(f);
         }
@@ -179,7 +179,7 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_ASM data = ast.data.AST_ASM;
         for (int i = 0; i < arrlen(data.strings); i++) {
-          p.genRaw(f, data.strings[i]->chars);
+          p.genRaw(f, CHARS(data.strings[i]));
         }
         break;
       }
@@ -390,7 +390,7 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         int r;
-        fprintf(f, "; %s\n", data.identifier->chars);
+        fprintf(f, "; %s\n", CHARS(data.identifier));
         if (ast.rvalue) {
           r = p.genIdentifier(f, symbol);
         } else {
@@ -418,7 +418,7 @@ static int traverse(FILE* f, AST* ptr) {
     case AST_REF:
       {
         struct AST_REF data = ast.data.AST_REF;
-        STRING* identifier = data.expr->data.AST_IDENTIFIER.identifier;
+        STR identifier = data.expr->data.AST_IDENTIFIER.identifier;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, identifier);
         return p.genIdentifierAddr(f, symbol);
       }
@@ -618,7 +618,7 @@ static int traverse(FILE* f, AST* ptr) {
         }
         TYPE_FIELD_ENTRY field;
         for (int i = 0; i < arrlen(entry.fields); i++) {
-          if (STRING_equality(entry.fields[i].name, data.name)) {
+          if (entry.fields[i].name == data.name) {
             field = entry.fields[i];
             break;
           }

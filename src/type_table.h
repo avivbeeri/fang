@@ -48,7 +48,7 @@ typedef uint32_t TYPE_ID;
 
 typedef struct TYPE_FIELD_ENTRY {
   TYPE_ID typeIndex;
-  STRING* name; // Nullable
+  STR name; // Nullable
   uint8_t elementCount;
   // Not sure why I want this right now
   // Hoping we can do without it.
@@ -57,8 +57,8 @@ typedef struct TYPE_FIELD_ENTRY {
 
 typedef struct TYPE_ENTRY {
   TYPE_ID index;
-  STRING* module;
-  STRING* name;
+  STR module;
+  STR name;
 
   TYPE_ENTRY_STATUS status;
   TYPE_ENTRY_TYPE entryType;
@@ -73,7 +73,7 @@ typedef struct TYPE_ENTRY {
 TYPE_ENTRY* TYPE_TABLE_init(void);
 void TYPE_TABLE_free(void);
 
-TYPE_ID TYPE_declare(STRING* module, STRING* name);
+TYPE_ID TYPE_declare(STR module, STR name);
 TYPE_ID TYPE_define(TYPE_ID index, TYPE_ENTRY_TYPE entryType, TYPE_FIELD_ENTRY* fields);
 TYPE_ID TYPE_registerPrimitive(char* name);
 

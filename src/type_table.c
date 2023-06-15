@@ -57,9 +57,9 @@ void TYPE_TABLE_free(void) {
   // Do nothing for now, we'll clean this up later
 }
 
-TYPE_ID TYPE_declare(STRING* module, STRING* name) {
-  char* moduleChars = module == NULL ? NULL : module->chars;
-  char* nameChars = name == NULL ? NULL : name->chars;
+TYPE_ID TYPE_declare(STR module, STR name) {
+  char* moduleChars = STR(module);
+  char* nameChars = STR(name);
   if (moduleChars != NULL) {
     shput(moduleSet, moduleChars, true);
   }
@@ -131,12 +131,12 @@ TYPE_ID TYPE_getIdByName(char* module, char* name) {
       if ((module != NULL && entry.module == NULL) || (module == NULL && entry.module != NULL)) {
         continue;
       }
-      if (entry.module != NULL && strcmp(entry.module->chars, module) != 0) {
+      if (entry.module != NULL && entry.module != module) {
         continue;
       }
     }
 
-    if (strcmp(entry.name->chars, name) == 0) {
+    if (entry.name == name) {
       return i;
     }
   }

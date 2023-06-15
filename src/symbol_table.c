@@ -69,11 +69,11 @@ void SYMBOL_TABLE_popScope() {
   arrdel(scopeStack, arrlen(scopeStack) - 1);
 }
 
-bool SYMBOL_TABLE_scopeHas(STRING* name) {
+bool SYMBOL_TABLE_scopeHas(STR name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    if (shgeti(scope.table, name->chars) != -1) {
+    if (hmgeti(scope.table, STR(name)) != -1) {
       return true;
     }
     current = scope.parent;
@@ -134,14 +134,14 @@ void SYMBOL_TABLE_calculateAllocations(PLATFORM p) {
   }
 }
 
-void SYMBOL_TABLE_updateElementCount(STRING* name, uint32_t elementCount) {
+void SYMBOL_TABLE_updateElementCount(STR name, uint32_t elementCount) {
   uint32_t current = SYMBOL_TABLE_getCurrentScopeIndex();
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
+    SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, STR(name));
     if (entry.defined) {
       entry.elementCount = elementCount;
-      shputs(scope.table, entry);
+      hmputs(scope.table, entry);
       return;
     }
     current = scope.parent;
@@ -179,12 +179,12 @@ void SYMBOL_TABLE_init(void) {
   SYMBOL_TABLE_openScope(SCOPE_TYPE_INVALID);
 }
 
-void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
+void SYMBOL_TABLE_declare(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
   SYMBOL_TABLE_ENTRY entry = {
-    .key = name->chars,
+    .key = name,
     .defined = true,
     .entryType = type,
     .status = SYMBOL_TABLE_STATUS_DECLARED,
@@ -192,17 +192,17 @@ void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYM
     .scopeIndex = scopeIndex,
     .constantIndex = 0
   };
-  shputs(scope.table, entry);
+  hmputs(scope.table, entry);
   hmputs(scopes, scope);
 }
-void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
+void SYMBOL_TABLE_define(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType) {
   uint32_t scopeIndex = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeIndex);
 
   uint32_t offset = 0;
 
   SYMBOL_TABLE_ENTRY entry = {
-    .key = name->chars,
+    .key = name,
     .entryType = type,
     .defined = true,
     .status = SYMBOL_TABLE_STATUS_DEFINED,
@@ -219,7 +219,7 @@ void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMB
   } else if (type == SYMBOL_TYPE_PARAMETER) {
     scope.paramOrdinal++;
   }
-  shputs(scope.table, entry);
+  hmputs(scope.table, entry);
   hmputs(scopes, scope);
 }
 
@@ -230,11 +230,11 @@ SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scope) {
   return hmgets(scopes, scope);
 }
 
-SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scopeIndex, STRING* name) {
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scopeIndex, STR name) {
   uint32_t current = scopeIndex;
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
+    SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, name);
     if (entry.defined) {
       return entry;
     }
@@ -242,21 +242,21 @@ SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scopeIndex, STRING* name) {
   }
   return (SYMBOL_TABLE_ENTRY){0};
 }
-SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STRING* name) {
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STR name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-  SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
+  SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, name);
   if (entry.defined) {
     return entry;
   }
   return (SYMBOL_TABLE_ENTRY){0};
 }
 
-STRING* SYMBOL_TABLE_getNameFromCurrent(void) {
+STR SYMBOL_TABLE_getNameFromCurrent(void) {
   return SYMBOL_TABLE_getNameFromStart(SYMBOL_TABLE_getCurrentScopeIndex());
 }
 
-STRING* SYMBOL_TABLE_getNameFromStart(int start) {
+STR SYMBOL_TABLE_getNameFromStart(int start) {
   uint32_t current = start;
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
@@ -267,11 +267,11 @@ STRING* SYMBOL_TABLE_getNameFromStart(int start) {
   }
   return NULL;
 }
-SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STRING* name) {
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STR name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    SYMBOL_TABLE_ENTRY entry = shgets(scope.table, name->chars);
+    SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, STR(name));
     if (entry.defined) {
       return entry;
     }
@@ -286,7 +286,7 @@ void SYMBOL_TABLE_report(void) {
     SYMBOL_TABLE_SCOPE scope = scopes[i];
     printf("Scope %u (parent %u):\n", scope.key, scope.parent);
     if (scope.scopeType == SCOPE_TYPE_MODULE && scope.moduleName != NULL) {
-      printf(" (module: %s):\n", scope.moduleName->chars);
+      printf(" (module: %s):\n", STR(scope.moduleName));
     }
     printf(" (table size %u):\n", scope.tableSize);
     if (scope.scopeType == SCOPE_TYPE_FUNCTION) {
@@ -297,7 +297,7 @@ void SYMBOL_TABLE_report(void) {
       SYMBOL_TABLE_ENTRY entry = scope.table[j];
 
       printf("%s - ", entry.key);
-      printf("%s - ", TYPE_get(entry.typeIndex).name->chars);
+      printf("%s - ", STR(TYPE_get(entry.typeIndex).name));
       switch (entry.entryType) {
         case SYMBOL_TYPE_UNKNOWN: { printf("UNKNOWN"); break; }
         case SYMBOL_TYPE_FUNCTION: { printf("FUNCTION"); break; }
@@ -316,7 +316,7 @@ void SYMBOL_TABLE_report(void) {
   }
 }
 
-bool SYMBOL_TABLE_nameScope(STRING* name) {
+bool SYMBOL_TABLE_nameScope(STR name) {
   SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getCurrentScope();
   if (scope.moduleName != NULL) {
     return true;
@@ -332,7 +332,7 @@ bool SYMBOL_TABLE_nameScope(STRING* name) {
   return true;
 }
 
-SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STRING* name) {
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STR name) {
   for (int i = 0; i < hmlen(scopes); i++) {
     if (scopes[i].scopeType != SCOPE_TYPE_INVALID && STRING_equality(scopes[i].moduleName, name)) {
       return scopes[i];
@@ -340,7 +340,7 @@ SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STRING* name) {
   }
   return (SYMBOL_TABLE_SCOPE){};
 }
-int SYMBOL_TABLE_getScopeIndexByName(STRING* name) {
+int SYMBOL_TABLE_getScopeIndexByName(STR name) {
   for (int i = 0; i < hmlen(scopes); i++) {
     if (scopes[i].scopeType != SCOPE_TYPE_INVALID && STRING_equality(scopes[i].moduleName, name)) {
       return scopes[i].key;

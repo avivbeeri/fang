@@ -100,7 +100,7 @@ static Value traverse(AST* ptr, Environment* context) {
         }
         return ARRAY(values);
       } else if (data.initType == INIT_TYPE_RECORD) {
-        STRING** names = NULL;
+        STR* names = NULL;
         Value* values = NULL;
         for (int i = 0; i < arrlen(data.assignments); i++) {
           struct AST_PARAM field = data.assignments[i]->data.AST_PARAM;
@@ -121,8 +121,8 @@ static Value traverse(AST* ptr, Environment* context) {
     case AST_IDENTIFIER:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-        STRING* identifier = data.identifier;
-        return getSymbol(context, identifier->chars);
+        STR identifier = data.identifier;
+        return getSymbol(context, CHARS(identifier));
       }
     case AST_UNARY:
       {
@@ -230,26 +230,26 @@ static Value traverse(AST* ptr, Environment* context) {
     }
     case AST_CONST_DECL: {
       struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-      STRING* identifier = data.identifier;
+      STR identifier = data.identifier;
       Value type = traverse(data.type, context);
       Value expr = traverse(data.expr, context);
-      bool success = define(context, identifier->chars, expr, true);
+      bool success = define(context, CHARS(identifier), expr, true);
       return success ? EMPTY() : ERROR(1);
     }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      STRING* identifier = data.identifier;
+      STR identifier = data.identifier;
       Value type = traverse(data.type, context);
-      define(context, identifier->chars, EMPTY(), false);
+      define(context, CHARS(identifier), EMPTY(), false);
       return EMPTY();
     }
 
     case AST_VAR_INIT: {
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      STRING* identifier = data.identifier;
+      STR identifier = data.identifier;
       Value type = traverse(data.type, context);
       Value expr = traverse(data.expr, context);
-      define(context, identifier->chars, expr, false);
+      define(context, CHARS(identifier), expr, false);
       return expr;
     }
     case AST_TYPE:

@@ -49,20 +49,15 @@ void ast_free(AST *ptr) {
     }
     case AST_ASM: {
       struct AST_ASM data = ast.data.AST_ASM;
-      for (int i = 0; i < arrlen(data.strings); i++) {
-        STRING_free(data.strings[i]);
-      }
       arrfree(data.strings);
       break;
     }
     case AST_IDENTIFIER: {
       struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
-      STRING_free(data.identifier);
       break;
     }
     case AST_TYPE_NAME: {
       struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-      // STRING_free(data.typeName);
       break;
     }
     case AST_LITERAL: {
@@ -83,7 +78,6 @@ void ast_free(AST *ptr) {
     case AST_DOT: {
       struct AST_DOT data = ast.data.AST_DOT;
       ast_free(data.left);
-      STRING_free(data.name);
       break;
     }
     case AST_DO_WHILE: {
@@ -115,20 +109,17 @@ void ast_free(AST *ptr) {
     }
     case AST_CONST_DECL: {
       struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-      STRING_free(data.identifier);
       ast_free(data.type);
       ast_free(data.expr);
       break;
     }
     case AST_VAR_DECL: {
       struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      STRING_free(data.identifier);
       ast_free(data.type);
       break;
     }
     case AST_VAR_INIT: {
       struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      STRING_free(data.identifier);
       ast_free(data.type);
       ast_free(data.expr);
       break;
@@ -169,7 +160,6 @@ void ast_free(AST *ptr) {
     }
     case AST_FN: {
       struct AST_FN data = ast.data.AST_FN;
-      STRING_free(data.identifier);
       ast_free(data.returnType);
       ast_free(data.body);
 
@@ -181,7 +171,6 @@ void ast_free(AST *ptr) {
     }
     case AST_PARAM: {
       struct AST_PARAM data = ast.data.AST_PARAM;
-      STRING_free(data.identifier);
       ast_free(data.value);
       break;
     }

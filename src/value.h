@@ -48,7 +48,7 @@ typedef enum {
 struct Value;
 typedef struct {
   int typeIndex;
-  STRING** names;
+  STR* names;
   struct Value* values;
 } Record;
 
@@ -62,7 +62,7 @@ typedef struct Value {
     int8_t i8;
     int16_t i16;
     int32_t literalNum;
-    STRING* string;
+    STR string;
     unsigned char character;
     size_t ptr;
     struct Value* array;

@@ -1,7 +1,8 @@
+CC := clang
 SRC := src
 OBJ := obj
 TEST := test
-CFLAGS := -g -Wall -std=c99 -Werror -Wno-error=switch -Wno-error=unused-variable -ferror-limit=1 -Wno-error=unused-function
+CFLAGS := -g -Wall -std=c99 -Wno-error=switch -Wno-error=unused-variable  -Wno-error=unused-function
 
 SOURCES := $(wildcard $(SRC)/*.c)
 OBJECTS := $(patsubst $(SRC)/%.c, $(OBJ)/%.o, $(SOURCES))

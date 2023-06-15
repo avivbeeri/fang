@@ -55,18 +55,21 @@
   i += writeLen; \
 } while(0);
 
-typedef struct {
-  size_t length;
-  char* chars;
-} STRING;
-
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
 char unesc(const char* str, size_t length);
-bool STRING_equality(STRING* left, STRING* right);
-STRING* STRING_prepend(STRING* str, const char* prepend);
-STRING* copyString(const char* chars, size_t length);
-STRING* createString(const char* chars);
-void STRING_free(STRING* str);
 char* readFile(const char* path);
+
+// New interface
+typedef size_t STR;
+#define EMPTY_STRING -1
+STR STR_create(const char* chars);
+STR STR_copy(const char* chars, size_t length);
+STR STR_prepend(STR str, const char* prepend);
+size_t STR_len(STR str);
+const char* CHARS(STR str);
+bool STR_compare(STR a, STR b); // Trivial, but for completeness
+void STR_init(void);
+void STR_free(void);
+
 
 #endif

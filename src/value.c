@@ -122,14 +122,9 @@ bool isEqual(Value left, Value right) {
   if (IS_NUMERICAL(left)) {
     return getNumber(left) == getNumber(right);
   }
-  STRING* leftStr = AS_STRING(left);
-  STRING* rightStr = AS_STRING(right);
-  if (leftStr->length != rightStr->length) {
-    return false;
-  }
-  size_t len = leftStr->length;
-  // TODO: After string interning, this can be changed to the index
-  return memcmp(leftStr->chars, rightStr->chars, len);
+  STR leftStr = AS_STRING(left);
+  STR rightStr = AS_STRING(right);
+  return (leftStr != rightStr);
 }
 
 bool isTruthy(Value value) {
@@ -142,7 +137,7 @@ bool isTruthy(Value value) {
     case VAL_U16: return AS_U16(value) != 0;
     case VAL_PTR: return AS_PTR(value) != 0;
     case VAL_LIT_NUM: return AS_LIT_NUM(value) != 0;
-    case VAL_STRING: return (AS_STRING(value)->length) > 0;
+    case VAL_STRING: return STR_len(AS_STRING(value)) > 0;
     case VAL_RECORD: return true;
     case VAL_ARRAY: return true;
     case VAL_UNDEF: return false;

@@ -545,4 +545,5 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_END: return "END";
     case TOKEN_MODULE: return "MODULE";
   }
+  return "ERROR";
 }

@@ -52,7 +52,7 @@ typedef enum SYMBOL_TYPE {
 } SYMBOL_TYPE;
 
 typedef struct SYMBOL_TABLE_ENTRY {
-  char* key;
+  STR key;
   SYMBOL_TYPE entryType;
   bool defined;
   SYMBOL_TABLE_ENTRY_STATUS status;
@@ -80,7 +80,7 @@ typedef enum {
 typedef struct {
   uint32_t key;
   uint32_t parent;
-  STRING* moduleName;
+  STR moduleName;
   SYMBOL_TABLE_SCOPE_TYPE scopeType;
   SYMBOL_TABLE_ENTRY* table;
   uint32_t ordinal;
@@ -104,23 +104,23 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType);
 void SYMBOL_TABLE_closeScope();
 void SYMBOL_TABLE_calculateAllocations();
 void SYMBOL_TABLE_report();
-void SYMBOL_TABLE_declare(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
-void SYMBOL_TABLE_define(STRING* name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
-bool SYMBOL_TABLE_scopeHas(STRING* name);
+void SYMBOL_TABLE_declare(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
+void SYMBOL_TABLE_define(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
+bool SYMBOL_TABLE_scopeHas(STR name);
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getCurrentScope();
-SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STRING* name);
-int SYMBOL_TABLE_getScopeIndexByName(STRING* name);
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScopeByName(STR name);
+int SYMBOL_TABLE_getScopeIndexByName(STR name);
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scopeIndex);
-SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STRING* name);
-SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STRING* name);
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STR name);
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STR name);
 uint32_t SYMBOL_TABLE_getCurrentScopeIndex();
-SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scope, STRING* name);
-bool SYMBOL_TABLE_nameScope(STRING* name);
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scope, STR name);
+bool SYMBOL_TABLE_nameScope(STR name);
 void SYMBOL_TABLE_free(void);
-void SYMBOL_TABLE_updateElementCount(STRING* name, uint32_t elementCount);
+void SYMBOL_TABLE_updateElementCount(STR name, uint32_t elementCount);
 void SYMBOL_TABLE_pushScope(int index);
 void SYMBOL_TABLE_popScope();
-STRING* SYMBOL_TABLE_getNameFromStart(int start);
-STRING* SYMBOL_TABLE_getNameFromCurrent(void);
+STR SYMBOL_TABLE_getNameFromStart(int start);
+STR SYMBOL_TABLE_getNameFromCurrent(void);
 
 #endif

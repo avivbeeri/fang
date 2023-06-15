@@ -44,9 +44,9 @@ typedef struct {
 
   void (*genPreamble)(FILE* f);
   void (*genCompletePreamble)(FILE* f);
-  void (*genFunction)(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope);
-  void (*genFunctionEpilogue)(FILE* f, STRING* name, SYMBOL_TABLE_SCOPE scope);
-  void (*genReturn)(FILE* f, STRING*, int);
+  void (*genFunction)(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope);
+  void (*genFunctionEpilogue)(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope);
+  void (*genReturn)(FILE* f, STR, int);
   int (*genLoadRegister)(FILE* f, int, int);
   int (*genLoad)(FILE* f, int, int);
   int (*genConstant)(FILE* f, int);
@@ -88,7 +88,7 @@ typedef struct {
   int (*genDeref)(FILE* f, int, int);
   int (*genIndexAddr)(FILE* f, int, int, int);
   int (*genIndexRead)(FILE* f, int, int, int);
-  int (*genFieldOffset)(FILE* f, int leftReg, int typeIndex, STRING* fieldName);
+  int (*genFieldOffset)(FILE* f, int leftReg, int typeIndex, STR fieldName);
   void (*genGlobalConstant)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);
   void (*genGlobalVariable)(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Value count);
   void (*reportTypeTable)(void);
