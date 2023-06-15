@@ -95,7 +95,7 @@ static void emitGlobal(FILE* f, AST* ptr) {
 AST** globals = NULL;
 AST** functions = NULL;
 
-struct SECTION { AST** globals; AST** functions; };
+struct SECTION { STR name; AST** globals; AST** functions; };
 struct SECTION* sections = NULL;
 
 static int traverse(FILE* f, AST* ptr) {
@@ -125,8 +125,8 @@ static int traverse(FILE* f, AST* ptr) {
         }
 
         for (int i = 0; i < arrlen(sections); i++) {
-          printf("One section\n");
           struct SECTION section = sections[i];
+          printf("One section %s\n", CHARS(section.name));
           // TODO: emit section
           for (int j = 0; j < arrlen(section.globals); j++) {
             emitGlobal(f, section.globals[j]);
@@ -148,7 +148,7 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_BANK body = ast.data.AST_BANK;
         // TODO: emit bank section code
-        struct SECTION section = { NULL, NULL };
+        struct SECTION section = { body.name, NULL, NULL };
         for (int i = 0; i < arrlen(body.decls); i++) {
           if (body.decls[i]->tag == AST_FN) {
             arrput(section.functions, body.decls[i]);

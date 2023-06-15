@@ -30,9 +30,10 @@ Reserved for future use: import, ext, enum
 
 ## Grammar
 
-program -> moduleDecl? (bankDecl | topDecl)* EOF;
-bankDecl -> "bank" annotation? "{" (declaration | fnDecl)* "}";
+program -> moduleDecl? topDecl* EOF;
+
 topDecl -> 
+  | bankDecl
   | importDecl
   | extDecl
   | typeDecl 
@@ -41,6 +42,8 @@ topDecl ->
   | varInit 
   | constInit 
   | asmDecl;
+
+bankDecl -> "bank" annotation? IDENTIFIER "{" (declaration | fnDecl)* "}";
 
 declaration -> 
   | varInit 

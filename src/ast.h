@@ -147,7 +147,7 @@ struct AST {
     struct AST_TYPE_DECL { STR name; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STR* strings; } AST_ASM;
     struct AST_BLOCK { AST** decls; } AST_BLOCK;
-    struct AST_BANK { STR annotation; AST** decls; } AST_BANK;
+    struct AST_BANK { STR name; STR annotation; AST** decls; } AST_BANK;
     struct AST_MODULE_DECL { STR name; } AST_MODULE_DECL;
     struct AST_EXT { SYMBOL_TYPE symbolType; STR identifier; AST* type; } AST_EXT;
     struct AST_MODULE { AST** decls; } AST_MODULE;

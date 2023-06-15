@@ -875,6 +875,7 @@ static AST* bank() {
   AST** declList = NULL;
   Token token = parser.previous;
   STR str = annotation();
+  STR name = parseVariable("Sections are supposed to have names.");
   consume(TOKEN_LEFT_BRACE,"Expect '{' before bank body.");
   while (!check(TOKEN_EOF) && !check(TOKEN_END) && !check(TOKEN_RIGHT_BRACE)) {
     AST* decl = NULL;
@@ -898,7 +899,7 @@ static AST* bank() {
   }
   consume(TOKEN_RIGHT_BRACE,"Expect '}' after bank body.");
 
-  return AST_NEW_T(AST_BANK, token, str, declList);
+  return AST_NEW_T(AST_BANK, token, name, str, declList);
 }
 
 static AST* topLevel() {

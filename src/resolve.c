@@ -271,7 +271,6 @@ static bool resolveTopLevel(AST* ptr) {
     case AST_BANK:
       {
         struct AST_BANK data = ast.data.AST_BANK;
-        SYMBOL_TABLE_openScope(SCOPE_TYPE_BANK);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         for (int i = 0; i < arrlen(data.decls); i++) {
           bool r = resolveTopLevel(data.decls[i]);
@@ -452,6 +451,7 @@ static bool traverse(AST* ptr) {
         bool r = true;
         struct AST_BANK data = ast.data.AST_BANK;
         int* deferred = NULL;
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_BANK);
         for (int i = 0; i < arrlen(data.decls); i++) {
           // Hoist FN resolution until after the main code
           // for type-check reasons
@@ -476,6 +476,7 @@ static bool traverse(AST* ptr) {
           }
         }
         arrfree(deferred);
+        SYMBOL_TABLE_closeScope();
         return r;
       }
     case AST_MODULE:
