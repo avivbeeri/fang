@@ -114,6 +114,7 @@ int SYMBOL_TABLE_getScopeIndexByName(STR name);
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scopeIndex);
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STR name);
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STR name);
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_checkBanks(STR name);
 uint32_t SYMBOL_TABLE_getCurrentScopeIndex();
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scope, STR name);
 bool SYMBOL_TABLE_nameScope(STR name);

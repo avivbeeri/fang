@@ -124,11 +124,30 @@ static int traverse(FILE* f, AST* ptr) {
         arrfree(globals);
         return 0;
       }
+    case AST_BANK:
+      {
+        struct AST_BANK body = ast.data.AST_BANK;
+        // TODO: emit bank section code
+        for (int i = 0; i < arrlen(body.decls); i++) {
+          if (body.decls[i]->tag == AST_FN) {
+            arrput(functions, body.decls[i]);
+          } else if (body.decls[i]->tag == AST_VAR_INIT) {
+            arrput(globals, body.decls[i]);
+          } else if (body.decls[i]->tag == AST_VAR_DECL) {
+            arrput(globals, body.decls[i]);
+          } else if (body.decls[i]->tag == AST_CONST_DECL) {
+            arrput(globals, body.decls[i]);
+          }
+        }
+        return 0;
+      }
     case AST_MODULE:
       {
         struct AST_MODULE body = ast.data.AST_MODULE;
         for (int i = 0; i < arrlen(body.decls); i++) {
-          if (body.decls[i]->tag == AST_FN) {
+          if (body.decls[i]->tag == AST_BANK) {
+            traverse(f, body.decls[i]);
+          } else if (body.decls[i]->tag == AST_FN) {
             arrput(functions, body.decls[i]);
           } else if (body.decls[i]->tag == AST_VAR_INIT) {
             arrput(globals, body.decls[i]);
@@ -388,6 +407,9 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
         SYMBOL_TABLE_ENTRY symbol = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
+        if (!symbol.defined) {
+          symbol = SYMBOL_TABLE_checkBanks(data.identifier);
+        }
         int r;
         fprintf(f, "; %s\n", CHARS(data.identifier));
         if (ast.rvalue) {

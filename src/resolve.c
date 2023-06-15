@@ -272,7 +272,12 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_BANK data = ast.data.AST_BANK;
         SYMBOL_TABLE_openScope(SCOPE_TYPE_BANK);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
-        //for (int i = 0; i < arrlen()
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          bool r = resolveTopLevel(data.decls[i]);
+          if (!r) {
+            return false;
+          }
+        }
         return true;
       }
     case AST_MODULE:
@@ -281,7 +286,12 @@ static bool resolveTopLevel(AST* ptr) {
         struct AST_MODULE data = ast.data.AST_MODULE;
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         int* deferred = NULL;
+        int* banks = NULL;
         for (int i = 0; i < arrlen(data.decls); i++) {
+          if (data.decls[i]->tag == AST_BANK) {
+            arrput(banks, i);
+            continue;
+          }
           if (data.decls[i]->tag == AST_FN) {
             // FN pointer type resolution needs to occur after other types
             // are resolved.
@@ -290,6 +300,7 @@ static bool resolveTopLevel(AST* ptr) {
           }
           r = resolveTopLevel(data.decls[i]);
           if (!r) {
+            arrfree(banks);
             arrfree(deferred);
             return false;
           }
@@ -301,7 +312,14 @@ static bool resolveTopLevel(AST* ptr) {
             break;
           }
         }
+        for (int i = 0; i < arrlen(banks); i++) {
+          r &= resolveTopLevel(data.decls[banks[i]]);
+          if (!r) {
+            break;
+          }
+        }
         arrfree(deferred);
+        arrfree(banks);
         return r;
       }
     case AST_TYPE_DECL:
@@ -426,6 +444,35 @@ static bool traverse(AST* ptr) {
           }
         }
         SYMBOL_TABLE_closeScope();
+        return r;
+      }
+    case AST_BANK:
+      {
+        bool r = true;
+        struct AST_BANK data = ast.data.AST_BANK;
+        int* deferred = NULL;
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          // Hoist FN resolution until after the main code
+          // for type-check reasons
+          if (data.decls[i]->tag == AST_FN) {
+            arrput(deferred, i);
+            continue;
+          }
+          r = traverse(data.decls[i]);
+          if (!r) {
+            arrfree(deferred);
+            return false;
+          }
+        }
+
+        for (int i = 0; i < arrlen(deferred); i++) {
+          r = traverse(data.decls[deferred[i]]);
+          if (!r) {
+            arrfree(deferred);
+            return false;
+          }
+        }
+        arrfree(deferred);
         return r;
       }
     case AST_MODULE:
@@ -725,6 +772,9 @@ static bool traverse(AST* ptr) {
           entry = SYMBOL_TABLE_get(scopeIndex, identifier);
         } else {
           entry = SYMBOL_TABLE_getCurrent(identifier);
+        }
+        if (!entry.defined) {
+          entry = SYMBOL_TABLE_checkBanks(identifier);
         }
         if (entry.defined) {
           ptr->scopeIndex = scopeIndex;

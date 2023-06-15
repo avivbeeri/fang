@@ -249,6 +249,20 @@ SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrentOnly(STR name) {
   }
   return (SYMBOL_TABLE_ENTRY){0};
 }
+SYMBOL_TABLE_ENTRY SYMBOL_TABLE_checkBanks(STR name) {
+  for (int i = 0; i < hmlen(scopes); i++) {
+    SYMBOL_TABLE_SCOPE scope = scopes[i];
+    if (scope.scopeType == SCOPE_TYPE_BANK) {
+      SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, name);
+      if (entry.defined) {
+        printf("%s\n", CHARS(entry.key));
+        return entry;
+      }
+    }
+  }
+
+  return (SYMBOL_TABLE_ENTRY){0};
+}
 
 STR SYMBOL_TABLE_getNameFromCurrent(void) {
   return SYMBOL_TABLE_getNameFromStart(SYMBOL_TABLE_getCurrentScopeIndex());
