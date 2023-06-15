@@ -267,6 +267,14 @@ static bool resolveTopLevel(AST* ptr) {
         }
         return true;
       }
+    case AST_BANK:
+      {
+        struct AST_BANK data = ast.data.AST_BANK;
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_BANK);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        //for (int i = 0; i < arrlen()
+        return true;
+      }
     case AST_MODULE:
       {
         bool r = true;

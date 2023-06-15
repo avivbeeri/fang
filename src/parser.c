@@ -861,10 +861,52 @@ static AST* extDecl() {
   return AST_NEW_T(AST_EXT, parser.previous, symbolType, identifier, dataType);
 }
 
+static STRING* annotation() {
+  STRING* str = NULL;
+  if (match(TOKEN_LESS)) {
+    consume(TOKEN_IDENTIFIER, "Expect text inside annotation brackets.");
+    str = copyString(parser.previous.start, parser.previous.length);
+    consume(TOKEN_GREATER, "Expect '>' to conclude an annotation");
+  }
+  return str;
+}
+
+static AST* bank() {
+  AST** declList = NULL;
+  Token token = parser.previous;
+  STRING* str = annotation();
+  consume(TOKEN_LEFT_BRACE,"Expect '{' before bank body.");
+  while (!check(TOKEN_EOF) && !check(TOKEN_END) && !check(TOKEN_RIGHT_BRACE)) {
+    AST* decl = NULL;
+    if (match(TOKEN_FN)) {
+      decl = fnDecl();
+    } else {
+      decl = declaration();
+    }
+    if (decl == NULL) {
+      continue;
+    }
+    if (decl->tag == AST_ERROR) {
+      break;
+    }
+    if (decl) {
+      arrput(declList, decl);
+    }
+  }
+  // consume(TOKEN_END, "Expect end of file");
+  if (check(TOKEN_EOF) || match(TOKEN_END)) {
+  }
+  consume(TOKEN_RIGHT_BRACE,"Expect '}' after bank body.");
+
+  return AST_NEW_T(AST_BANK, token, str, declList);
+}
+
 static AST* topLevel() {
   AST* decl = NULL;
   if (match(TOKEN_TYPE)) {
     decl = typeDecl();
+  } else if (match(TOKEN_BANK)) {
+    decl = bank();
   } else if (match(TOKEN_IMPORT)) {
     decl = importDecl();
   } else if (match(TOKEN_EXT)) {
@@ -877,8 +919,6 @@ static AST* topLevel() {
     decl = varInit();
   } else if (match(TOKEN_CONST)) {
     decl = constInit();
-  } else if (match(TOKEN_ASM)) {
-    decl = asmDecl();
   } else {
     decl = AST_NEW(AST_ERROR, 0);
     advance();
@@ -904,7 +944,7 @@ static AST* declaration() {
   return decl;
 }
 
-AST* module() {
+static AST* module() {
   AST** declList = NULL;
   if (match(TOKEN_MODULE)) {
     arrput(declList, moduleDecl());

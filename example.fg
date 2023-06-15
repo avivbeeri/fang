@@ -1,16 +1,15 @@
 import "lib.fg"
 
-type Sprite {
-  state: bool;
-  number: u8;
+bank <wram> {
+
+  fn hello(): void {
+    sys::writeChar('B');
+    sys::writeChar('\n');
+  }
+
 }
 
 fn main(): void {
-  var obj: sys::Sprite = { id = 42, alive = true };
-  var obj2: Sprite = { number = 7, state = true };
-
-  sys::writeU8(obj.id);
-  sys::writeChar('\n');
-  sys::writeU8(obj2.number);
+  hello();
 }
 

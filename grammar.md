@@ -30,7 +30,8 @@ Reserved for future use: import, ext, enum
 
 ## Grammar
 
-program -> moduleDecl? topDecl* EOF
+program -> moduleDecl? (bankDecl | topDecl)* EOF;
+bankDecl -> "bank" annotation? "{" (declaration | fnDecl)* "}";
 topDecl -> 
   | importDecl
   | extDecl
@@ -49,7 +50,7 @@ declaration ->
 
 typeDecl -> "type" IDENTIFIER "{" fields? "}";
 enumDecl -> "enum" IDENTIFIER "{" IDENTIFER ("=" expression) ("," IDENTIFIER ("=" expression)?)* "}";
-fnDecl -> "fn" function;
+fnDecl -> "fn" annotation? function;
 constInit -> constDecl "=" expression ";" ;
 varInit -> varDecl ("=" expression)? ";" ;
 constDecl -> "const" IDENTIFIER ":" type ;
@@ -97,13 +98,14 @@ literal    -> "true" | "false" | NUMBER | STRING;
 
 or_list -> logic_or ( "," logic_or )* ( "," )? ;
 
-type       -> ( "^" ) ("[" NUMBER "]") type | typename;
+type       -> ( "^" ) ("[" NUMBER "]") (IDENTIFIER "::" )? type | typename;
 typename   -> "void" | "bool" | "ptr" | "i8" | "ut8" 
             | "i16" | "u16" | "char" | "string" | IDENTIFIER; 
 function   -> IDENTIFIER "(" parameters? ")" ":" type block ;
 parameters -> IDENTIFIER ":" type (, IDENTIFIER ":" type)* ;
 arguments  -> expression (, expression)* ;
 fields     -> IDENTIFIER ":" type ";" (IDENTIFIER ":" type ";")* ;
+annotation -> "<" [any characters other than '>']* ">"
 
 # Lexical Grammar
 Fang ignores whitespace, and supports oneline and multiline comments. Multiline comments are nestable.

@@ -96,6 +96,7 @@ typedef enum {
   AST_FN,
   AST_TYPE_DECL,
   AST_PARAM,
+  AST_BANK,
   AST_MODULE_DECL,
   AST_MODULE,
   AST_EXT,
@@ -148,6 +149,7 @@ struct AST {
     struct AST_BLOCK { AST** decls; } AST_BLOCK;
     struct AST_MODULE_DECL { STRING* name; } AST_MODULE_DECL;
     struct AST_EXT { SYMBOL_TYPE symbolType; STRING* identifier; AST* type; } AST_EXT;
+    struct AST_BANK { STRING* annotation; AST** decls; } AST_BANK;
     struct AST_MODULE { AST** decls; } AST_MODULE;
     struct AST_MAIN { AST** modules; } AST_MAIN;
   } data;
