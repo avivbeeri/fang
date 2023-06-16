@@ -84,6 +84,7 @@ typedef struct {
   STR moduleName;
   SYMBOL_TABLE_SCOPE_TYPE scopeType;
   SYMBOL_TABLE_ENTRY* table;
+  uint32_t sectionIndex;
   uint32_t ordinal;
   uint32_t paramOrdinal;
 

@@ -35,13 +35,18 @@
 uint32_t scopeId = 1;
 int* scopeStack = NULL;
 int* leafScopes = NULL;
+uint32_t sectionId = 0;
 
 SYMBOL_TABLE_SCOPE* scopes = NULL;
 
 void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   uint32_t parent = 0;
+  uint32_t section = 0;
   if (scopeStack != NULL) {
     parent = scopeStack[arrlen(scopeStack) - 1];
+  }
+  if (scopeType == SCOPE_TYPE_BANK) {
+    section = sectionId++;
   }
   hmputs(scopes, ((SYMBOL_TABLE_SCOPE){
         .key = scopeId,
@@ -49,6 +54,7 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
         .moduleName = EMPTY_STRING,
         .scopeType = scopeType,
         .table = NULL,
+        .sectionIndex = section,
         .ordinal = 0,
         .paramOrdinal = 0,
         .nestedCount = 0,

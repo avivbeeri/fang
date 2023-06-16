@@ -27,7 +27,6 @@
 #include "common.h"
 #include "memory.h"
 
-/*
 char* strdup (const char* s)
 {
   size_t slen = strlen(s);
@@ -40,7 +39,6 @@ char* strdup (const char* s)
   memcpy(result, s, slen+1);
   return result;
 }
-*/
 
 char* readFile(const char* path) {
   FILE* file = fopen(path, "rb");
