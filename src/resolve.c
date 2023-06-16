@@ -777,10 +777,15 @@ static bool traverse(AST* ptr) {
         } else {
           entry = SYMBOL_TABLE_getCurrent(identifier);
         }
-        if (!entry.defined && !bankScope) {
+        SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(scopeIndex);
+        if (!entry.defined) {
           entry = SYMBOL_TABLE_checkBanks(identifier);
         }
         if (entry.defined) {
+          if (entry.bankIndex != 0 && entry.bankIndex != scope.bankIndex) {
+            printf("wrong bank trap\n");
+            return false;
+          }
           ptr->scopeIndex = scopeIndex;
           ptr->type = entry.typeIndex;
         } else {

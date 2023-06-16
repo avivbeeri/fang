@@ -35,18 +35,23 @@
 uint32_t scopeId = 1;
 int* scopeStack = NULL;
 int* leafScopes = NULL;
-uint32_t sectionId = 0;
+uint32_t bankId = 1; // bank id starts at 1
 
 SYMBOL_TABLE_SCOPE* scopes = NULL;
 
 void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   uint32_t parent = 0;
-  uint32_t section = 0;
+  uint32_t bank = 0;
   if (scopeStack != NULL) {
     parent = scopeStack[arrlen(scopeStack) - 1];
   }
-  if (scopeType == SCOPE_TYPE_BANK) {
-    section = sectionId++;
+  if (scopeType == SCOPE_TYPE_INVALID) {
+    bank = 0;
+  } else if (scopeType == SCOPE_TYPE_BANK) {
+    bank = bankId++;
+  } else if (parent != 0) {
+    SYMBOL_TABLE_SCOPE parentScope = hmgets(scopes, parent);
+    bank = parentScope.bankIndex;
   }
   hmputs(scopes, ((SYMBOL_TABLE_SCOPE){
         .key = scopeId,
@@ -54,7 +59,7 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
         .moduleName = EMPTY_STRING,
         .scopeType = scopeType,
         .table = NULL,
-        .sectionIndex = section,
+        .bankIndex = bank,
         .ordinal = 0,
         .paramOrdinal = 0,
         .nestedCount = 0,
@@ -194,6 +199,7 @@ void SYMBOL_TABLE_declare(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_
     .status = SYMBOL_TABLE_STATUS_DECLARED,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
+    .bankIndex = scope.bankIndex,
     .constantIndex = 0
   };
   hmputs(scope.table, entry);
@@ -213,6 +219,7 @@ void SYMBOL_TABLE_define(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_T
     .storageType = storageType,
     .typeIndex = typeIndex,
     .scopeIndex = scopeIndex,
+    .bankIndex = scope.bankIndex,
     .offset = offset,
     .ordinal = scope.ordinal,
     .paramOrdinal = scope.paramOrdinal,

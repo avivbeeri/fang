@@ -6,13 +6,14 @@ bank test {
     sys::writeChar('\n');
   }
 }
-const i: i8 = 42;
+
 fn main(): void {
   hello();
   goodbye();
 }
 
 bank newtest {
+  const i: i8 = 42;
   fn hello(): void {
     sys::writeChar('B');
     sys::writeChar('\n');

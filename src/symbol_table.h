@@ -51,6 +51,15 @@ typedef enum SYMBOL_TYPE {
   SYMBOL_TYPE_CONSTANT,
 } SYMBOL_TYPE;
 
+typedef enum {
+  SCOPE_TYPE_INVALID,
+  SCOPE_TYPE_MODULE,
+  SCOPE_TYPE_BANK,
+  SCOPE_TYPE_FUNCTION,
+  SCOPE_TYPE_BLOCK,
+  SCOPE_TYPE_LOOP,
+} SYMBOL_TABLE_SCOPE_TYPE;
+
 typedef struct SYMBOL_TABLE_ENTRY {
   STR key;
   SYMBOL_TYPE entryType;
@@ -63,20 +72,13 @@ typedef struct SYMBOL_TABLE_ENTRY {
   uint32_t offset;
   TYPE_ID typeIndex;
   uint32_t scopeIndex;
+  uint32_t bankIndex;
   // only for constants
   uint32_t constantIndex;
   // only for arrays
   uint32_t elementCount;
 } SYMBOL_TABLE_ENTRY;
 
-typedef enum {
-  SCOPE_TYPE_INVALID,
-  SCOPE_TYPE_MODULE,
-  SCOPE_TYPE_BANK,
-  SCOPE_TYPE_FUNCTION,
-  SCOPE_TYPE_BLOCK,
-  SCOPE_TYPE_LOOP,
-} SYMBOL_TABLE_SCOPE_TYPE;
 
 typedef struct {
   uint32_t key;
@@ -84,7 +86,7 @@ typedef struct {
   STR moduleName;
   SYMBOL_TABLE_SCOPE_TYPE scopeType;
   SYMBOL_TABLE_ENTRY* table;
-  uint32_t sectionIndex;
+  uint32_t bankIndex;
   uint32_t ordinal;
   uint32_t paramOrdinal;
 
