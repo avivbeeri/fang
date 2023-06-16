@@ -1,6 +1,6 @@
 import "lib.fg"
 
-bank <wram> test {
+bank test {
   fn goodbye(): void {
     sys::writeChar('C');
     sys::writeChar('\n');
@@ -12,7 +12,7 @@ fn main(): void {
   goodbye();
 }
 
-bank <wram> newtest {
+bank newtest {
   fn hello(): void {
     sys::writeChar('B');
     sys::writeChar('\n');
