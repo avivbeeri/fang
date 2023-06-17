@@ -161,7 +161,7 @@ struct AST {
 };
 
 AST* ast_new(AST ast);
-void ast_free(AST* ptr);
+void AST_free(AST* ptr);
 const char* getNodeTypeName(AST_TAG tag);
 #define AST_NEW(tag, ...) \
   ast_new((AST){tag, {.tag=(struct tag){__VA_ARGS__}}, 0})

@@ -88,7 +88,7 @@ bool compile(const SourceFile* sources) {
   }
 cleanup:
   if (ast != NULL) {
-    ast_free(ast);
+    AST_free(ast);
   }
 
   CONST_TABLE_free();

@@ -38,7 +38,7 @@ AST *ast_new(AST ast) {
   return ptr;
 }
 
-void ast_free(AST *ptr) {
+void AST_free(AST *ptr) {
   if (ptr == NULL) {
     return;
   }
@@ -47,137 +47,195 @@ void ast_free(AST *ptr) {
     case AST_ERROR: {
       break;
     }
-    case AST_ASM: {
-      struct AST_ASM data = ast.data.AST_ASM;
-      arrfree(data.strings);
+    case AST_INITIALIZER: {
+      struct AST_INITIALIZER data = ast.data.AST_INITIALIZER;
+      for (int i = 0; i < arrlen(data.assignments); i++) {
+        AST_free(data.assignments[i]);
+      }
+      arrfree(data.assignments);
       break;
     }
-    case AST_IDENTIFIER: {
-      struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+    case AST_TYPE: {
+      struct AST_TYPE data = ast.data.AST_TYPE;
+      AST_free(data.type);
       break;
     }
-    case AST_TYPE_NAME: {
-      struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
+    case AST_TYPE_ARRAY: {
+      struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
+      AST_free(data.length);
+      AST_free(data.subType);
       break;
     }
-    case AST_LITERAL: {
-      struct AST_LITERAL data = ast.data.AST_LITERAL;
+    case AST_TYPE_FN: {
+      struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
+      AST_free(data.returnType);
+      for (int i = 0; i < arrlen(data.params); i++) {
+        AST_free(data.params[i]);
+      }
+      arrfree(data.params);
+      break;
+    }
+    case AST_TYPE_PTR: {
+      struct AST_TYPE_PTR data = ast.data.AST_TYPE_PTR;
+      AST_free(data.subType);
+      break;
+    }
+    case AST_REF: {
+      struct AST_REF data = ast.data.AST_REF;
+      AST_free(data.expr);
+      break;
+    }
+    case AST_DEREF: {
+      struct AST_DEREF data = ast.data.AST_DEREF;
+      AST_free(data.expr);
       break;
     }
     case AST_UNARY: {
       struct AST_UNARY data = ast.data.AST_UNARY;
-      ast_free(data.expr);
+      AST_free(data.expr);
       break;
     }
     case AST_BINARY: {
       struct AST_BINARY data = ast.data.AST_BINARY;
-      ast_free(data.left);
-      ast_free(data.right);
+      AST_free(data.left);
+      AST_free(data.right);
       break;
     }
     case AST_DOT: {
       struct AST_DOT data = ast.data.AST_DOT;
-      ast_free(data.left);
-      break;
-    }
-    case AST_DO_WHILE: {
-      struct AST_DO_WHILE data = ast.data.AST_DO_WHILE;
-      ast_free(data.condition);
-      ast_free(data.body);
-      break;
-    }
-    case AST_WHILE: {
-      struct AST_WHILE data = ast.data.AST_WHILE;
-      ast_free(data.condition);
-      ast_free(data.body);
-      break;
-    }
-    case AST_FOR: {
-      struct AST_FOR data = ast.data.AST_FOR;
-      ast_free(data.initializer);
-      ast_free(data.condition);
-      ast_free(data.increment);
-      ast_free(data.body);
+      AST_free(data.left);
       break;
     }
     case AST_IF: {
       struct AST_IF data = ast.data.AST_IF;
-      ast_free(data.condition);
-      ast_free(data.body);
-      ast_free(data.elseClause);
+      AST_free(data.condition);
+      AST_free(data.body);
+      AST_free(data.elseClause);
       break;
     }
-    case AST_CONST_DECL: {
-      struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
-      ast_free(data.type);
-      ast_free(data.expr);
+    case AST_WHILE: {
+      struct AST_WHILE data = ast.data.AST_WHILE;
+      AST_free(data.condition);
+      AST_free(data.body);
       break;
     }
-    case AST_VAR_DECL: {
-      struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
-      ast_free(data.type);
+    case AST_DO_WHILE: {
+      struct AST_DO_WHILE data = ast.data.AST_DO_WHILE;
+      AST_free(data.condition);
+      AST_free(data.body);
       break;
     }
-    case AST_VAR_INIT: {
-      struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
-      ast_free(data.type);
-      ast_free(data.expr);
-      break;
-    }
-    case AST_ASSIGNMENT: {
-      struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
-      ast_free(data.lvalue);
-      ast_free(data.expr);
-      break;
-    }
-    case AST_RETURN: {
-      struct AST_RETURN data = ast.data.AST_RETURN;
-      ast_free(data.value);
-      break;
-    }
-    case AST_CAST: {
-      struct AST_CAST data = ast.data.AST_CAST;
-      ast_free(data.expr);
-      ast_free(data.type);
+    case AST_FOR: {
+      struct AST_FOR data = ast.data.AST_FOR;
+      AST_free(data.initializer);
+      AST_free(data.condition);
+      AST_free(data.increment);
+      AST_free(data.body);
       break;
     }
     case AST_CALL: {
       struct AST_CALL data = ast.data.AST_CALL;
-      ast_free(data.identifier);
+      AST_free(data.identifier);
       for (int i = 0; i < arrlen(data.arguments); i++) {
-        ast_free(data.arguments[i]);
+        AST_free(data.arguments[i]);
       }
       arrfree(data.arguments);
+      break;
+    }
+    case AST_SUBSCRIPT: {
+      struct AST_SUBSCRIPT data = ast.data.AST_SUBSCRIPT;
+      AST_free(data.index);
+      AST_free(data.left);
+      break;
+    }
+    case AST_CAST: {
+      struct AST_CAST data = ast.data.AST_CAST;
+      AST_free(data.expr);
+      AST_free(data.type);
+      break;
+    }
+    case AST_RETURN: {
+      struct AST_RETURN data = ast.data.AST_RETURN;
+      AST_free(data.value);
+      break;
+    }
+    case AST_PARAM: {
+      struct AST_PARAM data = ast.data.AST_PARAM;
+      AST_free(data.value);
+      break;
+    }
+    case AST_ASSIGNMENT: {
+      struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
+      AST_free(data.lvalue);
+      AST_free(data.expr);
+      break;
+    }
+    case AST_VAR_DECL: {
+      struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
+      AST_free(data.type);
+      break;
+    }
+    case AST_VAR_INIT: {
+      struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
+      AST_free(data.type);
+      AST_free(data.expr);
+      break;
+    }
+    case AST_CONST_DECL: {
+      struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+      AST_free(data.type);
+      AST_free(data.expr);
+      break;
+    }
+    case AST_FN: {
+      struct AST_FN data = ast.data.AST_FN;
+      AST_free(data.fnType);
+      // params and returntype is shared between so we don't need to double-free
+      AST_free(data.body);
+      for (int i = 0; i < arrlen(data.params); i++) {
+        free(data.params[i]);
+      }
+      arrfree(data.params);
       break;
     }
     case AST_TYPE_DECL: {
       struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
       for (int i = 0; i < arrlen(data.fields); i++) {
-        ast_free(data.fields[i]);
+        AST_free(data.fields[i]);
       }
       arrfree(data.fields);
       break;
     }
-    case AST_FN: {
-      struct AST_FN data = ast.data.AST_FN;
-      ast_free(data.returnType);
-      ast_free(data.body);
-
-      for (int i = 0; i < arrlen(data.params); i++) {
-        ast_free(data.params[i]);
-      }
-      arrfree(data.params);
-      break;
-    }
-    case AST_PARAM: {
-      struct AST_PARAM data = ast.data.AST_PARAM;
-      ast_free(data.value);
+    case AST_ASM: {
+      struct AST_ASM data = ast.data.AST_ASM;
+      arrfree(data.strings);
       break;
     }
     case AST_BLOCK: {
       struct AST_BLOCK data = ast.data.AST_BLOCK;
       for (int i = 0; i < arrlen(data.decls); i++) {
-        ast_free(data.decls[i]);
+        AST_free(data.decls[i]);
+      }
+      arrfree(data.decls);
+      break;
+    }
+    case AST_BANK: {
+      struct AST_BANK data = ast.data.AST_BANK;
+      for (int i = 0; i < arrlen(data.decls); i++) {
+        AST_free(data.decls[i]);
+      }
+      arrfree(data.decls);
+      break;
+    }
+    case AST_EXT: {
+      struct AST_EXT data = ast.data.AST_EXT;
+      AST_free(data.type);
+      break;
+    }
+    case AST_MODULE: {
+      struct AST_MODULE data = ast.data.AST_MODULE;
+      for (int i = 0; i < arrlen(data.decls); i++) {
+        AST_free(data.decls[i]);
       }
       arrfree(data.decls);
       break;
@@ -185,7 +243,7 @@ void ast_free(AST *ptr) {
     case AST_MAIN: {
       struct AST_MAIN data = ast.data.AST_MAIN;
       for (int i = 0; i < arrlen(data.modules); i++) {
-        ast_free(data.modules[i]);
+        AST_free(data.modules[i]);
       }
       arrfree(data.modules);
       break;

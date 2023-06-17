@@ -54,6 +54,11 @@ TYPE_ENTRY* TYPE_TABLE_init(void) {
 
 void TYPE_TABLE_free(void) {
   // Do nothing for now, we'll clean this up later
+  for (int i = 0; i < arrlen(typeTable); i++) {
+    arrfree(typeTable[i].fields);
+  }
+  arrfree(typeTable);
+  hmfree(moduleSet);
 }
 
 TYPE_ID TYPE_declare(STR module, STR name) {
@@ -78,6 +83,7 @@ TYPE_ID TYPE_declare(STR module, STR name) {
 TYPE_ID TYPE_define(TYPE_ID index, TYPE_ENTRY_TYPE entryType, TYPE_FIELD_ENTRY* fields) {
   if (typeTable[index].status != STATUS_DECLARED) {
     // printf("duplicate definition: %s\n", typeTable[index].name->chars);
+    arrfree(fields);
     return index;
   }
 
