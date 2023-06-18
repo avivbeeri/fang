@@ -32,7 +32,7 @@
 #include "type_table.h"
 #include "value.h"
 
-typedef struct {
+typedef struct PLATFORM {
   const char* key;
   void (*init)();
   void (*complete)();

@@ -28,6 +28,9 @@
 
 #include "memory.h"
 #include "type_table.h"
+
+struct PLATFORM;
+
 typedef enum SYMBOL_TABLE_ENTRY_STATUS {
   SYMBOL_TABLE_STATUS_INVALID,
   SYMBOL_TABLE_STATUS_DECLARED,
@@ -106,7 +109,7 @@ typedef struct {
 void SYMBOL_TABLE_init(void);
 void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType);
 void SYMBOL_TABLE_closeScope();
-void SYMBOL_TABLE_calculateAllocations();
+void SYMBOL_TABLE_calculateAllocations(struct PLATFORM platform);
 void SYMBOL_TABLE_report();
 void SYMBOL_TABLE_declare(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);
 void SYMBOL_TABLE_define(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_TABLE_STORAGE_TYPE storageType);

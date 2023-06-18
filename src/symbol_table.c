@@ -69,6 +69,13 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
         .tableAllocationSize = 0,
         .leaf = true
   }));
+
+  // Prevent memory leaks somehow
+  SYMBOL_TABLE_ENTRY defaultEntry = {};
+  SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeId);
+  hmdefaults(scope.table, defaultEntry);
+  hmputs(scopes, scope);
+
   arrput(scopeStack, scopeId);
   scopeId++;
 }
@@ -84,7 +91,8 @@ bool SYMBOL_TABLE_scopeHas(STR name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
-    if (hmgeti(scope.table, name) != -1) {
+    int i = hmgeti(scope.table, name);
+    if (i != -1) {
       return true;
     }
     current = scope.parent;
@@ -185,6 +193,8 @@ uint32_t SYMBOL_TABLE_getCurrentScopeIndex() {
 }
 
 void SYMBOL_TABLE_init(void) {
+  SYMBOL_TABLE_SCOPE defaultScope = {};
+  hmdefaults(scopes, defaultScope);
   SYMBOL_TABLE_openScope(SCOPE_TYPE_INVALID);
 }
 
@@ -235,10 +245,12 @@ void SYMBOL_TABLE_define(STR name, SYMBOL_TYPE type, TYPE_ID typeIndex, SYMBOL_T
 }
 
 SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getCurrentScope() {
-  return hmgets(scopes, SYMBOL_TABLE_getCurrentScopeIndex());
+  SYMBOL_TABLE_SCOPE scope = hmgets(scopes, SYMBOL_TABLE_getCurrentScopeIndex());
+  return scope;
 }
-SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scope) {
-  return hmgets(scopes, scope);
+SYMBOL_TABLE_SCOPE SYMBOL_TABLE_getScope(uint32_t scopeId) {
+  SYMBOL_TABLE_SCOPE scope = hmgets(scopes, scopeId);
+  return scope;
 }
 
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scopeIndex, STR name) {
