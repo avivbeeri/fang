@@ -339,6 +339,7 @@ static TokenType identifierType() {
         switch (scanner.start[1]) {
           case 'm': return checkKeyword(2, 4, "port", TOKEN_IMPORT);
           case 'f': return checkKeyword(2, 0, "", TOKEN_IF);
+          case 's': return checkKeyword(2, 1, "r", TOKEN_ISR);
         }
       }
       break;
@@ -527,6 +528,7 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_ASM: return "ASM";
     case TOKEN_TYPE: return "TYPE";
     case TOKEN_FN: return "FN";
+    case TOKEN_ISR: return "ISR";
     case TOKEN_VOID: return "VOID";
     case TOKEN_RETURN: return "RETURN";
     case TOKEN_FALSE: return "FALSE";

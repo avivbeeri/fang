@@ -187,6 +187,11 @@ void AST_free(AST *ptr) {
       AST_free(data.expr);
       break;
     }
+    case AST_ISR: {
+      struct AST_ISR data = ast.data.AST_ISR;
+      AST_free(data.body);
+      break;
+    }
     case AST_FN: {
       struct AST_FN data = ast.data.AST_FN;
       AST_free(data.fnType);

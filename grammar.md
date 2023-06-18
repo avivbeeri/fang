@@ -39,6 +39,7 @@ topDecl ->
   | typeDecl 
   | enumDecl 
   | fnDecl 
+  | isrDecl 
   | varInit 
   | constInit 
   | asmDecl;
@@ -54,6 +55,7 @@ declaration ->
 typeDecl -> "type" IDENTIFIER "{" fields? "}";
 enumDecl -> "enum" IDENTIFIER "{" IDENTIFER ("=" expression) ("," IDENTIFIER ("=" expression)?)* "}";
 fnDecl -> "fn" annotation? function;
+isrDecl -> "isr" IDENTIFIER block;
 constInit -> constDecl "=" expression ";" ;
 varInit -> varDecl ("=" expression)? ";" ;
 constDecl -> "const" IDENTIFIER ":" type ;

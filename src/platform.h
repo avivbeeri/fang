@@ -44,6 +44,8 @@ typedef struct PLATFORM {
 
   void (*genPreamble)(FILE* f);
   void (*genCompletePreamble)(FILE* f);
+  void (*genIsr)(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope);
+  void (*genIsrEpilogue)(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope);
   void (*genFunction)(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope);
   void (*genFunctionEpilogue)(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope);
   void (*genReturn)(FILE* f, STR, int);

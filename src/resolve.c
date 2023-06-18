@@ -487,7 +487,7 @@ static bool traverse(AST* ptr) {
         for (int i = 0; i < arrlen(data.decls); i++) {
           // Hoist FN resolution until after the main code
           // for type-check reasons
-          if (data.decls[i]->tag == AST_FN) {
+          if (data.decls[i]->tag == AST_ISR || data.decls[i]->tag == AST_FN) {
             arrput(deferred, i);
             continue;
           }
@@ -730,6 +730,18 @@ static bool traverse(AST* ptr) {
         ptr->type = resolveType(data.type);
         return ptr->type != 0;
       }
+    case AST_ISR:
+      {
+        struct AST_ISR data = ast.data.AST_ISR;
+        // Define symbol with parameter types
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        functionScope = true;
+        bool r = traverse(data.body);
+        functionScope = false;
+        SYMBOL_TABLE_closeScope();
+        return r;
+      }
     case AST_FN:
       {
         struct AST_FN data = ast.data.AST_FN;
@@ -782,7 +794,7 @@ static bool traverse(AST* ptr) {
           entry = SYMBOL_TABLE_checkBanks(identifier);
         }
         if (entry.defined) {
-          if (entry.bankIndex != 0 && entry.bankIndex != scope.bankIndex) {
+          if (scope.bankIndex != 0 && entry.bankIndex != 0 && entry.bankIndex != scope.bankIndex) {
             printf("wrong bank trap\n");
             return false;
           }

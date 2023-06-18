@@ -616,6 +616,32 @@ static void genExit(FILE* f, int r) {
   fprintf(f, "  SVC 0\n");
 }
 
+static void genIsr(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope) {
+  // get max function scope offset
+  // and round to next 16
+  // TODO: Allocate based on function local scopes
+  // int p = (scope.tableAllocationCount + 1) * 16;
+
+  int p = 16 + (((scope.tableAllocationSize + 15) >> 4) << 4);
+
+  // get scope name
+  fprintf(f, "\n.global _fang_isr_%s\n", CHARS(name));
+  fprintf(f, "\n.balign 8\n");
+  fprintf(f, "\n_fang_isr_%s:\n", CHARS(name));
+  fprintf(f, "  PUSH2 LR, FP\n"); // push LR onto stack
+  fprintf(f, "  MOV FP, SP\n"); // create stack frame
+  fprintf(f, "  SUB SP, SP, #%i\n", p); // stack is 16 byte aligned
+}
+
+static void genIsrEpilogue(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope) {
+  // get max function scope offset
+  // and round to next 16
+  fprintf(f, "\n_fang_fn_ep_%s:\n", CHARS(name));
+  fprintf(f, "  MOV SP, FP\n");
+  fprintf(f, "  POP2 LR, FP\n"); // pop LR from stack
+  fprintf(f, "  RET\n");
+}
+
 static void genFunction(FILE* f, STR name, SYMBOL_TABLE_SCOPE scope) {
   // get max function scope offset
   // and round to next 16
@@ -1014,6 +1040,8 @@ PLATFORM platform_apple_arm64 = {
   .reportTypeTable = reportTypeTable,
   .beginSection = beginSection,
   .endSection = endSection,
+  .genIsr = genIsr,
+  .genIsrEpilogue = genIsrEpilogue
 };
 
 #undef emitf

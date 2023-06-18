@@ -542,6 +542,13 @@ static AST* varInit() {
   return decl;
 }
 
+static AST* isrDecl() {
+  STR identifier = parseVariable("Expect interrupt routine name.");
+  Token token = parser.previous;
+  consume(TOKEN_LEFT_BRACE,"Expect '{' before function body.");
+  return AST_NEW_T(AST_ISR, token, identifier, block());
+}
+
 static AST* fnDecl() {
   STR identifier = parseVariable("Expect function name.");
   Token token = parser.previous;
@@ -914,6 +921,8 @@ static AST* topLevel() {
     decl = extDecl();
   } else if (match(TOKEN_ENUM)) {
     //decl = enumDecl();
+  } else if (match(TOKEN_ISR)) {
+    decl = isrDecl();
   } else if (match(TOKEN_FN)) {
     decl = fnDecl();
   } else if (match(TOKEN_VAR)) {

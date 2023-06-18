@@ -94,6 +94,7 @@ typedef enum {
   AST_CAST,
   AST_RETURN,
   AST_FN,
+  AST_ISR,
   AST_TYPE_DECL,
   AST_PARAM,
   AST_BANK,
@@ -144,6 +145,7 @@ struct AST {
     struct AST_CONST_DECL { STR identifier; AST* type; AST* expr; } AST_CONST_DECL;
 
     struct AST_FN { STR identifier; AST** params; AST* returnType; AST* body; AST* fnType; int typeIndex; } AST_FN;
+    struct AST_ISR { STR identifier; AST* body; } AST_ISR;
     struct AST_TYPE_DECL { STR name; AST** fields; } AST_TYPE_DECL;
     struct AST_ASM { STR* strings; } AST_ASM;
     struct AST_BLOCK { AST** decls; } AST_BLOCK;

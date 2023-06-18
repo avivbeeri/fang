@@ -182,6 +182,8 @@ static int traverse(FILE* f, AST* ptr) {
         for (int i = 0; i < arrlen(body.decls); i++) {
           if (body.decls[i]->tag == AST_BANK) {
             traverse(f, body.decls[i]);
+          } else if (body.decls[i]->tag == AST_ISR) {
+            arrput(functions, body.decls[i]);
           } else if (body.decls[i]->tag == AST_FN) {
             arrput(functions, body.decls[i]);
           } else if (body.decls[i]->tag == AST_VAR_INIT) {
@@ -201,6 +203,18 @@ static int traverse(FILE* f, AST* ptr) {
           traverse(f, data.decls[i]);
           p.freeAllRegisters();
         }
+        return 0;
+      }
+    case AST_ISR:
+      {
+        struct AST_ISR data = ast.data.AST_ISR;
+        SYMBOL_TABLE_SCOPE scope = SYMBOL_TABLE_getScope(ast.scopeIndex);
+        p.genIsr(f, data.identifier, scope);
+        arrput(fnStack, data.identifier);
+        traverse(f, data.body);
+        arrdel(fnStack, 0);
+
+        p.genIsrEpilogue(f, data.identifier, scope);
         return 0;
       }
     case AST_FN:
