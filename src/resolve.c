@@ -795,7 +795,7 @@ static bool traverse(AST* ptr) {
         }
         if (entry.defined) {
           if (scope.bankIndex != 0 && entry.bankIndex != 0 && entry.bankIndex != scope.bankIndex) {
-            printf("wrong bank trap\n");
+            compileError(ast.token, "identifier '%s' is not defined in this scope, but it was found in a conflicting bank.\n", CHARS(identifier));
             return false;
           }
           ptr->scopeIndex = scopeIndex;

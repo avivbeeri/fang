@@ -394,4 +394,5 @@ void SYMBOL_TABLE_free(void) {
   }
   hmfree(scopes);
   arrfree(scopeStack);
+  arrfree(leafScopes);
 }

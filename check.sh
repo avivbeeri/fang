@@ -51,6 +51,10 @@ allTests() {
   testFile examples/pointer-ref-deref.fg "OK" 0 "54" 0
   testFile examples/record-copy-init.fg "OK" 0 "4242" 0
   testFile examples/scoped-type.fg "OK" 0 "42"$'\n'"7" 0
+  testFile examples/bank-conflict.fg "[line 20; pos 18] identifier 'i' is not defined in this scope, but it was found in a conflicting bank."$'\n'"Fail" 1 
+  testFile examples/bank-unbanked.fg "OK" 0 "B"$'\n'"42C" 0
+  testFile examples/bank-same-bank.fg "OK" 0 "B"$'\n'"42C" 0
+  testFile examples/isr.fg "OK" 0 "B"$'\n'"42C" 0
 }
 
 testFile() {

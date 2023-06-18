@@ -32,6 +32,8 @@
 #include "environment.h"
 #include "const_table.h"
 
+void** freeList = NULL;
+
 static Value traverse(AST* ptr, Environment* context) {
   if (ptr == NULL) {
     return U8(0);
@@ -98,6 +100,7 @@ static Value traverse(AST* ptr, Environment* context) {
         for (int i = 0; i < arrlen(data.assignments); i++) {
           arrput(values, traverse(data.assignments[i], context));
         }
+        arrput(freeList, values);
         return ARRAY(values);
       } else if (data.initType == INIT_TYPE_RECORD) {
         STR* names = NULL;
@@ -108,7 +111,7 @@ static Value traverse(AST* ptr, Environment* context) {
           arrput(values, traverse(field.value, context));
         }
         int type = ast.type;
-
+        arrput(freeList, values);
         return RECORD(type, names, values);
       }
       return U8(0);
@@ -297,3 +300,10 @@ Value evalConstTree(AST* ptr) {
   return result;
 }
 
+
+void EVAL_free(void) {
+  for (int i = 0; i < arrlen(freeList); i++) {
+    free(freeList[i]);
+  }
+  arrfree(freeList);
+}

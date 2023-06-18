@@ -1,6 +1,7 @@
 import "lib.fg"
 
 bank test {
+  const i: i8 = 42;
   fn goodbye(): void {
     sys::writeChar('C');
     sys::writeChar('\n');
@@ -13,7 +14,6 @@ fn main(): void {
 }
 
 bank newtest {
-  const i: i8 = 42;
   fn hello(): void {
     sys::writeChar('B');
     sys::writeChar('\n');

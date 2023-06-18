@@ -27,5 +27,6 @@
 #include "ast.h"
 
 Value evalConstTree(AST* ptr);
+void EVAL_free(void);
 
 #endif

@@ -771,4 +771,5 @@ void emitTree(AST* ptr, PLATFORM platform) {
   }
 
   PLATFORM_shutdown();
+  EVAL_free();
 }
