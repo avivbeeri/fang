@@ -248,13 +248,13 @@ void AST_free(AST *ptr) {
       arrfree(data.modules);
       break;
     }
+    default: break;
   }
   free(ptr);
 }
 
 const char* getNodeTypeName(AST_TAG tag) {
   switch(tag) {
-    case AST_ERROR: return "ERROR";
     case AST_MAIN: return "MAIN";
     case AST_MODULE: return "MODULE";
     case AST_MODULE_DECL: return "MODULE_DECL";
@@ -287,6 +287,7 @@ const char* getNodeTypeName(AST_TAG tag) {
     case AST_TYPE_PTR: return "TYPE_PTR";
     case AST_TYPE_ARRAY: return "TYPE_ARRAY";
     case AST_SUBSCRIPT: return "SUBSCRIPT";
+    case AST_ERROR: return "ERROR";
+    default: return "UNKNOWN";
   }
-  return "UNKNOWN";
 }
