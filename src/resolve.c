@@ -337,14 +337,22 @@ static bool resolveTopLevel(AST* ptr) {
         for (int i = 0; i < arrlen(data.fields); i++) {
           // process type for union
           bool r = traverse(data.fields[i]);
-          if (data.fields[i]->type == 0) {
+          TYPE_ID index = data.fields[i]-> type;
+          if (!r || index == 0) {
             arrfree(fields);
             return false;
+          }
+          int elementCount = 0;
+          if (TYPE_get(index).entryType == ENTRY_TYPE_ARRAY) {
+            Value length = evalConstTree(data.fields[i]);
+            if (!IS_EMPTY(length) && !IS_ERROR(length)) {
+              elementCount = getNumber(length);
+            }
           }
           arrput(fields, ((TYPE_FIELD_ENTRY){
                 .typeIndex = data.fields[i]->type,
                 .name = EMPTY_STRING,
-                .elementCount = 0
+                .elementCount = elementCount
           } ));
         }
         ptr->type = TYPE_declare(module, identifier);

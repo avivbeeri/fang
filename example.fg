@@ -3,7 +3,7 @@ import "lib.fg"
 type Test {
   s: sys::Sprite;
 }
-union Face = sys::Sprite | i8;
+union Face = sys::Sprite | [5]i8;
 
 bank test {
   fn goodbye(): void {

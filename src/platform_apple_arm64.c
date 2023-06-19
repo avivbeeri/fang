@@ -32,18 +32,33 @@ static int getSize(TYPE_ID id) {
     return sizeTable[11];
   }
 
-  if (entry.entryType != ENTRY_TYPE_RECORD) {
-    return 8;
-  }
   int size = 0;
-  for (int i = 0; i < arrlen(entry.fields); i++) {
-    if (entry.fields[i].elementCount == 0) {
-      size += getSize(entry.fields[i].typeIndex);
-    } else {
-      size += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
+  if (entry.entryType == ENTRY_TYPE_UNION) {
+    for (int i = 0; i < arrlen(entry.fields); i++) {
+      // calculate largest item to store
+      int fieldSize = 0;
+      if (entry.fields[i].elementCount == 0) {
+        fieldSize += getSize(entry.fields[i].typeIndex);
+      } else {
+        fieldSize += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
+      }
+      if (fieldSize > size) {
+        size = fieldSize;
+      }
     }
+    return size + getSize(U8_INDEX); // Add one u8 for the tag
+  } else if (entry.entryType != ENTRY_TYPE_RECORD) {
+    return 8;
+  } else {
+    for (int i = 0; i < arrlen(entry.fields); i++) {
+      if (entry.fields[i].elementCount == 0) {
+        size += getSize(entry.fields[i].typeIndex);
+      } else {
+        size += getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
+      }
+    }
+    return size;
   }
-  return size;
 }
 
 static int labelCreate() {
