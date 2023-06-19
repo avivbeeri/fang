@@ -342,7 +342,6 @@ static bool resolveTopLevel(AST* ptr) {
             arrfree(fields);
             return false;
           }
-          printTree(data.fields[i]);
           int elementCount = 0;
           if (TYPE_get(index).entryType == ENTRY_TYPE_ARRAY) {
             Value length = evalConstTree(data.fields[i]);
@@ -666,6 +665,11 @@ static bool traverse(AST* ptr) {
         POP(kindStack);
         int rightType = data.expr->type;
         POP(typeStack);
+
+        if (TYPE_get(leftType).entryType == ENTRY_TYPE_UNION) {
+          printf("trap %d\n", __LINE__);
+          return false;
+        }
 
         bool result = r && isCompatible(leftType, rightType);
         if (!isCompatible(leftType, rightType)) {

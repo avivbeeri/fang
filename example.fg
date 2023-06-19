@@ -5,7 +5,9 @@ type Test {
 }
 
 union Face = sys::Sprite | Test;
+
 var g: Face;
+const f: Face = 5;
 
 bank test {
   fn goodbye(): void {
