@@ -1,5 +1,7 @@
 import "lib.fg"
 
+union Face = Inside | i8;
+
 bank test {
   fn goodbye(): void {
     sys::writeChar('C');

@@ -343,6 +343,11 @@ static TokenType identifierType() {
         }
       }
       break;
+    case 'u':
+      if (checkKeyword(1, 4, "nion", TOKEN_UNION) == TOKEN_UNION) {
+        return TOKEN_UNION;
+      }
+      break;
   }
 
   TokenType token = checkTypeKeyword();
