@@ -417,7 +417,7 @@ static AST** argumentList() {
 }
 
 static AST* as(bool canAssign, AST* left) {
-  AST* right = type(false);
+  AST* right = type(true);
   AST* expr = AST_NEW_T(AST_CAST, parser.previous, left, right);
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();

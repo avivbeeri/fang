@@ -337,11 +337,12 @@ static bool resolveTopLevel(AST* ptr) {
         for (int i = 0; i < arrlen(data.fields); i++) {
           // process type for union
           bool r = traverse(data.fields[i]);
-          TYPE_ID index = data.fields[i]-> type;
+          TYPE_ID index = data.fields[i]->type;
           if (!r || index == 0) {
             arrfree(fields);
             return false;
           }
+          printTree(data.fields[i]);
           int elementCount = 0;
           if (TYPE_get(index).entryType == ENTRY_TYPE_ARRAY) {
             Value length = evalConstTree(data.fields[i]);
@@ -350,7 +351,7 @@ static bool resolveTopLevel(AST* ptr) {
             }
           }
           arrput(fields, ((TYPE_FIELD_ENTRY){
-                .typeIndex = data.fields[i]->type,
+                .typeIndex = index,
                 .name = EMPTY_STRING,
                 .elementCount = elementCount
           } ));
@@ -565,7 +566,7 @@ static bool traverse(AST* ptr) {
         }
 
         bool result = r && isCompatible(leftType, rightType);
-        if ((TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD)
+        if ((TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD || TYPE_get(leftType).entryType == ENTRY_TYPE_UNION)
             && leftType != rightType) {
 
           if (leftType == STRING_INDEX && data.expr->type == STRING_INDEX) {
@@ -600,7 +601,7 @@ static bool traverse(AST* ptr) {
           arrput(field, ((TYPE_FIELD_ENTRY){ subType, EMPTY_STRING, 0 }));
           TYPE_define(index, ENTRY_TYPE_ARRAY, field);
         }
-        if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD) {
+        if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD || TYPE_get(leftType).entryType == ENTRY_TYPE_UNION) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
         }
         SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, index, storageType);
@@ -634,7 +635,7 @@ static bool traverse(AST* ptr) {
         }
         TYPE_ENTRY_TYPE kind = TYPE_getKind(typeIndex);
         SYMBOL_TABLE_STORAGE_TYPE storageType = functionScope ? STORAGE_TYPE_LOCAL : STORAGE_TYPE_GLOBAL;
-        if (TYPE_get(typeIndex).entryType == ENTRY_TYPE_ARRAY || TYPE_get(typeIndex).entryType == ENTRY_TYPE_RECORD) {
+        if (TYPE_get(typeIndex).entryType == ENTRY_TYPE_ARRAY || TYPE_get(typeIndex).entryType == ENTRY_TYPE_RECORD || TYPE_get(typeIndex).entryType == ENTRY_TYPE_UNION) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
         }
         SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_VARIABLE, typeIndex, storageType);
@@ -679,7 +680,7 @@ static bool traverse(AST* ptr) {
           compileError(ast.token, "constant \"%s\" is already defined.\n", CHARS(data.identifier));
           return false;
         }
-        if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD) {
+        if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY || TYPE_get(leftType).entryType == ENTRY_TYPE_RECORD || TYPE_get(leftType).entryType == ENTRY_TYPE_UNION) {
           storageType = functionScope ? STORAGE_TYPE_LOCAL_OBJECT : STORAGE_TYPE_GLOBAL_OBJECT;
         }
         if (TYPE_get(leftType).entryType == ENTRY_TYPE_ARRAY) {
@@ -757,7 +758,10 @@ static bool traverse(AST* ptr) {
     case AST_CAST:
       {
         struct AST_CAST data = ast.data.AST_CAST;
-        bool r = traverse(data.expr) && traverse(data.type);
+        bool r = traverse(data.type);
+        PUSH(typeStack, data.type->type);
+        r &= traverse(data.expr);
+        POP(typeStack);
         ptr->type = data.type->type;
         return r;
       }
@@ -961,7 +965,7 @@ static bool traverse(AST* ptr) {
         }
         printf("%i -> %i\n", subType, TYPE_getParentId(subType));
 
-        if (parent.entryType == ENTRY_TYPE_ARRAY || parent.entryType == ENTRY_TYPE_RECORD) {
+        if (parent.entryType == ENTRY_TYPE_ARRAY || parent.entryType == ENTRY_TYPE_RECORD || parent.entryType == ENTRY_TYPE_UNION) {
           ptr->rvalue = false;
         } else {
           ptr->rvalue = PEEK(evaluateStack);

@@ -567,7 +567,7 @@ static void genGlobalVariable(FILE* f, SYMBOL_TABLE_ENTRY entry, Value value, Va
   fprintf(f, "%s: ", symbol(entry));
   if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_RECORD) {
     emitValue(f, value, 0);
-  } else if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_ARRAY) {
+  } else if (TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_ARRAY || TYPE_getKind(entry.typeIndex) == ENTRY_TYPE_UNION) {
     // RECORD too
     if (IS_EMPTY(value)) {
       if (size > 8) {
