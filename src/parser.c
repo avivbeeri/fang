@@ -805,6 +805,20 @@ static AST* enumDecl() {
 }
 */
 
+static AST* unionDecl() {
+  STR identifier = parseVariable("Expect a union type name");
+  consume(TOKEN_EQUAL, "Expect '=' in a union declaration.");
+  AST** fields = NULL;
+  AST* entry = type(false);
+  arrput(fields, entry);
+  while (match(TOKEN_OR)) {
+    entry = type(false);
+    arrput(fields, entry);
+  }
+  consume(TOKEN_SEMICOLON, "Expect ';' after a union declaration.");
+  return AST_NEW(AST_UNION, identifier, fields);
+}
+
 static AST* typeDecl() {
   STR identifier = parseVariable("Expect a data type name");
   consume(TOKEN_LEFT_BRACE, "Expect '{' before type definition.");
@@ -913,6 +927,8 @@ static AST* topLevel() {
   AST* decl = NULL;
   if (match(TOKEN_TYPE)) {
     decl = typeDecl();
+  } else if (match(TOKEN_UNION)) {
+    decl = unionDecl();
   } else if (match(TOKEN_BANK)) {
     decl = bank();
   } else if (match(TOKEN_IMPORT)) {

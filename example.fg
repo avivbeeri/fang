@@ -1,6 +1,9 @@
 import "lib.fg"
 
-union Face = Inside | i8;
+type Test {
+  s: sys::Sprite;
+}
+union Face = sys::Sprite | i8;
 
 bank test {
   fn goodbye(): void {

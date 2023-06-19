@@ -140,7 +140,7 @@ STR STR_copy(const char* chars, size_t length) {
   const char* escapedChars = strdup(chars);
   size_t newLength = strunesc(escapedChars, chars, length);
   STR str = shgeti(stringTable, escapedChars);
-  if (str == -1) {
+  if (str == EMPTY_STRING) {
     STR_ENTRY entry = ((STR_ENTRY){
       .key = escapedChars,
       .length = newLength
@@ -168,14 +168,14 @@ STR STR_prepend(STR str, const char* prepend) {
 }
 
 size_t STR_len(STR str) {
-  if (str == -1) {
+  if (str == EMPTY_STRING) {
     return 0;
   }
   return stringTable[str].length;
 }
 const char* CHARS(STR str) {
-  if (str == -1) {
-    return NULL;
+  if (str == EMPTY_STRING) {
+    return "";
   }
   return stringTable[str].key;
 }

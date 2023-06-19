@@ -211,6 +211,14 @@ void AST_free(AST *ptr) {
       arrfree(data.fields);
       break;
     }
+    case AST_UNION: {
+      struct AST_UNION data = ast.data.AST_UNION;
+      for (int i = 0; i < arrlen(data.fields); i++) {
+        AST_free(data.fields[i]);
+      }
+      arrfree(data.fields);
+      break;
+    }
     case AST_ASM: {
       struct AST_ASM data = ast.data.AST_ASM;
       arrfree(data.strings);

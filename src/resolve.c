@@ -138,11 +138,17 @@ static int resolveType(AST* ptr) {
       {
         struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
         int i = TYPE_getIdByName(data.module, data.typeName);
+        if (i == 0) {
+          i = TYPE_declare(data.module, data.typeName);
+        }
         ptr->type = i;
+        /*
+        printf("%s", CHARS(data.module));
         if (ptr->type == 0) {
           compileError(ast.token, "Type '%.*s' has not been defined and could not be found.\n", ast.token.length, ast.token.start);
           printf("trap %d\n", __LINE__);
         }
+        */
         return i;
       }
     case AST_TYPE_PTR:
@@ -321,6 +327,29 @@ static bool resolveTopLevel(AST* ptr) {
         arrfree(deferred);
         arrfree(banks);
         return r;
+      }
+    case AST_UNION:
+      {
+        struct AST_UNION data = ast.data.AST_UNION;
+        STR identifier = data.name;
+        STR module = SYMBOL_TABLE_getNameFromCurrent();
+        TYPE_FIELD_ENTRY* fields = NULL;
+        for (int i = 0; i < arrlen(data.fields); i++) {
+          // process type for union
+          bool r = traverse(data.fields[i]);
+          if (data.fields[i]->type == 0) {
+            arrfree(fields);
+            return false;
+          }
+          arrput(fields, ((TYPE_FIELD_ENTRY){
+                .typeIndex = data.fields[i]->type,
+                .name = EMPTY_STRING,
+                .elementCount = 0
+          } ));
+        }
+        ptr->type = TYPE_declare(module, identifier);
+        TYPE_define(ptr->type, ENTRY_TYPE_UNION, fields);
+        return true;
       }
     case AST_TYPE_DECL:
       {
