@@ -303,7 +303,7 @@ Value evalConstTree(AST* ptr) {
 
 void EVAL_free(void) {
   for (int i = 0; i < arrlen(freeList); i++) {
-    free(freeList[i]);
+    arrfree(freeList[i]);
   }
   arrfree(freeList);
 }
