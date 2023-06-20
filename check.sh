@@ -45,6 +45,7 @@ allTests() {
   testFile examples/record-nested.fg "OK" 0 "-32" 0
   testFile examples/record-global-var-init.fg "OK" 0 "5 zyxwv Hello world 0" 0
   testFile examples/record-global-const-init.fg "OK" 0 "5 zyxwv Hello world 0" 0
+  testFile examples/record-wrong-field.fg "[line 10; pos 4] The field 'fake' doesn't exist on type 'Test'." 1
   testFile examples/array-of-struct.fg "OK" 0 "42 hello Words 1"$'\n'"12 world News 0" 0
   testFile examples/function-pointer.fg "OK" 0 "do" 0
   testFile examples/pointer-arithmetic.fg "OK" 0 "-3296" 0

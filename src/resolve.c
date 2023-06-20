@@ -741,7 +741,7 @@ static bool traverse(AST* ptr) {
         int rightType = data.expr->type;
 
         if (!(ident && expr)) {
-          printf("trap %d\n", __LINE__);
+          // printf("trap %d\n", __LINE__);
           return false;
         }
         ptr->type = leftType;
@@ -1196,7 +1196,7 @@ static bool traverse(AST* ptr) {
           }
         }
         if (!found) {
-          printf("trap %d\n", __LINE__);
+          compileError(ast.token, "The field '%s' doesn't exist on type '%s'.\n", CHARS(data.name), CHARS(TYPE_get(data.left->type).name));
           return false;
         }
         ptr->type = entry.fields[fieldIndex].typeIndex;
