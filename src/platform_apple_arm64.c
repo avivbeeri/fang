@@ -46,7 +46,7 @@ static int getSize(TYPE_ID id) {
         size = fieldSize;
       }
     }
-    return size + getSize(U8_INDEX); // Add one u8 for the tag
+    return size;
   } else if (entry.entryType != ENTRY_TYPE_RECORD) {
     return 8;
   } else {
