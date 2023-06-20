@@ -56,6 +56,7 @@ allTests() {
   testFile examples/bank-same-bank.fg "OK" 0 "B"$'\n'"42C" 0
   testFile examples/isr.fg "OK" 0 "B"$'\n'"42C" 0
   testFile examples/union.fg "OK" 0 "53"$'\n'"42" 0
+  testFile examples/union-return.fg "OK" 0 "42" 0
 }
 
 testFile() {

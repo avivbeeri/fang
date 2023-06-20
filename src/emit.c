@@ -397,7 +397,8 @@ static int traverse(FILE* f, AST* ptr) {
           }
           return rvalue;
         } else if (TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_RECORD ||
-              TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_ARRAY) {
+              TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_ARRAY ||
+              TYPE_get(symbol.typeIndex).entryType == ENTRY_TYPE_UNION) {
           int l = p.genIdentifierAddr(f, symbol);
           rvalue = traverse(f, data.expr);
           return p.genCopyObject(f, l, rvalue, symbol.typeIndex);
@@ -444,6 +445,9 @@ static int traverse(FILE* f, AST* ptr) {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
         int r = traverse(f, data.expr);
         int l = traverse(f, data.lvalue);
+        if (TYPE_get(data.lvalue->type).entryType == ENTRY_TYPE_UNION && TYPE_get(data.expr->type).entryType == ENTRY_TYPE_UNION) {
+          return p.genCopyObject(f, l, r, data.lvalue->type);
+        }
         if (TYPE_get(data.lvalue->type).entryType == ENTRY_TYPE_RECORD && TYPE_get(data.expr->type).entryType == ENTRY_TYPE_RECORD) {
           return p.genCopyObject(f, l, r, data.lvalue->type);
         }

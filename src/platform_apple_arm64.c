@@ -774,27 +774,6 @@ static int genCopyObject(FILE* f, int lvalue, int rvalue, int type) {
     fprintf(f, "  STRB %s, [%s], #1 ; copy\n", storeRegList[r], regList[lvalue]);
     fprintf(f, "  .endr\n");
   }
-  /*
-  while (current > 0) {
-    if (current >= 8) {
-      current -= 8;
-      fprintf(f, "  LDR %s, [%s], #8\n", regList[r], regList[rvalue]);
-      fprintf(f, "  STR %s, [%s], #8 ; copy\n", regList[r], regList[lvalue]);
-    } else if (current >= 4) {
-      current -= 4;
-      fprintf(f, "  LDR %s, [%s], #4\n", storeRegList[r], regList[rvalue]);
-      fprintf(f, "  STR %s, [%s], #4 ; copy\n", storeRegList[r], regList[lvalue]);
-    } else if (current >= 2) {
-      current -= 2;
-      fprintf(f, "  LDRH %s, [%s], #2\n", storeRegList[r], regList[rvalue]);
-      fprintf(f, "  STRH %s, [%s], #2 ; copy\n", storeRegList[r], regList[lvalue]);
-    } else {
-      current -= 1;
-      fprintf(f, "  LDRB %s, [%s], #1\n", storeRegList[r], regList[rvalue]);
-      fprintf(f, "  STRB %s, [%s], #1 ; copy\n", storeRegList[r], regList[lvalue]);
-    }
-  }
-  */
   freeRegister(r);
   freeRegister(rvalue);
   return lvalue;
