@@ -699,23 +699,45 @@ static AST* expressionStatement() {
 
 static AST* matchStatement() {
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'match'.");
-  consume(TOKEN_IDENTIFIER, "Expect identifier to match upon");
-  AST* identifier = variable(false);
+  AST** identifiers = NULL;
+  do {
+    consume(TOKEN_IDENTIFIER, "Expect identifier to match upon");
+    AST* identifier = variable(false);
+    arrput(identifiers, identifier);
+  } while (match(TOKEN_COMMA));
+
   consume(TOKEN_RIGHT_PAREN, "Expect ')' after match.");
   consume(TOKEN_LEFT_BRACE, "Expect '{' after match pattern.");
 
   AST** clauses = NULL;
   do {
-    AST* typeName = type(true);
+    AST** typeNames = NULL;
+    do {
+      AST* typeName = type(true);
+      arrput(typeNames, typeName);
+    } while (match(TOKEN_COMMA));
+
+    if (arrlen(identifiers) != arrlen(typeNames)) {
+      return AST_NEW_T(AST_ERROR, parser.previous);
+    }
     consume(TOKEN_LEFT_BRACE, "Expect a statement block in a match clause.");
     AST* body = block();
-    struct AST_IDENTIFIER ident = identifier->data.AST_IDENTIFIER;
-    AST* subIdentifier = AST_NEW(AST_IDENTIFIER, ident.module, ident.identifier);
-    AST* clause = AST_NEW(AST_MATCH_CLAUSE, subIdentifier, typeName, body);
+    AST** subIdentifiers = NULL;
+    for (int i = 0; i < arrlen(identifiers); i++) {
+      struct AST_IDENTIFIER ident = identifiers[i]->data.AST_IDENTIFIER;
+      AST* subIdentifier = AST_NEW(AST_IDENTIFIER, ident.module, ident.identifier);
+      arrput(subIdentifiers, subIdentifier);
+    }
+    AST* clause = AST_NEW(AST_MATCH_CLAUSE, subIdentifiers, typeNames, body);
     arrput(clauses, clause);
-  } while (!check(TOKEN_RIGHT_BRACE));
-  consume (TOKEN_RIGHT_BRACE, "Expect '}' after match pattern.");
-  return AST_NEW(AST_MATCH, identifier, clauses);
+  } while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_ELSE));
+  AST* elseBody = NULL;
+  if (match(TOKEN_ELSE)) {
+    elseBody = block();
+  } else {
+    consume (TOKEN_RIGHT_BRACE, "Expect '}' after match pattern.");
+  }
+  return AST_NEW(AST_MATCH, identifiers, clauses, elseBody);
 }
 static AST* ifStatement() {
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");

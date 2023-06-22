@@ -256,17 +256,19 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_MATCH data = ast.data.AST_MATCH;
         int exitLabel = p.labelCreate();
-        int r = traverse(f, data.identifier);
-        p.holdRegister(r);
         for (int i = 0; i < arrlen(data.clauses); i++) {
           struct AST_MATCH_CLAUSE clause = data.clauses[i]->data.AST_MATCH_CLAUSE;
           int skipLabel = p.labelCreate();
-          printf("clause: %i vs %i\n", data.identifier->type, clause.identifier->type);
-          p.checkUnionTag(f, r, data.identifier->type, clause.identifier->type, skipLabel);
-          p.holdRegister(r);
+          for (int i = 0; i < arrlen(data.identifiers); i++) {
+            int r = traverse(f, data.identifiers[i]);
+            p.checkUnionTag(f, r, data.identifiers[i]->type, clause.identifiers[i]->type, skipLabel);
+          }
           traverse(f, clause.body);
           p.genJump(f, exitLabel);
           p.genLabel(f, skipLabel);
+        }
+        if (data.elseClause != NULL) {
+          traverse(f, data.elseClause);
         }
         p.genLabel(f, exitLabel);
         return -1;

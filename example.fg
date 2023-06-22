@@ -3,24 +3,29 @@ union Actor = sys::Sprite | [5]i8;
 
 fn construct(): Actor {
   var n: Actor;
-  //n as []i8[0] = 0;
-  (n as sys::Sprite).id = 0;
+  n as []i8[0] = 0;
+ // (n as sys::Sprite).id = 0;
   return n;
 }
 
 fn main(): void {
   var g: Actor = construct();
+  var q: Actor = construct();
+//  q as []i8[0] = 42;
   
-  match (g) {
-    sys::Sprite {  
+  match (g, q) {
+    sys::Sprite, []i8 {  
       sys::writeChar('b');
       g.id = 16;
       sys::writeU8(g.id);
     }
-    []i8 {
+    []i8, []i8 {
       sys::writeChar('a');
       g[0] = 8;
       sys::writeI8(g[0]);
+    }
+    else {
+      sys::writeChar('e');
     }
   }
 }
