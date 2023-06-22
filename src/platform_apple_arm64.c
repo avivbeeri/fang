@@ -46,7 +46,7 @@ static int getSize(TYPE_ID id) {
         size = fieldSize;
       }
     }
-    return size;
+    return size + 1;
   } else if (entry.entryType != ENTRY_TYPE_RECORD) {
     return 8;
   } else {
@@ -966,6 +966,26 @@ void reportTypeTable(void) {
   printf("-------------------------------\n");
 }
 
+
+static void checkUnionTag(FILE* f, int base, TYPE_ID unionType, TYPE_ID candidate, int skipLabel) {
+  int size = getSize(unionType) - 1;
+  int offset = allocateRegister();
+  fprintf(f, "  LDRB %s, [%s, #%i]\n", storeRegList[offset], regList[base], size);
+  int tag = TYPE_getTag(unionType, candidate);
+
+  // TODO: assert on -1
+  fprintf(f, "  CMP %s, #%i\n", storeRegList[offset], tag);
+  fprintf(f, "  CSET %s, eq\n", storeRegList[offset]);
+  fprintf(f, "  TBZ %s, #0, %s\n", regList[offset], labelPrint(skipLabel));
+  freeRegister(offset);
+}
+static void setTag(FILE* f, int base, int tag, TYPE_ID unionType) {
+  int size = getSize(unionType) - 1;
+  int tagReg = genLoad(f, tag, U8_INDEX);
+  fprintf(f, "  STRB %s, [%s, #%i ]; set tag\n", storeRegList[tagReg], regList[base], size);
+  freeRegister(tagReg);
+}
+
 void beginSection(FILE* f, STR name, STR annotation) {
   fprintf(f, "; SECTION (%s, %s)\n", CHARS(name), annotation == EMPTY_STRING ? "ROM0" : "ROM1");
 }
@@ -1035,7 +1055,9 @@ PLATFORM platform_apple_arm64 = {
   .beginSection = beginSection,
   .endSection = endSection,
   .genIsr = genIsr,
-  .genIsrEpilogue = genIsrEpilogue
+  .genIsrEpilogue = genIsrEpilogue,
+  .checkUnionTag = checkUnionTag,
+  .setTag = setTag
 };
 
 #undef emitf

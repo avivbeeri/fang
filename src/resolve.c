@@ -765,6 +765,11 @@ static bool traverse(AST* ptr) {
         bool r = traverse(data.type);
         PUSH(typeStack, data.type->type);
         r &= traverse(data.expr);
+        if (data.expr->tag == AST_IDENTIFIER && TYPE_get(data.expr->type).entryType == ENTRY_TYPE_UNION) {
+          if (PEEK(typeStack) != data.expr->type) {
+            ptr->data.AST_CAST.tag = TYPE_getTag(data.expr->type, data.type->type);
+          }
+        }
         POP(typeStack);
         ptr->type = data.type->type;
         return r;
@@ -1097,6 +1102,31 @@ static bool traverse(AST* ptr) {
         }
 
         return compatible;
+      }
+    case AST_MATCH_CLAUSE:
+      {
+        struct AST_MATCH_CLAUSE data = ast.data.AST_MATCH_CLAUSE;
+        bool r = traverse(data.type);
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_MATCH);
+        STR identifier = data.identifier->data.AST_IDENTIFIER.identifier;
+        SYMBOL_TABLE_STORAGE_TYPE storageType = SYMBOL_TABLE_getCurrent(identifier).storageType;
+        SYMBOL_TABLE_define(identifier, SYMBOL_TYPE_SHADOW, data.type->type, storageType);
+        r &= traverse(data.identifier);
+        r &= traverse(data.body);
+        SYMBOL_TABLE_closeScope();
+        return r;
+      }
+    case AST_MATCH:
+      {
+        struct AST_MATCH data = ast.data.AST_MATCH;
+        bool r = traverse(data.identifier);
+        for (int i = 0; i < arrlen(data.clauses); i++) {
+          r &= traverse(data.clauses[i]);
+          if (!r) {
+            break;
+          }
+        }
+        return r;
       }
     case AST_IF:
       {

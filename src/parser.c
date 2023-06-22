@@ -418,7 +418,7 @@ static AST** argumentList() {
 
 static AST* as(bool canAssign, AST* left) {
   AST* right = type(true);
-  AST* expr = AST_NEW_T(AST_CAST, parser.previous, left, right);
+  AST* expr = AST_NEW_T(AST_CAST, parser.previous, left, right, -1);
   if (canAssign && match(TOKEN_EQUAL)) {
     AST* right = expression();
     right->rvalue = true;
@@ -709,11 +709,13 @@ static AST* matchStatement() {
     AST* typeName = type(true);
     consume(TOKEN_LEFT_BRACE, "Expect a statement block in a match clause.");
     AST* body = block();
-    AST* clause = AST_NEW(AST_MATCH_CLAUSE, identifier, typeName, body);
+    struct AST_IDENTIFIER ident = identifier->data.AST_IDENTIFIER;
+    AST* subIdentifier = AST_NEW(AST_IDENTIFIER, ident.module, ident.identifier);
+    AST* clause = AST_NEW(AST_MATCH_CLAUSE, subIdentifier, typeName, body);
     arrput(clauses, clause);
   } while (!check(TOKEN_RIGHT_BRACE));
   consume (TOKEN_RIGHT_BRACE, "Expect '}' after match pattern.");
-  return AST_NEW(AST_MATCH, clauses);
+  return AST_NEW(AST_MATCH, identifier, clauses);
 }
 static AST* ifStatement() {
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");

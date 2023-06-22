@@ -96,6 +96,8 @@ typedef struct PLATFORM {
   void (*reportTypeTable)(void);
   void (*beginSection)(FILE* f, STR name, STR annotation);
   void (*endSection)(FILE* f);
+  void (*checkUnionTag)(FILE* f, int base, TYPE_ID unionType, TYPE_ID candidate, int skipLabel);
+  void (*setTag)(FILE* f, int base, int tag, TYPE_ID);
 } PLATFORM;
 
 void PLATFORM_init();

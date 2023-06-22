@@ -169,6 +169,19 @@ TYPE_ENTRY_TYPE TYPE_getKind(TYPE_ID type) {
   return TYPE_get(type).entryType;
 }
 
+int TYPE_getTag(TYPE_ID unionType, TYPE_ID subType) {
+
+  TYPE_FIELD_ENTRY* fields = TYPE_get(unionType).fields;
+  int tag = -1;
+  for (int i = 0; i < arrlen(fields); i++) {
+    if (fields[i].typeIndex == subType) {
+      tag = i;
+      break;
+    }
+  }
+  return tag;
+}
+
 
 size_t TYPE_TABLE_total(void) {
   return arrlen(typeTable);

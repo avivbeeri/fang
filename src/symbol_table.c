@@ -107,7 +107,7 @@ static uint32_t SYMBOL_TABLE_calculateTableSize(PLATFORM p, uint32_t index) {
   for (int i = 0; i < scopeCount; i++) {
     SYMBOL_TABLE_ENTRY tableEntry = closingScope.table[i];
     if (tableEntry.defined) {
-      if (tableEntry.entryType == SYMBOL_TYPE_PARAMETER) {
+      if (tableEntry.entryType == SYMBOL_TYPE_SHADOW || tableEntry.entryType == SYMBOL_TYPE_PARAMETER) {
         continue;
       }
       if (tableEntry.elementCount > 0) {
@@ -258,8 +258,16 @@ SYMBOL_TABLE_ENTRY SYMBOL_TABLE_get(uint32_t scopeIndex, STR name) {
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
     SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, name);
+    TYPE_ID type = 0;
     if (entry.defined) {
-      return entry;
+      if (entry.entryType == SYMBOL_TYPE_SHADOW) {
+        type = entry.typeIndex;
+      } else {
+        if (type != 0) {
+          entry.typeIndex = type;
+        }
+        return entry;
+      }
     }
     current = scope.parent;
   }
@@ -305,11 +313,19 @@ STR SYMBOL_TABLE_getNameFromStart(int start) {
 }
 SYMBOL_TABLE_ENTRY SYMBOL_TABLE_getCurrent(STR name) {
   uint32_t current = scopeStack[arrlen(scopeStack) - 1];
+  TYPE_ID type = 0;
   while (current > 0) {
     SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
     SYMBOL_TABLE_ENTRY entry = hmgets(scope.table, name);
     if (entry.defined) {
-      return entry;
+      if (entry.entryType == SYMBOL_TYPE_SHADOW) {
+        type = entry.typeIndex;
+      } else {
+        if (type != 0) {
+          entry.typeIndex = type;
+        }
+        return entry;
+      }
     }
     current = scope.parent;
   }

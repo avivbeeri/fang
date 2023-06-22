@@ -252,6 +252,25 @@ static int traverse(FILE* f, AST* ptr) {
         }
         break;
       }
+    case AST_MATCH:
+      {
+        struct AST_MATCH data = ast.data.AST_MATCH;
+        int exitLabel = p.labelCreate();
+        int r = traverse(f, data.identifier);
+        p.holdRegister(r);
+        for (int i = 0; i < arrlen(data.clauses); i++) {
+          struct AST_MATCH_CLAUSE clause = data.clauses[i]->data.AST_MATCH_CLAUSE;
+          int skipLabel = p.labelCreate();
+          printf("clause: %i vs %i\n", data.identifier->type, clause.identifier->type);
+          p.checkUnionTag(f, r, data.identifier->type, clause.identifier->type, skipLabel);
+          p.holdRegister(r);
+          traverse(f, clause.body);
+          p.genJump(f, exitLabel);
+          p.genLabel(f, skipLabel);
+        }
+        p.genLabel(f, exitLabel);
+        return -1;
+      }
     case AST_IF:
       {
         struct AST_IF data = ast.data.AST_IF;
@@ -339,6 +358,11 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_CAST data = ast.data.AST_CAST;
         int r = traverse(f, data.expr);
+        if (data.tag != -1) {
+          printf("UNION mismatch, retag\n");
+          p.holdRegister(r);
+          p.setTag(f, r, data.tag, data.expr->type);
+        }
         return r;
       }
     case AST_TYPE_FN:

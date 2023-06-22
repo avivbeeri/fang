@@ -1,21 +1,26 @@
 import "lib.fg"
+union Actor = sys::Sprite | [5]i8;
 
-type Test {
-  s: sys::Sprite;
+fn construct(): Actor {
+  var n: Actor;
+  //n as []i8[0] = 0;
+  (n as sys::Sprite).id = 0;
+  return n;
 }
-union Face = sys::Sprite | [5]i8;
 
-var g: Face;
 fn main(): void {
-  g as []i8[4] = 53;
-
+  var g: Actor = construct();
+  
   match (g) {
     sys::Sprite {  
-      g.id = 42;
+      sys::writeChar('b');
+      g.id = 16;
       sys::writeU8(g.id);
     }
     []i8 {
-      sys::writeI8((g as []i8)[4]);
+      sys::writeChar('a');
+      g[0] = 8;
+      sys::writeI8(g[0]);
     }
   }
 }

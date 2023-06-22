@@ -83,6 +83,7 @@ TYPE_ID TYPE_getIdByName(STR module, STR name);
 bool TYPE_hasParent(TYPE_ID index);
 TYPE_ID TYPE_getParentId(TYPE_ID index);
 TYPE_ENTRY TYPE_getParent(TYPE_ID index);
+int TYPE_getTag(TYPE_ID unionType, TYPE_ID subType);
 TYPE_ENTRY_TYPE TYPE_getKind(TYPE_ID type);
 
 size_t TYPE_TABLE_total();
