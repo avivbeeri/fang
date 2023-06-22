@@ -697,6 +697,24 @@ static AST* expressionStatement() {
   return expr;
 }
 
+static AST* matchStatement() {
+  consume(TOKEN_LEFT_PAREN, "Expect '(' after 'match'.");
+  consume(TOKEN_IDENTIFIER, "Expect identifier to match upon");
+  AST* identifier = variable(false);
+  consume(TOKEN_RIGHT_PAREN, "Expect ')' after match.");
+  consume(TOKEN_LEFT_BRACE, "Expect '{' after match pattern.");
+
+  AST** clauses = NULL;
+  do {
+    AST* typeName = type(true);
+    consume(TOKEN_LEFT_BRACE, "Expect a statement block in a match clause.");
+    AST* body = block();
+    AST* clause = AST_NEW(AST_MATCH_CLAUSE, identifier, typeName, body);
+    arrput(clauses, clause);
+  } while (!check(TOKEN_RIGHT_BRACE));
+  consume (TOKEN_RIGHT_BRACE, "Expect '}' after match pattern.");
+  return AST_NEW(AST_MATCH, clauses);
+}
 static AST* ifStatement() {
   consume(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
   AST* condition = expression();
@@ -779,6 +797,8 @@ static AST* statement() {
   AST* expr = NULL;
   if (match(TOKEN_LEFT_BRACE)) {
     expr = block();
+  } else if (match(TOKEN_MATCH)) {
+    expr = matchStatement();
   } else if (match(TOKEN_IF)) {
     expr = ifStatement();
   } else if (match(TOKEN_FOR)) {

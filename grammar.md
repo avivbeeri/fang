@@ -67,12 +67,15 @@ moduleDecl -> "module" STRING ;
 
 statement  -> block
             | ifStmt
+            | matchStmt
             | forStmt
             | returnStmt
             | doWhileStmt
             | whileStmt
             | exprStmt;
 
+matchStmt  -> "match" "(" IDENTIFIER ("," IDENTIFIER)* ")" "{" caseClause "}"
+caseClause -> "(" type ("," type) ")" block ";"
 exprStmt   -> expression ";";
 forStmt    -> "for" "(" 
               (varInit | exprStmt | ";")

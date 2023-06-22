@@ -288,7 +288,13 @@ static TokenType identifierType() {
     case 'r': return checkKeyword(1, 5, "eturn", TOKEN_RETURN);
     case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
     case 'd': return checkKeyword(1, 1, "o", TOKEN_DO);
-    case 'm': return checkKeyword(1, 5, "odule", TOKEN_MODULE);
+    case 'm':
+      if (scanner.current - scanner.start > 1) {
+        switch (scanner.start[1]) {
+          case 'a': return checkKeyword(2, 3, "tch", TOKEN_MATCH);
+          case 'o': return checkKeyword(2, 4, "dule", TOKEN_MODULE);
+        }
+      }
     case 'b': return checkKeyword(1, 3, "ank", TOKEN_BANK);
     case 'a':
       if (scanner.current - scanner.start > 1) {

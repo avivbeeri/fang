@@ -48,6 +48,7 @@ typedef enum SYMBOL_TABLE_STORAGE_TYPE {
 
 typedef enum SYMBOL_TYPE {
   SYMBOL_TYPE_UNKNOWN,
+  SYMBOL_TYPE_SHADOW,
   SYMBOL_TYPE_FUNCTION,
   SYMBOL_TYPE_PARAMETER,
   SYMBOL_TYPE_VARIABLE,
@@ -67,7 +68,6 @@ typedef struct SYMBOL_TABLE_ENTRY {
   STR key;
   SYMBOL_TYPE entryType;
   bool defined;
-  bool overlay;
   SYMBOL_TABLE_ENTRY_STATUS status;
   SYMBOL_TABLE_STORAGE_TYPE storageType;
 

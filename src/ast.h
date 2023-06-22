@@ -84,6 +84,8 @@ typedef enum {
   AST_VAR_DECL,
   AST_VAR_INIT,
   AST_ASSIGNMENT,
+  AST_MATCH,
+  AST_MATCH_CLAUSE,
   AST_IF,
   AST_WHILE,
   AST_DO_WHILE,
@@ -130,6 +132,8 @@ struct AST {
     struct AST_UNARY { AST_OP op; AST *expr; } AST_UNARY;
     struct AST_BINARY { AST_OP op; AST *left; AST *right; } AST_BINARY;
     struct AST_DOT { AST *left; STR name; } AST_DOT;
+    struct AST_MATCH { AST** clauses; } AST_MATCH;
+    struct AST_MATCH_CLAUSE { AST* identifier; AST* type; AST* body; } AST_MATCH_CLAUSE;
     struct AST_IF { AST* condition; AST* body; AST* elseClause; } AST_IF;
     struct AST_WHILE { AST* condition; AST* body; } AST_WHILE;
     struct AST_DO_WHILE { AST* condition; AST* body; } AST_DO_WHILE;
