@@ -1,6 +1,6 @@
 # Fang - Programming Language
 
-*WARNING*: Fang is not yet complete and should not be used for projects at this
+**WARNING**: Fang is not yet complete and should not be used for projects at this
 time.
 
 "First, and not good" - Aviv.
