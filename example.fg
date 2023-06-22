@@ -3,9 +3,16 @@ import "lib.fg"
 type Test {
   s: sys::Sprite;
 }
+union Face = sys::Sprite | [5]i8;
 
+var g: Face;
 
 fn main(): void {
-  var g: Test;
-  g.fake = true;
+  g as []i8[4] = 53;
+  if (g is sys::Sprite) {
+  }
+  sys::writeI8((g as []i8)[4]);
+  sys::writeChar('\n');
+  g as sys::Sprite.id = 42;
+  sys::writeU8((g as sys::Sprite).id);
 }

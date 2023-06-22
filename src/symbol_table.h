@@ -67,6 +67,7 @@ typedef struct SYMBOL_TABLE_ENTRY {
   STR key;
   SYMBOL_TYPE entryType;
   bool defined;
+  bool overlay;
   SYMBOL_TABLE_ENTRY_STATUS status;
   SYMBOL_TABLE_STORAGE_TYPE storageType;
 

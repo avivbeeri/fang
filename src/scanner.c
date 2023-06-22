@@ -532,6 +532,7 @@ const char* getTokenTypeName(TokenType type) {
     case TOKEN_EXT: return "EXT";
     case TOKEN_ASM: return "ASM";
     case TOKEN_TYPE: return "TYPE";
+    case TOKEN_UNION: return "UNION";
     case TOKEN_FN: return "FN";
     case TOKEN_ISR: return "ISR";
     case TOKEN_VOID: return "VOID";
