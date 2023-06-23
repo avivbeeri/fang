@@ -106,6 +106,28 @@ void AST_free(AST *ptr) {
       AST_free(data.left);
       break;
     }
+    case AST_MATCH_CLAUSE: {
+      struct AST_MATCH_CLAUSE data = ast.data.AST_MATCH_CLAUSE;
+      for (int i = 0; i < arrlen(data.identifiers); i++) {
+        AST_free(data.identifiers[i]);
+        AST_free(data.types[i]);
+      }
+      arrfree(data.types);
+      arrfree(data.identifiers);
+      AST_free(data.body);
+      break;
+    }
+    case AST_MATCH: {
+      struct AST_MATCH data = ast.data.AST_MATCH;
+      for (int i = 0; i < arrlen(data.identifiers); i++) {
+        AST_free(data.identifiers[i]);
+        AST_free(data.clauses[i]);
+      }
+      arrfree(data.identifiers);
+      arrfree(data.clauses);
+      AST_free(data.elseClause);
+      break;
+    }
     case AST_IF: {
       struct AST_IF data = ast.data.AST_IF;
       AST_free(data.condition);

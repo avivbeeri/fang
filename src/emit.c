@@ -256,17 +256,25 @@ static int traverse(FILE* f, AST* ptr) {
       {
         struct AST_MATCH data = ast.data.AST_MATCH;
         int exitLabel = p.labelCreate();
+        int* rs = NULL;
+        for (int i = 0; i < arrlen(data.identifiers); i++) {
+          int r = traverse(f, data.identifiers[i]);
+          arrput(rs, r);
+          p.holdRegister(rs[i]);
+        }
         for (int i = 0; i < arrlen(data.clauses); i++) {
           struct AST_MATCH_CLAUSE clause = data.clauses[i]->data.AST_MATCH_CLAUSE;
           int skipLabel = p.labelCreate();
           for (int i = 0; i < arrlen(data.identifiers); i++) {
-            int r = traverse(f, data.identifiers[i]);
-            p.checkUnionTag(f, r, data.identifiers[i]->type, clause.identifiers[i]->type, skipLabel);
+        //    int r = traverse(f, data.identifiers[i]);
+            p.holdRegister(rs[i]);
+            p.checkUnionTag(f, rs[i], data.identifiers[i]->type, clause.identifiers[i]->type, skipLabel);
           }
           traverse(f, clause.body);
           p.genJump(f, exitLabel);
           p.genLabel(f, skipLabel);
         }
+        arrfree(rs);
         if (data.elseClause != NULL) {
           traverse(f, data.elseClause);
         }
@@ -362,7 +370,7 @@ static int traverse(FILE* f, AST* ptr) {
         int r = traverse(f, data.expr);
         if (data.tag != -1) {
           printf("UNION mismatch, retag\n");
-          p.holdRegister(r);
+         // p.holdRegister(r);
           p.setTag(f, r, data.tag, data.expr->type);
         }
         return r;
