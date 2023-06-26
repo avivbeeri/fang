@@ -24,6 +24,7 @@
 */
 
 #include "tac.h"
+#include "type_table.h"
 #include "ast.h"
 
 struct SECTION { STR name; STR annotation; AST** globals; AST** functions; bool bank; };
@@ -80,6 +81,15 @@ TAC_PROGRAM emitTAC(AST* ptr) {
   struct SECTION* sections = prepareTree(ptr);
 
   /* do stuff */
+  for (int i = 0; i < arrlen(sections); i++) {
+    SECTION treeSection = sections[i];
+    TAC_SECTION section = { 0, NULL, NULL };
+    for (int j = 0; j < arrlen(treeSection.globals); j++) {
+      TAC_DATA data = { treeSection.globals[j]-> };
+      arrput(section.data, data);
+    }
+    arrput(program.sections, section);
+  }
 
   for (int i = 0; i < arrlen(sections); i++) {
     arrfree(sections[i].globals);
@@ -93,4 +103,19 @@ void emitProgram(TAC_PROGRAM program, PLATFORM p) {
 
 }
 void freeTAC(TAC_PROGRAM program) {
+}
+
+void TAC_dump(TAC_PROGRAM program) {
+  for (int i = 0; i < arrlen(program.sections); i++) {
+    TAC_SECTION section = program.sections[i];
+    printf("Section %i\n", section.index);
+    for (int j = 0; j < arrlen(section.data); j++) {
+      TAC_DATA data = section.data[j];
+      printf("%s::%s :  %s - %s\n", CHARS(data.module), CHARS(data.name), CHARS(TYPE_get(data.type).name), data.constant ? "constant" : "variable");
+    }
+    for (int j = 0; j < arrlen(section.functions); j++) {
+      TAC_FUNCTION fn = section.functions[j];
+      printf("fn %s::%s(...)\n", CHARS(fn.module), CHARS(fn.name));
+    }
+  }
 }
