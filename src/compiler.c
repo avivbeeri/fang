@@ -35,6 +35,7 @@
 #include "print.h"
 #include "dump.h"
 #include "emit.h"
+#include "tac.h"
 #include "eval.h"
 #include "options.h"
 #include "platform.h"
@@ -83,7 +84,9 @@ bool compile(const SourceFile* sources) {
   }
 
   if (result) {
-    emitTree(ast, p);
+    //emitTree(ast, p);
+    TAC_PROGRAM program = emitTAC(ast);
+    emitProgram(program, p);
     // evalTree(ast);
   }
 cleanup:
