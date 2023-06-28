@@ -80,6 +80,22 @@ void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType) {
   scopeId++;
 }
 
+void SYMBOL_TABLE_resumeScope(uint32_t scopeIndex) {
+  uint32_t current = scopeIndex;
+  uint32_t* tempStack = NULL;
+
+  uint32_t endScope = SYMBOL_TABLE_getCurrentScopeIndex();
+  while (current != endScope) {
+    arrins(tempStack, 0, current);
+    SYMBOL_TABLE_SCOPE scope = hmgets(scopes, current);
+    current = scope.parent;
+  }
+  for (int i = 0; i < arrlen(tempStack); i++) {
+    arrput(scopeStack, tempStack[i]);
+  }
+  arrfree(tempStack);
+}
+
 void SYMBOL_TABLE_pushScope(int index) {
   arrput(scopeStack, index);
 }

@@ -34,6 +34,7 @@
 #include "options.h"
 #include "const_eval.h"
 
+static bool traverse(AST* ptr);
 uint32_t* assignStack = NULL;
 uint32_t* evaluateStack = NULL;
 uint32_t* typeStack = NULL;
@@ -119,395 +120,9 @@ static int valueToType(Value value) {
   }
   return 0;
 }
-
-static bool traverse(AST* ptr);
-static int resolveType(AST* ptr) {
-  if (ptr == NULL) {
-    return 0;
-  }
+static bool resolveVariableDecl(AST* ptr) {
   AST ast = *ptr;
   switch (ast.tag) {
-    case AST_TYPE:
-      {
-        struct AST_TYPE data = ast.data.AST_TYPE;
-        int i = resolveType(data.type);
-        ptr->type = i;
-        return i;
-      }
-    case AST_TYPE_NAME:
-      {
-        struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
-        int i = TYPE_getIdByName(data.module, data.typeName);
-        ptr->type = i;
-        if (ptr->type == 0) {
-          compileError(ast.token, "Type '%.*s' has not been defined and could not be found.\n", ast.token.length, ast.token.start);
-          printf("trap %d\n", __LINE__);
-        }
-        return i;
-      }
-    case AST_TYPE_PTR:
-      {
-        struct AST_TYPE_PTR data = ast.data.AST_TYPE_PTR;
-        int subType = resolveType(data.subType);
-        // Get type name from typetable
-        // prepend ^
-        // store in type table and record index
-        STR name = TYPE_get(subType).name;
-        STR typeName = STR_prepend(name, "^");
-        STR module = EMPTY_STRING;
-        ptr->type = TYPE_declare(module, typeName);
-        TYPE_FIELD_ENTRY* field = NULL;
-        arrput(field, ((TYPE_FIELD_ENTRY){ subType, EMPTY_STRING, 0 }));
-        TYPE_define(ptr->type, ENTRY_TYPE_POINTER, field);
-        return ptr->type;
-      }
-    case AST_TYPE_FN:
-      {
-        struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
-        TYPE_FIELD_ENTRY* entries = NULL;
-        // generate the fn type string here
-        size_t bufLen = 1;
-        size_t strLen = 0;
-        char* buffer = ALLOC_STR(bufLen);
-        APPEND_STR(buffer, bufLen, strLen, "fn (");
-        for (int i = 0; i < arrlen(data.params); i++) {
-          int index = resolveType(data.params[i]);
-          APPEND_STR(buffer, bufLen, strLen, "%s", CHARS(TYPE_get(index).name));
-          arrput(entries, ((TYPE_FIELD_ENTRY){ index, EMPTY_STRING, 0 }));
-          if (i < arrlen(data.params) - 1) {
-            APPEND_STR(buffer, bufLen, strLen, ", ");
-          }
-        }
-        APPEND_STR(buffer, bufLen, strLen, "): ");
-        int returnType = resolveType(data.returnType);
-        arrput(entries, ((TYPE_FIELD_ENTRY){ returnType, EMPTY_STRING, 0 }));
-        APPEND_STR(buffer, bufLen, strLen, "%s", CHARS(TYPE_get(returnType).name));
-
-        STR typeName = STR_copy(buffer, strLen);
-        FREE(char, buffer);
-        STR module = EMPTY_STRING;
-        ptr->type = TYPE_declare(module, typeName);
-        TYPE_define(ptr->type, ENTRY_TYPE_FUNCTION, entries);
-
-        return ptr->type;
-      }
-    case AST_TYPE_ARRAY:
-      {
-        // Arrays are basically just pointers with some runtime allocation
-        // semantics
-        struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
-        if (data.length != NULL) {
-          traverse(data.length);
-          int lenType = data.length->type;
-          if (!isNumeric(lenType)) {
-            printf("trap %d\n", __LINE__);
-            return 0;
-          }
-        }
-
-        int subType = resolveType(data.subType);
-        STR name = TYPE_get(subType).name;
-        STR typeName = STR_prepend(name, "[]");
-        STR module = EMPTY_STRING;
-        ptr->type = TYPE_declare(module, typeName);
-        TYPE_FIELD_ENTRY* subTypeField = NULL;
-        arrput(subTypeField, ((TYPE_FIELD_ENTRY){ subType, EMPTY_STRING, 0 }));
-        TYPE_define(ptr->type, ENTRY_TYPE_ARRAY, subTypeField);
-        return ptr->type;
-      }
-    default:
-      printf("impossible trap %d\n", __LINE__);
-      exit(1);
-  }
-  return 0;
-}
-
-static bool resolveTopLevel(AST* ptr) {
-  if (ptr == NULL) {
-    return true;
-  }
-  AST ast = *ptr;
-  switch(ast.tag) {
-    case AST_ERROR:
-      {
-        return false;
-      }
-    case AST_MAIN:
-      {
-        struct AST_MAIN data = ast.data.AST_MAIN;
-        bool r = true;
-        for (int i = 0; i < arrlen(data.modules); i++) {
-          SYMBOL_TABLE_openScope(SCOPE_TYPE_MODULE);
-          r &= resolveTopLevel(data.modules[i]);
-          SYMBOL_TABLE_closeScope();
-          if (!r) {
-            return r;
-          }
-        }
-        return true;
-      }
-    case AST_MODULE_DECL:
-      {
-        struct AST_MODULE_DECL data = ast.data.AST_MODULE_DECL;
-        bool result = SYMBOL_TABLE_nameScope(data.name);
-        if (!result) {
-          compileError(ast.token, "module \"%s\" is already defined.\n", CHARS(data.name));
-        }
-        return result;
-      }
-    case AST_EXT:
-      {
-        struct AST_EXT data = ast.data.AST_EXT;
-        int resolvedType = resolveType(data.type);
-        if (data.symbolType == SYMBOL_TYPE_FUNCTION) {
-          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
-        } else {
-          if (data.symbolType == SYMBOL_TYPE_CONSTANT || data.symbolType == SYMBOL_TYPE_VARIABLE) {
-            SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
-          }
-        }
-        return true;
-      }
-    case AST_BANK:
-      {
-        struct AST_BANK data = ast.data.AST_BANK;
-        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
-        for (int i = 0; i < arrlen(data.decls); i++) {
-          bool r = resolveTopLevel(data.decls[i]);
-          if (!r) {
-            return false;
-          }
-        }
-        return true;
-      }
-    case AST_MODULE:
-      {
-        bool r = true;
-        struct AST_MODULE data = ast.data.AST_MODULE;
-        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
-        int* deferred = NULL;
-        int* banks = NULL;
-        for (int i = 0; i < arrlen(data.decls); i++) {
-          if (data.decls[i]->tag == AST_BANK) {
-            arrput(banks, i);
-            continue;
-          }
-          if (data.decls[i]->tag == AST_FN) {
-            // FN pointer type resolution needs to occur after other types
-            // are resolved.
-            arrput(deferred, i);
-            continue;
-          }
-          r = resolveTopLevel(data.decls[i]);
-          if (!r) {
-            arrfree(banks);
-            arrfree(deferred);
-            return false;
-          }
-        }
-
-        for (int i = 0; i < arrlen(deferred); i++) {
-          r &= resolveTopLevel(data.decls[deferred[i]]);
-          if (!r) {
-            break;
-          }
-        }
-        for (int i = 0; i < arrlen(banks); i++) {
-          r &= resolveTopLevel(data.decls[banks[i]]);
-          if (!r) {
-            break;
-          }
-        }
-        arrfree(deferred);
-        arrfree(banks);
-        return r;
-      }
-    case AST_TYPE_DECL:
-      {
-        struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
-        STR identifier = data.name;
-        STR module = SYMBOL_TABLE_getNameFromCurrent();
-        int index = TYPE_declare(module, identifier);
-        TYPE_FIELD_ENTRY* fields = NULL;
-        // should we resolve type fields before main verification?
-
-        for (int i = 0; i < arrlen(data.fields); i++) {
-          struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
-          traverse(field.value);
-          int index = field.value->type;
-          if (index == 0) {
-            arrfree(fields);
-            printf("trap %d\n", __LINE__);
-            return false;
-          }
-          int elementCount = 0;
-          if (TYPE_get(index).entryType == ENTRY_TYPE_ARRAY) {
-            int subType = TYPE_getParentId(index);
-            STR name = TYPE_get(subType).name;
-            printf("%i\n", subType);
-            STR typeName = STR_prepend(name, "[]");
-            STR module = SYMBOL_TABLE_getNameFromCurrent();
-            index = TYPE_declare(module, typeName);
-            TYPE_FIELD_ENTRY* parent = NULL;
-            arrput(parent, ((TYPE_FIELD_ENTRY){ subType, EMPTY_STRING, 0 }));
-            TYPE_define(index, ENTRY_TYPE_ARRAY, parent);
-            if (field.value->tag == AST_TYPE) {
-              Value length = evalConstTree(field.value);
-              if (!IS_EMPTY(length) && !IS_ERROR(length)) {
-                elementCount = getNumber(length);
-              }
-            }
-          }
-          arrput(fields, ((TYPE_FIELD_ENTRY){
-                .typeIndex = index,
-                .name = field.identifier,
-                .elementCount = elementCount
-          } ));
-        }
-        TYPE_define(index, ENTRY_TYPE_RECORD, fields);
-        return true;
-      }
-    case AST_FN:
-      {
-        struct AST_FN data = ast.data.AST_FN;
-        ptr->type = resolveType(data.fnType);
-        if (SYMBOL_TABLE_getCurrent(data.identifier).defined) {
-          compileError(ast.token, "function \"%s\" is already defined.\n", CHARS(data.identifier));
-          return false;
-        }
-        SYMBOL_TABLE_define(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type, STORAGE_TYPE_GLOBAL);
-        return true;
-      }
-    default:
-      {
-        return true;
-      }
-  }
-  return false;
-}
-
-static bool traverse(AST* ptr) {
-  if (ptr == NULL) {
-    return true;
-  }
-  ptr->rvalue = PEEK(evaluateStack);
-  AST ast = *ptr;
-  switch(ast.tag) {
-    case AST_ERROR:
-      {
-        return false;
-      }
-    case AST_MAIN:
-      {
-        struct AST_MAIN data = ast.data.AST_MAIN;
-        bool r = true;
-        for (int i = 0; i < arrlen(data.modules); i++) {
-          SYMBOL_TABLE_pushScope(data.modules[i]->scopeIndex);
-          r &= traverse(data.modules[i]);
-          SYMBOL_TABLE_closeScope();
-          if (!r) {
-            return r;
-          }
-        }
-        return r;
-      }
-    case AST_RETURN:
-      {
-        struct AST_RETURN data = ast.data.AST_RETURN;
-        if (data.value == NULL) {
-          return PEEK(typeStack) == VOID_INDEX;
-        }
-        bool r = traverse(data.value);
-        if (!r) {
-          return r;
-        }
-        if (!isCompatible(data.value->type, PEEK(typeStack))) {
-          printf("MISMATCH between return type and expecte\n");
-          int indent = compileError(data.value->token, "Incompatible return type '");
-          printTree(data.value);
-          printf("'\n");
-          printf("%*s", indent, "");
-          printf("Expected type '%s' but instead found '%s'\n", CHARS(TYPE_get(PEEK(typeStack)).name), CHARS(TYPE_get(data.value->type).name));
-          return false;
-        }
-        return r;
-      }
-    case AST_BLOCK:
-      {
-        struct AST_BLOCK data = ast.data.AST_BLOCK;
-        SYMBOL_TABLE_openScope(SCOPE_TYPE_BLOCK);
-        bool r = true;
-        for (int i = 0; i < arrlen(data.decls); i++) {
-          r &= traverse(data.decls[i]);
-          if (!r) {
-            break;
-          }
-        }
-        SYMBOL_TABLE_closeScope();
-        return r;
-      }
-    case AST_BANK:
-      {
-        bool r = true;
-        struct AST_BANK data = ast.data.AST_BANK;
-        int* deferred = NULL;
-        SYMBOL_TABLE_openScope(SCOPE_TYPE_BANK);
-        for (int i = 0; i < arrlen(data.decls); i++) {
-          // Hoist FN resolution until after the main code
-          // for type-check reasons
-          if (data.decls[i]->tag == AST_FN) {
-            arrput(deferred, i);
-            continue;
-          }
-          r = traverse(data.decls[i]);
-          if (!r) {
-            arrfree(deferred);
-            return false;
-          }
-        }
-
-        for (int i = 0; i < arrlen(deferred); i++) {
-          bankScope = true;
-          r = traverse(data.decls[deferred[i]]);
-          bankScope = false;
-          if (!r) {
-            arrfree(deferred);
-            return false;
-          }
-        }
-        arrfree(deferred);
-        SYMBOL_TABLE_closeScope();
-        return r;
-      }
-    case AST_MODULE:
-      {
-        bool r = true;
-        struct AST_MODULE data = ast.data.AST_MODULE;
-        int* deferred = NULL;
-        for (int i = 0; i < arrlen(data.decls); i++) {
-          // Hoist FN resolution until after the main code
-          // for type-check reasons
-          if (data.decls[i]->tag == AST_ISR || data.decls[i]->tag == AST_FN) {
-            arrput(deferred, i);
-            continue;
-          }
-          r = traverse(data.decls[i]);
-          if (!r) {
-            arrfree(deferred);
-            return false;
-          }
-        }
-
-        for (int i = 0; i < arrlen(deferred); i++) {
-          r = traverse(data.decls[deferred[i]]);
-          if (!r) {
-            arrfree(deferred);
-            return false;
-          }
-        }
-        arrfree(deferred);
-        return r;
-      }
     case AST_VAR_INIT:
       {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
@@ -672,6 +287,401 @@ static bool traverse(AST* ptr) {
         }
         return result;
       }
+  }
+}
+
+static int resolveType(AST* ptr) {
+  if (ptr == NULL) {
+    return 0;
+  }
+  AST ast = *ptr;
+  switch (ast.tag) {
+    case AST_TYPE:
+      {
+        struct AST_TYPE data = ast.data.AST_TYPE;
+        int i = resolveType(data.type);
+        ptr->type = i;
+        return i;
+      }
+    case AST_TYPE_NAME:
+      {
+        struct AST_TYPE_NAME data = ast.data.AST_TYPE_NAME;
+        int i = TYPE_getIdByName(data.module, data.typeName);
+        ptr->type = i;
+        if (ptr->type == 0) {
+          compileError(ast.token, "Type '%.*s' has not been defined and could not be found.\n", ast.token.length, ast.token.start);
+          printf("trap %d\n", __LINE__);
+        }
+        return i;
+      }
+    case AST_TYPE_PTR:
+      {
+        struct AST_TYPE_PTR data = ast.data.AST_TYPE_PTR;
+        int subType = resolveType(data.subType);
+        // Get type name from typetable
+        // prepend ^
+        // store in type table and record index
+        STR name = TYPE_get(subType).name;
+        STR typeName = STR_prepend(name, "^");
+        STR module = EMPTY_STRING;
+        ptr->type = TYPE_declare(module, typeName);
+        TYPE_FIELD_ENTRY* field = NULL;
+        arrput(field, ((TYPE_FIELD_ENTRY){ subType, EMPTY_STRING, 0 }));
+        TYPE_define(ptr->type, ENTRY_TYPE_POINTER, field);
+        return ptr->type;
+      }
+    case AST_TYPE_FN:
+      {
+        struct AST_TYPE_FN data = ast.data.AST_TYPE_FN;
+        TYPE_FIELD_ENTRY* entries = NULL;
+        // generate the fn type string here
+        size_t bufLen = 1;
+        size_t strLen = 0;
+        char* buffer = ALLOC_STR(bufLen);
+        APPEND_STR(buffer, bufLen, strLen, "fn (");
+        for (int i = 0; i < arrlen(data.params); i++) {
+          int index = resolveType(data.params[i]);
+          APPEND_STR(buffer, bufLen, strLen, "%s", CHARS(TYPE_get(index).name));
+          arrput(entries, ((TYPE_FIELD_ENTRY){ index, EMPTY_STRING, 0 }));
+          if (i < arrlen(data.params) - 1) {
+            APPEND_STR(buffer, bufLen, strLen, ", ");
+          }
+        }
+        APPEND_STR(buffer, bufLen, strLen, "): ");
+        int returnType = resolveType(data.returnType);
+        arrput(entries, ((TYPE_FIELD_ENTRY){ returnType, EMPTY_STRING, 0 }));
+        APPEND_STR(buffer, bufLen, strLen, "%s", CHARS(TYPE_get(returnType).name));
+
+        STR typeName = STR_copy(buffer, strLen);
+        FREE(char, buffer);
+        STR module = EMPTY_STRING;
+        ptr->type = TYPE_declare(module, typeName);
+        TYPE_define(ptr->type, ENTRY_TYPE_FUNCTION, entries);
+
+        return ptr->type;
+      }
+    case AST_TYPE_ARRAY:
+      {
+        // Arrays are basically just pointers with some runtime allocation
+        // semantics
+        struct AST_TYPE_ARRAY data = ast.data.AST_TYPE_ARRAY;
+        if (data.length != NULL) {
+          traverse(data.length);
+          int lenType = data.length->type;
+          if (!isNumeric(lenType)) {
+            printf("trap %d\n", __LINE__);
+            return 0;
+          }
+        }
+
+        int subType = resolveType(data.subType);
+        STR name = TYPE_get(subType).name;
+        STR typeName = STR_prepend(name, "[]");
+        STR module = EMPTY_STRING;
+        ptr->type = TYPE_declare(module, typeName);
+        TYPE_FIELD_ENTRY* subTypeField = NULL;
+        arrput(subTypeField, ((TYPE_FIELD_ENTRY){ subType, EMPTY_STRING, 0 }));
+        TYPE_define(ptr->type, ENTRY_TYPE_ARRAY, subTypeField);
+        return ptr->type;
+      }
+    default:
+      printf("impossible trap %d\n", __LINE__);
+      exit(1);
+  }
+  return 0;
+}
+
+static bool resolveTopLevel(AST* ptr) {
+  if (ptr == NULL) {
+    return true;
+  }
+  AST ast = *ptr;
+  switch(ast.tag) {
+    case AST_ERROR:
+      {
+        return false;
+      }
+    case AST_MAIN:
+      {
+        struct AST_MAIN data = ast.data.AST_MAIN;
+        bool r = true;
+        for (int i = 0; i < arrlen(data.modules); i++) {
+          SYMBOL_TABLE_openScope(SCOPE_TYPE_MODULE);
+          r &= resolveTopLevel(data.modules[i]);
+          SYMBOL_TABLE_closeScope();
+          if (!r) {
+            return r;
+          }
+        }
+        return true;
+      }
+    case AST_MODULE_DECL:
+      {
+        struct AST_MODULE_DECL data = ast.data.AST_MODULE_DECL;
+        bool result = SYMBOL_TABLE_nameScope(data.name);
+        if (!result) {
+          compileError(ast.token, "module \"%s\" is already defined.\n", CHARS(data.name));
+        }
+        return result;
+      }
+    case AST_EXT:
+      {
+        struct AST_EXT data = ast.data.AST_EXT;
+        int resolvedType = resolveType(data.type);
+        if (data.symbolType == SYMBOL_TYPE_FUNCTION) {
+          SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
+        } else {
+          if (data.symbolType == SYMBOL_TYPE_CONSTANT || data.symbolType == SYMBOL_TYPE_VARIABLE) {
+            SYMBOL_TABLE_declare(data.identifier, data.symbolType, resolvedType, STORAGE_TYPE_GLOBAL);
+          }
+        }
+        return true;
+      }
+    case AST_BANK:
+      {
+        struct AST_BANK data = ast.data.AST_BANK;
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_BANK);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          bool r = resolveTopLevel(data.decls[i]);
+          if (!r) {
+            return false;
+          }
+        }
+        SYMBOL_TABLE_closeScope();
+        return true;
+      }
+    case AST_MODULE:
+      {
+        bool r = true;
+        struct AST_MODULE data = ast.data.AST_MODULE;
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        int* deferred = NULL;
+        int* banks = NULL;
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          if (data.decls[i]->tag == AST_BANK) {
+            arrput(banks, i);
+            continue;
+          }
+          if (data.decls[i]->tag == AST_FN) {
+            // FN pointer type resolution needs to occur after other types
+            // are resolved.
+            arrput(deferred, i);
+            continue;
+          }
+          r = resolveTopLevel(data.decls[i]);
+          if (!r) {
+            arrfree(banks);
+            arrfree(deferred);
+            return false;
+          }
+        }
+
+        for (int i = 0; i < arrlen(deferred); i++) {
+          r &= resolveTopLevel(data.decls[deferred[i]]);
+          if (!r) {
+            break;
+          }
+        }
+        for (int i = 0; i < arrlen(banks); i++) {
+          r &= resolveTopLevel(data.decls[banks[i]]);
+          if (!r) {
+            break;
+          }
+        }
+        arrfree(deferred);
+        arrfree(banks);
+        return r;
+      }
+    case AST_TYPE_DECL:
+      {
+        struct AST_TYPE_DECL data = ast.data.AST_TYPE_DECL;
+        STR identifier = data.name;
+        STR module = SYMBOL_TABLE_getNameFromCurrent();
+        int index = TYPE_declare(module, identifier);
+        TYPE_FIELD_ENTRY* fields = NULL;
+        // should we resolve type fields before main verification?
+
+        for (int i = 0; i < arrlen(data.fields); i++) {
+          struct AST_PARAM field = data.fields[i]->data.AST_PARAM;
+          traverse(field.value);
+          int index = field.value->type;
+          if (index == 0) {
+            arrfree(fields);
+            printf("trap %d\n", __LINE__);
+            return false;
+          }
+          int elementCount = 0;
+          if (TYPE_get(index).entryType == ENTRY_TYPE_ARRAY) {
+            int subType = TYPE_getParentId(index);
+            STR name = TYPE_get(subType).name;
+            printf("%i\n", subType);
+            STR typeName = STR_prepend(name, "[]");
+            STR module = SYMBOL_TABLE_getNameFromCurrent();
+            index = TYPE_declare(module, typeName);
+            TYPE_FIELD_ENTRY* parent = NULL;
+            arrput(parent, ((TYPE_FIELD_ENTRY){ subType, EMPTY_STRING, 0 }));
+            TYPE_define(index, ENTRY_TYPE_ARRAY, parent);
+            if (field.value->tag == AST_TYPE) {
+              Value length = evalConstTree(field.value);
+              if (!IS_EMPTY(length) && !IS_ERROR(length)) {
+                elementCount = getNumber(length);
+              }
+            }
+          }
+          arrput(fields, ((TYPE_FIELD_ENTRY){
+                .typeIndex = index,
+                .name = field.identifier,
+                .elementCount = elementCount
+          } ));
+        }
+        TYPE_define(index, ENTRY_TYPE_RECORD, fields);
+        return true;
+      }
+    case AST_FN:
+      {
+        struct AST_FN data = ast.data.AST_FN;
+        ptr->type = resolveType(data.fnType);
+        if (SYMBOL_TABLE_getCurrent(data.identifier).defined) {
+          compileError(ast.token, "function \"%s\" is already defined.\n", CHARS(data.identifier));
+          return false;
+        }
+        SYMBOL_TABLE_define(data.identifier, SYMBOL_TYPE_FUNCTION, ptr->type, STORAGE_TYPE_GLOBAL);
+        return true;
+      }
+    case AST_CONST_DECL:
+    case AST_VAR_DECL:
+    case AST_VAR_INIT:
+      {
+        return resolveVariableDecl(ptr);
+      }
+    default:
+      {
+        return true;
+      }
+  }
+  return false;
+}
+
+static bool traverse(AST* ptr) {
+  if (ptr == NULL) {
+    return true;
+  }
+  ptr->rvalue = PEEK(evaluateStack);
+  AST ast = *ptr;
+  switch(ast.tag) {
+    case AST_ERROR:
+      {
+        return false;
+      }
+    case AST_MAIN:
+      {
+        struct AST_MAIN data = ast.data.AST_MAIN;
+        bool r = true;
+        for (int i = 0; i < arrlen(data.modules); i++) {
+          SYMBOL_TABLE_pushScope(data.modules[i]->scopeIndex);
+          r &= traverse(data.modules[i]);
+          SYMBOL_TABLE_closeScope();
+          if (!r) {
+            return r;
+          }
+        }
+        return r;
+      }
+    case AST_RETURN:
+      {
+        struct AST_RETURN data = ast.data.AST_RETURN;
+        if (data.value == NULL) {
+          return PEEK(typeStack) == VOID_INDEX;
+        }
+        bool r = traverse(data.value);
+        if (!r) {
+          return r;
+        }
+        if (!isCompatible(data.value->type, PEEK(typeStack))) {
+          printf("MISMATCH between return type and expecte\n");
+          int indent = compileError(data.value->token, "Incompatible return type '");
+          printTree(data.value);
+          printf("'\n");
+          printf("%*s", indent, "");
+          printf("Expected type '%s' but instead found '%s'\n", CHARS(TYPE_get(PEEK(typeStack)).name), CHARS(TYPE_get(data.value->type).name));
+          return false;
+        }
+        return r;
+      }
+    case AST_BLOCK:
+      {
+        struct AST_BLOCK data = ast.data.AST_BLOCK;
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_BLOCK);
+        bool r = true;
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          r &= traverse(data.decls[i]);
+          if (!r) {
+            break;
+          }
+        }
+        SYMBOL_TABLE_closeScope();
+        return r;
+      }
+    case AST_BANK:
+      {
+        bool r = true;
+        struct AST_BANK data = ast.data.AST_BANK;
+        SYMBOL_TABLE_resumeScope(ptr->scopeIndex);
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          // Hoist FN resolution until after the main code
+          // for type-check reasons
+          if (data.decls[i]->tag == AST_FN) {
+            bankScope = true;
+            r = traverse(data.decls[i]);
+            bankScope = false;
+            if (!r) {
+              return false;
+            }
+          }
+        }
+
+        SYMBOL_TABLE_closeScope();
+        return r;
+      }
+    case AST_MODULE:
+      {
+        bool r = true;
+        struct AST_MODULE data = ast.data.AST_MODULE;
+        int* banks = NULL;
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          // Hoist FN resolution until after the main code
+          // for type-check reasons
+          if (data.decls[i]->tag == AST_BANK) {
+            arrput(banks, i);
+            continue;
+          }
+          if (data.decls[i]->tag == AST_ISR || data.decls[i]->tag == AST_FN) {
+            r = traverse(data.decls[i]);
+            if (!r) {
+              break;
+            }
+          }
+        }
+
+        if (!r) {
+          arrfree(banks);
+          return r;
+        }
+
+        if (!r) {
+          arrfree(banks);
+          return r;
+        }
+        for (int i = 0; i < arrlen(banks); i++) {
+          r = traverse(data.decls[banks[i]]);
+          if (!r) {
+            break;
+          }
+        }
+        arrfree(banks);
+        return r;
+      }
     case AST_ASSIGNMENT:
       {
         struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
@@ -711,6 +721,12 @@ static bool traverse(AST* ptr) {
           printf("Expected type '%s' but instead found '%s'\n", CHARS(TYPE_get(leftType).name), CHARS(TYPE_get(rightType).name));
         }
         return isCompatible(leftType, rightType);
+      }
+    case AST_CONST_DECL:
+    case AST_VAR_DECL:
+    case AST_VAR_INIT:
+      {
+        return resolveVariableDecl(ptr);
       }
     case AST_ASM:
       {

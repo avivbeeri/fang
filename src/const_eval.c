@@ -98,7 +98,8 @@ static Value traverse(AST* ptr, Environment* context) {
       if (data.initType == INIT_TYPE_ARRAY) {
         Value* values = NULL;
         for (int i = 0; i < arrlen(data.assignments); i++) {
-          arrput(values, traverse(data.assignments[i], context));
+          Value value = traverse(data.assignments[i], context);
+          arrput(values, value);
         }
         arrput(freeList, values);
         return ARRAY(values);
@@ -303,7 +304,7 @@ Value evalConstTree(AST* ptr) {
 
 void EVAL_free(void) {
   for (int i = 0; i < arrlen(freeList); i++) {
-    free(freeList[i]);
+    arrfree(freeList[i]);
   }
   arrfree(freeList);
 }

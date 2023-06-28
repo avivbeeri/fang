@@ -108,6 +108,7 @@ typedef struct {
 
 void SYMBOL_TABLE_init(void);
 void SYMBOL_TABLE_openScope(SYMBOL_TABLE_SCOPE_TYPE scopeType);
+void SYMBOL_TABLE_resumeScope(uint32_t scope);
 void SYMBOL_TABLE_closeScope();
 void SYMBOL_TABLE_calculateAllocations(struct PLATFORM platform);
 void SYMBOL_TABLE_report();

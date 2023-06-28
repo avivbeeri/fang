@@ -1,0 +1,24 @@
+import "lib.fg"
+
+bank test {
+  fn goodbye(): void {
+    sys::writeChar('C');
+    sys::writeChar('\n');
+  }
+  const i: i8 = 42;
+}
+
+fn main(): void {
+  hello();
+  goodbye();
+  sys::writeI8(i);
+}
+
+bank newtest {
+  fn hello(): void {
+    sys::writeChar('B');
+    sys::writeChar('\n');
+  }
+}
+
+

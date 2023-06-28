@@ -25,6 +25,7 @@
 
 #include "tac.h"
 #include "type_table.h"
+#include "symbol_table.h"
 #include "ast.h"
 
 struct SECTION { STR name; STR annotation; AST** globals; AST** functions; bool bank; };
@@ -32,6 +33,8 @@ struct SECTION { STR name; STR annotation; AST** globals; AST** functions; bool 
 struct SECTION* prepareTree(AST* ptr) {
   struct SECTION* sections = NULL;
   struct AST_MAIN data = ptr->data.AST_MAIN;
+  AST** banks = NULL;
+
   for (int i = 0; i < arrlen(data.modules); i++) {
     struct SECTION section = {
       .name = EMPTY_STRING,
@@ -43,21 +46,7 @@ struct SECTION* prepareTree(AST* ptr) {
     struct AST_MODULE body = data.modules[i]->data.AST_MODULE;
     for (int i = 0; i < arrlen(body.decls); i++) {
       if (body.decls[i]->tag == AST_BANK) {
-        struct AST_BANK bank = body.decls[i]->data.AST_BANK;
-        struct SECTION bankSection = { bank.name, bank.annotation, NULL, NULL, true };
-        for (int i = 0; i < arrlen(bank.decls); i++) {
-          if (bank.decls[i]->tag == AST_FN) {
-            arrput(bankSection.functions, bank.decls[i]);
-          } else if (bank.decls[i]->tag == AST_VAR_INIT) {
-            arrput(bankSection.globals, bank.decls[i]);
-          } else if (bank.decls[i]->tag == AST_VAR_DECL) {
-            arrput(bankSection.globals, bank.decls[i]);
-          } else if (bank.decls[i]->tag == AST_CONST_DECL) {
-            arrput(bankSection.globals, bank.decls[i]);
-          }
-        }
-        arrput(sections, bankSection);
-
+        arrput(banks, body.decls[i]);
       } else if (body.decls[i]->tag == AST_ISR) {
         arrput(section.functions, body.decls[i]);
       } else if (body.decls[i]->tag == AST_FN) {
@@ -72,8 +61,60 @@ struct SECTION* prepareTree(AST* ptr) {
     }
     arrput(sections, section);
   }
+  for (int i = 0; i < arrlen(banks); i++) {
+    struct AST_BANK bank = banks[i]->data.AST_BANK;
+    struct SECTION bankSection = { bank.name, bank.annotation, NULL, NULL, true };
+    for (int i = 0; i < arrlen(bank.decls); i++) {
+      if (bank.decls[i]->tag == AST_FN) {
+        arrput(bankSection.functions, bank.decls[i]);
+      } else if (bank.decls[i]->tag == AST_VAR_INIT) {
+        arrput(bankSection.globals, bank.decls[i]);
+      } else if (bank.decls[i]->tag == AST_VAR_DECL) {
+        arrput(bankSection.globals, bank.decls[i]);
+      } else if (bank.decls[i]->tag == AST_CONST_DECL) {
+        arrput(bankSection.globals, banks[i]);
+      }
+    }
+    arrput(sections, bankSection);
+  }
+  arrfree(banks);
 
   return sections;
+}
+
+static TAC_DATA traverseGlobal(AST* global) {
+  TAC_DATA tacData;
+  AST ast = *global;
+  switch (ast.tag) {
+    case AST_CONST_DECL:
+      {
+        struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
+        tacData.module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex);
+        tacData.name = data.identifier;
+        tacData.type = ast.type;
+        tacData.constant = true;
+      }
+      break;
+    case AST_VAR_DECL:
+      {
+        struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
+        tacData.module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex);
+        tacData.name = data.identifier;
+        tacData.type = ast.type;
+        tacData.constant = false;
+      }
+      break;
+    case AST_VAR_INIT:
+      {
+        struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
+        tacData.module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex);
+        tacData.name = data.identifier;
+        tacData.type = ast.type;
+        tacData.constant = false;
+      }
+      break;
+  }
+  return tacData;
 }
 
 TAC_PROGRAM emitTAC(AST* ptr) {
@@ -82,10 +123,10 @@ TAC_PROGRAM emitTAC(AST* ptr) {
 
   /* do stuff */
   for (int i = 0; i < arrlen(sections); i++) {
-    SECTION treeSection = sections[i];
-    TAC_SECTION section = { 0, NULL, NULL };
+    struct SECTION treeSection = sections[i];
+    TAC_SECTION section = { i, NULL, NULL };
     for (int j = 0; j < arrlen(treeSection.globals); j++) {
-      TAC_DATA data = { treeSection.globals[j]-> };
+      TAC_DATA data = traverseGlobal(treeSection.globals[j]);
       arrput(section.data, data);
     }
     arrput(program.sections, section);
