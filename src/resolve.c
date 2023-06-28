@@ -122,6 +122,7 @@ static int valueToType(Value value) {
 }
 static bool resolveVariableDecl(AST* ptr) {
   AST ast = *ptr;
+  ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
   switch (ast.tag) {
     case AST_VAR_INIT:
       {
@@ -396,6 +397,7 @@ static bool resolveTopLevel(AST* ptr) {
     return true;
   }
   AST ast = *ptr;
+  ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
   switch(ast.tag) {
     case AST_ERROR:
       {
@@ -568,6 +570,7 @@ static bool traverse(AST* ptr) {
     return true;
   }
   ptr->rvalue = PEEK(evaluateStack);
+  ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
   AST ast = *ptr;
   switch(ast.tag) {
     case AST_ERROR:
@@ -750,8 +753,8 @@ static bool traverse(AST* ptr) {
       {
         struct AST_ISR data = ast.data.AST_ISR;
         // Define symbol with parameter types
-        SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
         functionScope = true;
         bool r = traverse(data.body);
         functionScope = false;
@@ -764,8 +767,8 @@ static bool traverse(AST* ptr) {
         // Define symbol with parameter types
         bool r = true;
 
-        SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
         ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
         for (int i = 0; i < arrlen(data.params); i++) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
           STR paramName = param.identifier;

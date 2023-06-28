@@ -1,14 +1,24 @@
 import "lib.fg"
-var i: i8 = 5;
-var s: [5]char = ['0', '1', '2', '3', '4'];
+
+bank test {
+  fn goodbye(): void {
+    sys::writeChar('C');
+    sys::writeChar('\n');
+  }
+  const i: i8 = 42;
+}
+
 fn main(): void {
+  hello();
+  goodbye();
   sys::writeI8(i);
-  i = 54;
-  sys::writeI8(i);
-  sys::writeChar(' ');
-  s[4] = '5';
-  for (var q: u8 = 0; q < 5; q = q + 1) {
-    sys::writeChar(s[q]);
+}
+
+bank newtest {
+  fn hello(): void {
+    sys::writeChar('B');
+    sys::writeChar('\n');
   }
 }
+
 

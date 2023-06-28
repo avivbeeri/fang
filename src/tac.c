@@ -72,7 +72,7 @@ struct SECTION* prepareTree(AST* ptr) {
       } else if (bank.decls[i]->tag == AST_VAR_DECL) {
         arrput(bankSection.globals, bank.decls[i]);
       } else if (bank.decls[i]->tag == AST_CONST_DECL) {
-        arrput(bankSection.globals, banks[i]);
+        arrput(bankSection.globals, bank.decls[i]);
       }
     }
     arrput(sections, bankSection);
@@ -91,7 +91,7 @@ static TAC_DATA traverseGlobal(AST* global) {
         struct AST_CONST_DECL data = ast.data.AST_CONST_DECL;
         tacData.module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex);
         tacData.name = data.identifier;
-        tacData.type = ast.type;
+        tacData.type = data.type->type;
         tacData.constant = true;
       }
       break;
@@ -100,7 +100,7 @@ static TAC_DATA traverseGlobal(AST* global) {
         struct AST_VAR_DECL data = ast.data.AST_VAR_DECL;
         tacData.module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex);
         tacData.name = data.identifier;
-        tacData.type = ast.type;
+        tacData.type = data.type->type;
         tacData.constant = false;
       }
       break;
@@ -109,7 +109,7 @@ static TAC_DATA traverseGlobal(AST* global) {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
         tacData.module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex);
         tacData.name = data.identifier;
-        tacData.type = ast.type;
+        tacData.type = data.type->type;
         tacData.constant = false;
       }
       break;
@@ -152,11 +152,19 @@ void TAC_dump(TAC_PROGRAM program) {
     printf("Section %i\n", section.index);
     for (int j = 0; j < arrlen(section.data); j++) {
       TAC_DATA data = section.data[j];
-      printf("%s::%s :  %s - %s\n", CHARS(data.module), CHARS(data.name), CHARS(TYPE_get(data.type).name), data.constant ? "constant" : "variable");
+      if (data.module == EMPTY_STRING) {
+        printf("%s::", CHARS(data.module));
+      }
+
+      printf("%s :  %s - %s\n", CHARS(data.name), CHARS(TYPE_get(data.type).name), data.constant ? "constant" : "variable");
     }
     for (int j = 0; j < arrlen(section.functions); j++) {
       TAC_FUNCTION fn = section.functions[j];
-      printf("fn %s::%s(...)\n", CHARS(fn.module), CHARS(fn.name));
+      printf("fn ");
+      if (fn.module == EMPTY_STRING) {
+        printf("%s::", CHARS(fn.module));
+      }
+      printf("%s(...)\n", CHARS(fn.name));
     }
   }
 }
