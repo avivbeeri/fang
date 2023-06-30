@@ -83,10 +83,16 @@ struct SECTION* prepareTree(AST* ptr) {
   return sections;
 }
 
+static TAC_BLOCK* TAC_generateBasicBlocks(AST* start) {
+  TAC_BLOCK* block = calloc(1, sizeof(TAC_BLOCK));
+  return block;
+}
+
 static TAC_FUNCTION traverseFunction(AST* ptr) {
   TAC_FUNCTION function;
   AST ast = *ptr;
   switch (ast.tag) {
+    case AST_ISR:
     case AST_FN:
       {
         struct AST_FN data = ast.data.AST_FN;
@@ -95,9 +101,7 @@ static TAC_FUNCTION traverseFunction(AST* ptr) {
         function.module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex);
         function.name = data.identifier;
         function.used = false;
-        function.start = NULL;
-        // TODO
-        TAC_BLOCK* start;
+        function.start = TAC_generateBasicBlocks(data.body);
       }
     default:
   }
@@ -176,6 +180,10 @@ void TAC_free(TAC_PROGRAM program) {
   for (int i = 0; i < arrlen(program.sections); i++) {
     TAC_SECTION section = program.sections[i];
     arrfree(program.sections[i].data);
+    for (int j = 0; j < arrlen(section.functions); j++) {
+      // TODO: free the whole linked structure
+      free(section.functions[j].start);
+    }
     arrfree(program.sections[i].functions);
   }
   arrfree(program.sections);
