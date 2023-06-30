@@ -120,6 +120,7 @@ typedef struct {
 
 typedef struct {
   uint32_t index;
+  STR name;
   TAC_DATA* data;
   TAC_FUNCTION* functions;
 } TAC_SECTION;
@@ -129,7 +130,7 @@ typedef struct {
 } TAC_PROGRAM;
 
 TAC_PROGRAM emitTAC(AST* ptr);
-void freeTAC(TAC_PROGRAM program);
+void TAC_free(TAC_PROGRAM program);
 void emitProgram(TAC_PROGRAM program, PLATFORM p);
 void TAC_dump(TAC_PROGRAM program);
 

@@ -88,6 +88,7 @@ bool compile(const SourceFile* sources) {
     TAC_PROGRAM program = emitTAC(ast);
     emitProgram(program, p);
     TAC_dump(program);
+    TAC_free(program);
     // evalTree(ast);
   }
 cleanup:

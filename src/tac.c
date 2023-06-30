@@ -36,14 +36,15 @@ struct SECTION* prepareTree(AST* ptr) {
   AST** banks = NULL;
 
   for (int i = 0; i < arrlen(data.modules); i++) {
+    struct AST_MODULE body = data.modules[i]->data.AST_MODULE;
+
     struct SECTION section = {
-      .name = EMPTY_STRING,
+      .name = SYMBOL_TABLE_getNameFromStart(data.modules[i]->scopeIndex),
       .annotation = EMPTY_STRING,
       .globals = NULL,
       .functions = NULL,
       .bank = false
     };
-    struct AST_MODULE body = data.modules[i]->data.AST_MODULE;
     for (int i = 0; i < arrlen(body.decls); i++) {
       if (body.decls[i]->tag == AST_BANK) {
         arrput(banks, body.decls[i]);
@@ -80,6 +81,27 @@ struct SECTION* prepareTree(AST* ptr) {
   arrfree(banks);
 
   return sections;
+}
+
+static TAC_FUNCTION traverseFunction(AST* ptr) {
+  TAC_FUNCTION function;
+  AST ast = *ptr;
+  switch (ast.tag) {
+    case AST_FN:
+      {
+        struct AST_FN data = ast.data.AST_FN;
+        function.pure = TAC_PURITY_UNKNOWN;
+        function.scopeIndex = ast.scopeIndex;
+        function.module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex);
+        function.name = data.identifier;
+        function.used = false;
+        function.start = NULL;
+        // TODO
+        TAC_BLOCK* start;
+      }
+    default:
+  }
+  return function;
 }
 
 static TAC_DATA traverseGlobal(AST* global) {
@@ -124,10 +146,16 @@ TAC_PROGRAM emitTAC(AST* ptr) {
   /* do stuff */
   for (int i = 0; i < arrlen(sections); i++) {
     struct SECTION treeSection = sections[i];
-    TAC_SECTION section = { i, NULL, NULL };
+    TAC_SECTION section = { i, EMPTY_STRING, NULL, NULL };
+    section.name = treeSection.name;
     for (int j = 0; j < arrlen(treeSection.globals); j++) {
       TAC_DATA data = traverseGlobal(treeSection.globals[j]);
       arrput(section.data, data);
+    }
+
+    for (int j = 0; j < arrlen(treeSection.functions); j++) {
+      TAC_FUNCTION function = traverseFunction(treeSection.functions[j]);
+      arrput(section.functions, function);
     }
     arrput(program.sections, section);
   }
@@ -143,16 +171,23 @@ TAC_PROGRAM emitTAC(AST* ptr) {
 void emitProgram(TAC_PROGRAM program, PLATFORM p) {
 
 }
-void freeTAC(TAC_PROGRAM program) {
+
+void TAC_free(TAC_PROGRAM program) {
+  for (int i = 0; i < arrlen(program.sections); i++) {
+    TAC_SECTION section = program.sections[i];
+    arrfree(program.sections[i].data);
+    arrfree(program.sections[i].functions);
+  }
+  arrfree(program.sections);
 }
 
 void TAC_dump(TAC_PROGRAM program) {
   for (int i = 0; i < arrlen(program.sections); i++) {
     TAC_SECTION section = program.sections[i];
-    printf("Section %i\n", section.index);
+    printf("Section %i - %s\n", section.index, CHARS(section.name));
     for (int j = 0; j < arrlen(section.data); j++) {
       TAC_DATA data = section.data[j];
-      if (data.module == EMPTY_STRING) {
+      if (data.module != EMPTY_STRING) {
         printf("%s::", CHARS(data.module));
       }
 
@@ -161,7 +196,7 @@ void TAC_dump(TAC_PROGRAM program) {
     for (int j = 0; j < arrlen(section.functions); j++) {
       TAC_FUNCTION fn = section.functions[j];
       printf("fn ");
-      if (fn.module == EMPTY_STRING) {
+      if (fn.module != EMPTY_STRING) {
         printf("%s::", CHARS(fn.module));
       }
       printf("%s(...)\n", CHARS(fn.name));

@@ -457,7 +457,7 @@ static bool resolveTopLevel(AST* ptr) {
       {
         bool r = true;
         struct AST_MODULE data = ast.data.AST_MODULE;
-        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
+        // ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         int* deferred = NULL;
         int* banks = NULL;
         for (int i = 0; i < arrlen(data.decls); i++) {
@@ -582,7 +582,7 @@ static bool traverse(AST* ptr) {
         struct AST_MAIN data = ast.data.AST_MAIN;
         bool r = true;
         for (int i = 0; i < arrlen(data.modules); i++) {
-          SYMBOL_TABLE_pushScope(data.modules[i]->scopeIndex);
+          SYMBOL_TABLE_resumeScope(data.modules[i]->scopeIndex);
           r &= traverse(data.modules[i]);
           SYMBOL_TABLE_closeScope();
           if (!r) {
@@ -651,6 +651,7 @@ static bool traverse(AST* ptr) {
       {
         bool r = true;
         struct AST_MODULE data = ast.data.AST_MODULE;
+        SYMBOL_TABLE_resumeScope(ptr->scopeIndex);
         int* banks = NULL;
         for (int i = 0; i < arrlen(data.decls); i++) {
           // Hoist FN resolution until after the main code
@@ -753,8 +754,8 @@ static bool traverse(AST* ptr) {
       {
         struct AST_ISR data = ast.data.AST_ISR;
         // Define symbol with parameter types
-        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         functionScope = true;
         bool r = traverse(data.body);
         functionScope = false;
@@ -767,8 +768,8 @@ static bool traverse(AST* ptr) {
         // Define symbol with parameter types
         bool r = true;
 
-        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         SYMBOL_TABLE_openScope(SCOPE_TYPE_FUNCTION);
+        ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
         for (int i = 0; i < arrlen(data.params); i++) {
           struct AST_PARAM param = data.params[i]->data.AST_PARAM;
           STR paramName = param.identifier;
