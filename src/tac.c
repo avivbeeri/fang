@@ -83,8 +83,14 @@ struct SECTION* prepareTree(AST* ptr) {
   return sections;
 }
 
+static int traverseStmt(void* context, AST* ptr) {
+
+}
+
 static TAC_BLOCK* TAC_generateBasicBlocks(AST* start) {
   TAC_BLOCK* block = calloc(1, sizeof(TAC_BLOCK));
+
+
   return block;
 }
 
