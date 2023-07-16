@@ -83,16 +83,158 @@ struct SECTION* prepareTree(AST* ptr) {
   return sections;
 }
 
-static int traverseStmt(void* context, AST* ptr) {
+static void TAC_add(TAC_BLOCK* context, TAC instruction) {
+  TAC* end = context->end;
 
+  TAC* entry = calloc(1, sizeof(TAC));
+  *entry = instruction;
+
+  entry->next = NULL;
+  entry->prev = end;
+
+  if (end != NULL) {
+    end->next = entry;
+  }
+  context->end  = entry;
+  TAC* start = context->start;
+  if (start == NULL) {
+    context->start = entry;
+  }
+}
+
+uint64_t tempNo = 0;
+
+static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
+  AST ast = *ptr;
+  switch (ast.tag) {
+    case AST_IDENTIFIER:
+      {
+        struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+        struct TAC_OPERAND_VARIABLE var = {
+          .module = data.module,
+          .name = data.identifier,
+          .type = ast.type,
+          .scopeIndex = ast.scopeIndex
+        };
+        TAC_OPERAND operand = (TAC_OPERAND){
+          .tag = TAC_OPERAND_VARIABLE,
+          .data = { .TAC_OPERAND_VARIABLE = var }
+        };
+        return operand;
+      }
+    case AST_LITERAL:
+      {
+        struct AST_LITERAL data = ast.data.AST_LITERAL;
+        struct TAC_OPERAND_LITERAL lit = {
+          .value = data.value
+        };
+        TAC_OPERAND operand = (TAC_OPERAND){
+          .tag = TAC_OPERAND_LITERAL,
+          .data = { .TAC_OPERAND_LITERAL = lit }
+        };
+        return operand;
+      }
+    case AST_BINARY:
+      {
+        struct AST_BINARY data = ast.data.AST_BINARY;
+        switch (data.op) {
+          case OP_ADD:
+            {
+              TAC_OPERAND l = traverseExpr(context, data.left);
+              TAC_OPERAND r = traverseExpr(context, data.right);
+              struct TAC_OPERAND_TEMPORARY temp = {
+                .n = tempNo++
+              };
+              TAC_OPERAND operand = (TAC_OPERAND){
+                .tag = TAC_OPERAND_TEMPORARY,
+                .data = { .TAC_OPERAND_TEMPORARY = temp }
+              };
+              TAC_add(context, (TAC){
+                .tag = TAC_TYPE_COPY,
+                .op1 = operand,
+                .op2 = l,
+                .op3 = r,
+                .op = TAC_OP_ADD,
+              });
+              return operand;
+            }
+          default:
+            break;
+        }
+      }
+    default: break;
+  }
+  return (TAC_OPERAND){ .tag = TAC_OPERAND_ERROR };
+}
+
+
+static int traverseStmt(TAC_BLOCK* context, AST* ptr) {
+  AST ast = *ptr;
+  switch (ast.tag) {
+    case AST_BLOCK:
+      {
+        struct AST_BLOCK data = ast.data.AST_BLOCK;
+        for (int i = 0; i < arrlen(data.decls); i++) {
+          traverseStmt(context, data.decls[i]);
+        }
+        break;
+      }
+    case AST_CONST_DECL:
+    case AST_VAR_INIT:
+      {
+        struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
+        TAC_OPERAND r = traverseExpr(context, data.expr);
+        struct TAC_OPERAND_VARIABLE var = {
+          // TODO: put module on everything
+         // .module = data.module,
+          .name = data.identifier,
+          .type = ast.type,
+          .scopeIndex = ast.scopeIndex
+        };
+        TAC_OPERAND l = (TAC_OPERAND){
+          .tag = TAC_OPERAND_VARIABLE,
+          .data = { .TAC_OPERAND_VARIABLE = var }
+        };
+
+        TAC_add(context, (TAC){
+          .tag = TAC_TYPE_COPY,
+          .op1 = l,
+          .op2 = r,
+          .op = TAC_OP_NONE,
+        });
+
+        return -1;
+      }
+    case AST_ASSIGNMENT:
+      {
+        struct AST_ASSIGNMENT data = ast.data.AST_ASSIGNMENT;
+        TAC_OPERAND r = traverseExpr(context, data.expr);
+        TAC_OPERAND l = traverseExpr(context, data.lvalue);
+
+        TAC_add(context, (TAC){
+          .tag = TAC_TYPE_COPY,
+          .op1 = l,
+          .op2 = r,
+          .op = TAC_OP_NONE,
+        });
+
+        return -1;
+      }
+    default:
+      {
+        // Default stmt is an expression
+        traverseExpr(context, ptr);
+      }
+  }
+  return -1;
 }
 
 static TAC_BLOCK* TAC_generateBasicBlocks(AST* start) {
   TAC_BLOCK* block = calloc(1, sizeof(TAC_BLOCK));
-  struct AST_BLOCK treeBlock = start.data.AST_BLOCK;
+//  struct AST_BLOCK treeBlock = start->data.AST_BLOCK;
 
   // Shove the entire function into a single block
-  traverseStmt(block, treeBlock.decls[i]);
+  traverseStmt(block, start);
 
   // Split block into basic blocks
 
@@ -113,14 +255,15 @@ static TAC_FUNCTION traverseFunction(AST* ptr) {
         function.name = data.identifier;
         function.used = false;
         function.start = TAC_generateBasicBlocks(data.body);
+        return function;
       }
-    default:
+    default: break;
   }
-  return function;
+  return (TAC_FUNCTION){};
 }
 
 static TAC_DATA traverseGlobal(AST* global) {
-  TAC_DATA tacData;
+  TAC_DATA tacData = (TAC_DATA){};
   AST ast = *global;
   switch (ast.tag) {
     case AST_CONST_DECL:
@@ -149,6 +292,8 @@ static TAC_DATA traverseGlobal(AST* global) {
         tacData.type = data.type->type;
         tacData.constant = false;
       }
+      break;
+    default:
       break;
   }
   return tacData;
@@ -192,12 +337,50 @@ void TAC_free(TAC_PROGRAM program) {
     TAC_SECTION section = program.sections[i];
     arrfree(program.sections[i].data);
     for (int j = 0; j < arrlen(section.functions); j++) {
-      // TODO: free the whole linked structure
-      free(section.functions[j].start);
+      TAC_BLOCK* block = section.functions[j].start;
+      TAC* current = block->start;
+      while (current != NULL) {
+        TAC* next = current->next;
+        free(current);
+        current = next;
+      }
+      free(block);
+      // TODO: free the whole linked block structure
     }
     arrfree(program.sections[i].functions);
   }
   arrfree(program.sections);
+}
+
+static void dumpOperand(TAC_OPERAND operand) {
+  switch (operand.tag) {
+    case TAC_OPERAND_LITERAL:
+      {
+        printValue(operand.data.TAC_OPERAND_LITERAL.value);
+        break;
+      }
+    case TAC_OPERAND_VARIABLE:
+      {
+        printf("%s", CHARS(operand.data.TAC_OPERAND_VARIABLE.name));
+        break;
+      }
+    case TAC_OPERAND_TEMPORARY:
+      {
+        printf("t%i", operand.data.TAC_OPERAND_TEMPORARY.n);
+        break;
+      }
+    default:
+      break;
+  }
+}
+
+static void dumpOperator(TAC_OP_TYPE op) {
+  switch (op) {
+    case TAC_OP_ERROR: printf(" ????? "); break;
+    case TAC_OP_NONE: printf(""); break;
+    case TAC_OP_ADD: printf(" + "); break;
+    case TAC_OP_EQ: printf(" == "); break;
+  }
 }
 
 void TAC_dump(TAC_PROGRAM program) {
@@ -219,6 +402,34 @@ void TAC_dump(TAC_PROGRAM program) {
         printf("%s::", CHARS(fn.module));
       }
       printf("%s(...)\n", CHARS(fn.name));
+
+      TAC_BLOCK* block = fn.start;
+      while (block != NULL) {
+        TAC* instruction = block->start;
+        while (instruction != NULL) {
+          switch (instruction->tag) {
+            case TAC_TYPE_COPY:
+              {
+                printf("COPY ");
+                dumpOperand(instruction->op1);
+                printf(" <- ");
+                if (instruction->op == TAC_OP_NONE) {
+                  dumpOperand(instruction->op2);
+                } else {
+                  dumpOperand(instruction->op2);
+                  dumpOperator(instruction->op);
+                  dumpOperand(instruction->op3);
+                }
+                printf("\n");
+                break;
+              }
+            default:
+              printf("instruction\n");
+          }
+          instruction = instruction->next;
+        }
+        block = block->next;
+      }
     }
   }
 }

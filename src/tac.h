@@ -29,6 +29,7 @@
 #include "common.h"
 #include "memory.h"
 #include "ast.h"
+#include "value.h"
 #include "type_table.h"
 #include "platform.h"
 
@@ -57,7 +58,7 @@ typedef enum {
 typedef struct TAC_OPERAND {
   TAC_OPERAND_TYPE tag;
   union {
-    struct TAC_OPERAND_LITERAL { uint8_t value; } TAC_OPERAND_LITERAL;
+    struct TAC_OPERAND_LITERAL { Value value; } TAC_OPERAND_LITERAL;
     struct TAC_OPERAND_TEMPORARY { uint32_t n; } TAC_OPERAND_TEMPORARY;
     struct TAC_OPERAND_VARIABLE { /* scope */ uint32_t scopeIndex; STR module; STR name; uint32_t index; TYPE_ID type; } TAC_OPERAND_VARIABLE;
     struct TAC_OPERAND_LABEL { uint32_t n; /* local? */} TAC_OPERAND_LABEL;
@@ -77,13 +78,14 @@ typedef enum {
 
 typedef struct TAC {
   TAC_TYPE tag;
-  struct TAC* prev;
-  struct TAC* next;
 
   TAC_OPERAND op1;
   TAC_OPERAND op2;
   TAC_OP_TYPE op;
   TAC_OPERAND op3;
+
+  struct TAC* prev;
+  struct TAC* next;
 } TAC;
 
 typedef struct TAC_BLOCK {

@@ -450,6 +450,9 @@ static int traverse(FILE* f, AST* ptr) {
         if (TYPE_get(data.lvalue->type).entryType == ENTRY_TYPE_ARRAY && TYPE_get(data.expr->type).entryType == ENTRY_TYPE_ARRAY) {
           return p.genCopyObject(f, l, r, data.lvalue->type);
         }
+        if (TYPE_get(data.lvalue->type).entryType == ENTRY_TYPE_UNION && TYPE_get(data.expr->type).entryType == ENTRY_TYPE_UNION) {
+          return p.genCopyObject(f, l, r, data.lvalue->type);
+        }
         return p.genAssign(f, l, r, data.lvalue->type);
       }
     case AST_IDENTIFIER:

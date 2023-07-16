@@ -1,5 +1,6 @@
-import "lib.fg"
+//import "lib.fg"
 
+/*
 bank test {
   fn goodbye(): void {
     sys::writeChar('C');
@@ -8,17 +9,17 @@ bank test {
   const i: i8 = 42;
 }
 
-fn main(): void {
-  hello();
-  goodbye();
-  sys::writeI8(i);
-}
-
 bank newtest {
   fn hello(): void {
     sys::writeChar('B');
     sys::writeChar('\n');
   }
+}
+*/
+
+fn main(): void {
+  var i: i8 = 0;
+  i = 1 + 2;
 }
 
 
