@@ -83,7 +83,8 @@ struct SECTION* prepareTree(AST* ptr) {
   return sections;
 }
 
-static void TAC_add(TAC_BLOCK* context, TAC instruction) {
+// Append instruction to end of block
+static void TAC_addInstruction(TAC_BLOCK* context, TAC instruction) {
   TAC* end = context->end;
 
   TAC* entry = calloc(1, sizeof(TAC));
@@ -103,6 +104,33 @@ static void TAC_add(TAC_BLOCK* context, TAC instruction) {
 }
 
 uint64_t tempNo = 0;
+uint64_t labelNo = 0;
+
+static TAC_OPERAND TAC_emitJump(TAC_BLOCK* context, uint64_t label) {
+  TAC_OPERAND operand = (TAC_OPERAND) {
+    .tag = TAC_OPERAND_LABEL,
+    .data = { .TAC_OPERAND_LABEL = { .n = label }}
+  };
+  TAC_addInstruction(context, (TAC){
+    .tag = TAC_TYPE_GOTO,
+    .op1 = operand,
+    .op = TAC_OP_NONE,
+  });
+  return operand;
+}
+static TAC_OPERAND TAC_emitLabel(TAC_BLOCK* context, uint64_t label) {
+  TAC_OPERAND operand = (TAC_OPERAND) {
+    .tag = TAC_OPERAND_LABEL,
+    .data = { .TAC_OPERAND_LABEL = { .n = label }}
+  };
+  TAC_addInstruction(context, (TAC){
+    .tag = TAC_TYPE_LABEL,
+    .op1 = operand,
+    .op = TAC_OP_NONE,
+  });
+  return operand;
+}
+
 
 static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
   AST ast = *ptr;
@@ -134,33 +162,83 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
         };
         return operand;
       }
+    case AST_UNARY:
+      {
+        struct AST_UNARY data = ast.data.AST_UNARY;
+        TAC_OPERAND r = traverseExpr(context, data.expr);
+        struct TAC_OPERAND_TEMPORARY temp = {
+          .n = tempNo++
+        };
+        TAC_OPERAND operand = (TAC_OPERAND){
+          .tag = TAC_OPERAND_TEMPORARY,
+          .data = { .TAC_OPERAND_TEMPORARY = temp }
+        };
+        TAC_OP_TYPE op = TAC_OP_ERROR;
+        switch (data.op) {
+          case OP_BITWISE_NOT: op = TAC_OP_BITWISE_NOT;
+          case OP_NOT: op = TAC_OP_NOT;
+          case OP_NEG: op = TAC_OP_NEG;
+          default: break;
+        }
+        TAC_addInstruction(context, (TAC){
+          .tag = TAC_TYPE_COPY,
+          .op1 = operand,
+          .op2 = r,
+          .op = op,
+        });
+        return operand;
+      }
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;
+        TAC_OPERAND l = traverseExpr(context, data.left);
+        TAC_OPERAND r = traverseExpr(context, data.right);
+        struct TAC_OPERAND_TEMPORARY temp = {
+          .n = tempNo++
+        };
+        TAC_OPERAND operand = (TAC_OPERAND){
+          .tag = TAC_OPERAND_TEMPORARY,
+          .data = { .TAC_OPERAND_TEMPORARY = temp }
+        };
+        TAC_OP_TYPE op = TAC_OP_ERROR;
         switch (data.op) {
           case OP_ADD:
-            {
-              TAC_OPERAND l = traverseExpr(context, data.left);
-              TAC_OPERAND r = traverseExpr(context, data.right);
-              struct TAC_OPERAND_TEMPORARY temp = {
-                .n = tempNo++
-              };
-              TAC_OPERAND operand = (TAC_OPERAND){
-                .tag = TAC_OPERAND_TEMPORARY,
-                .data = { .TAC_OPERAND_TEMPORARY = temp }
-              };
-              TAC_add(context, (TAC){
-                .tag = TAC_TYPE_COPY,
-                .op1 = operand,
-                .op2 = l,
-                .op3 = r,
-                .op = TAC_OP_ADD,
-              });
-              return operand;
-            }
+            op = TAC_OP_ADD; break;
+          case OP_SUB:
+            op = TAC_OP_SUB; break;
+          case OP_MOD:
+            op = TAC_OP_MOD; break;
+          case OP_MUL:
+            op = TAC_OP_MUL; break;
+          case OP_DIV:
+            op = TAC_OP_DIV; break;
+          case OP_GREATER:
+            op = TAC_OP_GREATER; break;
+          case OP_LESS:
+            op = TAC_OP_LESS; break;
+          case OP_GREATER_EQUAL:
+            op = TAC_OP_GREATER_EQUAL; break;
+          case OP_LESS_EQUAL:
+            op = TAC_OP_LESS_EQUAL; break;
+          case OP_SHIFT_LEFT:
+            op = TAC_OP_LSL; break;
+          case OP_SHIFT_RIGHT:
+            op = TAC_OP_LSR; break;
+          case OP_BITWISE_AND:
+            op = TAC_OP_BITWISE_AND; break;
+          case OP_BITWISE_OR:
+            op = TAC_OP_BITWISE_OR; break;
           default:
             break;
         }
+        TAC_addInstruction(context, (TAC){
+          .tag = TAC_TYPE_COPY,
+          .op1 = operand,
+          .op2 = l,
+          .op3 = r,
+          .op = op,
+        });
+        return operand;
       }
     default: break;
   }
@@ -196,7 +274,7 @@ static int traverseStmt(TAC_BLOCK* context, AST* ptr) {
           .data = { .TAC_OPERAND_VARIABLE = var }
         };
 
-        TAC_add(context, (TAC){
+        TAC_addInstruction(context, (TAC){
           .tag = TAC_TYPE_COPY,
           .op1 = l,
           .op2 = r,
@@ -211,13 +289,35 @@ static int traverseStmt(TAC_BLOCK* context, AST* ptr) {
         TAC_OPERAND r = traverseExpr(context, data.expr);
         TAC_OPERAND l = traverseExpr(context, data.lvalue);
 
-        TAC_add(context, (TAC){
+        TAC_addInstruction(context, (TAC){
           .tag = TAC_TYPE_COPY,
           .op1 = l,
           .op2 = r,
           .op = TAC_OP_NONE,
         });
 
+        return -1;
+      }
+    case AST_IF:
+      {
+        struct AST_IF data = ast.data.AST_IF;
+        TAC_OPERAND condition = traverseExpr(context, data.condition);
+        uint32_t nextLabel = labelNo++;
+        // TODO - branch on condition
+        TAC_emitJump(context, nextLabel);
+        traverseStmt(context, data.body);
+
+        if (data.elseClause != NULL) {
+          // jump
+          uint32_t endLabel = labelNo++;
+          TAC_emitJump(context, endLabel);
+          TAC_emitLabel(context, nextLabel);
+          traverseStmt(context, data.elseClause);
+          // emit label
+          TAC_emitLabel(context, endLabel);
+        } else {
+          TAC_emitLabel(context, nextLabel);
+        }
         return -1;
       }
     default:
@@ -243,6 +343,8 @@ static TAC_BLOCK* TAC_generateBasicBlocks(AST* start) {
 
 static TAC_FUNCTION traverseFunction(AST* ptr) {
   TAC_FUNCTION function;
+  tempNo = 0;
+  labelNo = 0;
   AST ast = *ptr;
   switch (ast.tag) {
     case AST_ISR:
@@ -369,6 +471,11 @@ static void dumpOperand(TAC_OPERAND operand) {
         printf("t%i", operand.data.TAC_OPERAND_TEMPORARY.n);
         break;
       }
+    case TAC_OPERAND_LABEL:
+      {
+        printf("L%i", operand.data.TAC_OPERAND_LABEL.n);
+        break;
+      }
     default:
       break;
   }
@@ -378,8 +485,27 @@ static void dumpOperator(TAC_OP_TYPE op) {
   switch (op) {
     case TAC_OP_ERROR: printf(" ????? "); break;
     case TAC_OP_NONE: printf(""); break;
-    case TAC_OP_ADD: printf(" + "); break;
-    case TAC_OP_EQ: printf(" == "); break;
+    case TAC_OP_ADD: printf("+"); break;
+    case TAC_OP_SUB: printf("-"); break;
+    case TAC_OP_MUL: printf("*"); break;
+    case TAC_OP_DIV: printf("/"); break;
+    case TAC_OP_MOD: printf("%%"); break;
+    case TAC_OP_AND: printf("&&"); break;
+    case TAC_OP_OR: printf("||"); break;
+    case TAC_OP_LSR: printf(">>"); break;
+    case TAC_OP_LSL: printf("<<"); break;
+    case TAC_OP_GREATER: printf(">"); break;
+    case TAC_OP_LESS: printf("<"); break;
+    case TAC_OP_GREATER_EQUAL: printf(">="); break;
+    case TAC_OP_LESS_EQUAL: printf("<="); break;
+    case TAC_OP_EQUAL: printf("=="); break;
+    case TAC_OP_NOT_EQUAL: printf("!="); break;
+    case TAC_OP_BITWISE_AND: printf("&"); break;
+    case TAC_OP_BITWISE_OR: printf("|"); break;
+    case TAC_OP_BITWISE_XOR: printf("^"); break;
+    case TAC_OP_BITWISE_NOT: printf("~"); break;
+    case TAC_OP_NEG: printf("-"); break;
+    case TAC_OP_NOT: printf("!"); break;
   }
 }
 
@@ -412,15 +538,41 @@ void TAC_dump(TAC_PROGRAM program) {
               {
                 printf("COPY ");
                 dumpOperand(instruction->op1);
-                printf(" <- ");
+                printf(" <-- ");
                 if (instruction->op == TAC_OP_NONE) {
                   dumpOperand(instruction->op2);
-                } else {
-                  dumpOperand(instruction->op2);
+                } else if (instruction->op == TAC_OP_NEG) {
                   dumpOperator(instruction->op);
+                  dumpOperand(instruction->op2);
+                } else if (instruction->op == TAC_OP_BITWISE_NOT) {
+                  dumpOperator(instruction->op);
+                  dumpOperand(instruction->op2);
+                } else if (instruction->op == TAC_OP_NOT) {
+                  dumpOperator(instruction->op);
+                  dumpOperand(instruction->op2);
+                } else {
+                  printf("(");
+                  dumpOperator(instruction->op);
+                  printf(" ");
+                  dumpOperand(instruction->op2);
+                  printf(" ");
                   dumpOperand(instruction->op3);
+                  printf(")");
                 }
                 printf("\n");
+                break;
+              }
+            case TAC_TYPE_GOTO:
+              {
+                printf("GOTO ");
+                dumpOperand(instruction->op1);
+                printf("\n");
+                break;
+              }
+            case TAC_TYPE_LABEL:
+              {
+                dumpOperand(instruction->op1);
+                printf(":\n");
                 break;
               }
             default:
