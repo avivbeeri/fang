@@ -113,15 +113,36 @@ static TAC_OPERAND labelOperand(uint64_t label) {
   return operand;
 }
 
-static void TAC_emitIfFalse(TAC_BLOCK* context, TAC_OPERAND operand, uint64_t label) {
+static TAC_OPERAND tempOperand(void) {
+  struct TAC_OPERAND_TEMPORARY temp = {
+    .n = tempNo++
+  };
+  TAC_OPERAND operand = (TAC_OPERAND){
+    .tag = TAC_OPERAND_TEMPORARY,
+    .data = { .TAC_OPERAND_TEMPORARY = temp }
+  };
+  return operand;
+}
+
+static void TAC_emitIfTrue(TAC_BLOCK* context, TAC_OPERAND operand, uint64_t label) {
   TAC_OPERAND branch = labelOperand(label);
   TAC_addInstruction(context, (TAC){
-    .tag = TAC_TYPE_IF,
+    .tag = TAC_TYPE_IF_TRUE,
     .op1 = operand,
     .op2 = branch,
     .op = TAC_OP_NONE,
   });
 }
+static void TAC_emitIfFalse(TAC_BLOCK* context, TAC_OPERAND operand, uint64_t label) {
+  TAC_OPERAND branch = labelOperand(label);
+  TAC_addInstruction(context, (TAC){
+    .tag = TAC_TYPE_IF_FALSE,
+    .op1 = operand,
+    .op2 = branch,
+    .op = TAC_OP_NONE,
+  });
+}
+
 static void TAC_emitJump(TAC_BLOCK* context, uint64_t label) {
   TAC_OPERAND operand = labelOperand(label);
   TAC_addInstruction(context, (TAC){
@@ -139,6 +160,22 @@ static void TAC_emitLabel(TAC_BLOCK* context, uint64_t label) {
   });
 }
 
+static TAC_OPERAND TAC_emitConstant(TAC_BLOCK* context, TAC_OPERAND operand, uint64_t constant) {
+  struct TAC_OPERAND_LITERAL lit = {
+    .value = LIT_NUM(constant)
+  };
+  TAC_OPERAND literal = (TAC_OPERAND){
+    .tag = TAC_OPERAND_LITERAL,
+    .data = { .TAC_OPERAND_LITERAL = lit }
+  };
+  TAC_addInstruction(context, (TAC){
+    .tag = TAC_TYPE_COPY,
+    .op1 = operand,
+    .op2 = literal,
+    .op = TAC_OP_NONE,
+  });
+  return operand;
+}
 
 static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
   AST ast = *ptr;
@@ -199,8 +236,7 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
     case AST_BINARY:
       {
         struct AST_BINARY data = ast.data.AST_BINARY;
-        TAC_OPERAND l = traverseExpr(context, data.left);
-        TAC_OPERAND r = traverseExpr(context, data.right);
+
         struct TAC_OPERAND_TEMPORARY temp = {
           .n = tempNo++
         };
@@ -208,6 +244,40 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
           .tag = TAC_OPERAND_TEMPORARY,
           .data = { .TAC_OPERAND_TEMPORARY = temp }
         };
+
+        if (data.op == OP_AND) {
+          uint32_t falseLabel = labelNo++;
+          uint32_t doneLabel = labelNo++;
+          TAC_OPERAND l = traverseExpr(context, data.left);
+          TAC_emitIfFalse(context, l, falseLabel);
+          TAC_OPERAND r = traverseExpr(context, data.right);
+          TAC_emitIfFalse(context, r, falseLabel);
+          TAC_emitConstant(context, operand, 1);
+          TAC_emitJump(context, doneLabel);
+          TAC_emitLabel(context, falseLabel);
+          TAC_emitConstant(context, operand, 0);
+          TAC_emitLabel(context, doneLabel);
+          return operand;
+        } else if (data.op == OP_OR) {
+          uint32_t trueLabel = labelNo++;
+          uint32_t doneLabel = labelNo++;
+          TAC_OPERAND l = traverseExpr(context, data.left);
+          TAC_emitIfTrue(context, l, trueLabel);
+          TAC_OPERAND r = traverseExpr(context, data.right);
+          TAC_emitIfTrue(context, r, trueLabel);
+
+          TAC_emitConstant(context, operand, 0);
+          TAC_emitJump(context, doneLabel);
+
+          TAC_emitLabel(context, trueLabel);
+          TAC_emitConstant(context, operand, 1);
+          TAC_emitLabel(context, doneLabel);
+
+          return operand;
+        }
+
+        TAC_OPERAND l = traverseExpr(context, data.left);
+        TAC_OPERAND r = traverseExpr(context, data.right);
         TAC_OP_TYPE op = TAC_OP_ERROR;
         switch (data.op) {
           case OP_ADD:
@@ -236,6 +306,8 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
             op = TAC_OP_BITWISE_AND; break;
           case OP_BITWISE_OR:
             op = TAC_OP_BITWISE_OR; break;
+          case OP_BITWISE_XOR:
+            op = TAC_OP_BITWISE_XOR; break;
           default:
             break;
         }
@@ -620,9 +692,18 @@ void TAC_dump(TAC_PROGRAM program) {
                 printf("\n");
                 break;
               }
-            case TAC_TYPE_IF:
+            case TAC_TYPE_IF_FALSE:
               {
                 printf("IF_FALSE ");
+                dumpOperand(instruction->op1);
+                printf(" GOTO ");
+                dumpOperand(instruction->op2);
+                printf("\n");
+                break;
+              }
+            case TAC_TYPE_IF_TRUE:
+              {
+                printf("IF_TRUE ");
                 dumpOperand(instruction->op1);
                 printf(" GOTO ");
                 dumpOperand(instruction->op2);
