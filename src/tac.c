@@ -1,5 +1,4 @@
-/*
-  MIT License
+/* MIT License
 
   Copyright (c) 2023 Aviv Beeri
   Copyright (c) 2015 Robert "Bob" Nystrom
@@ -114,7 +113,7 @@ static TAC_OPERAND labelOperand(uint64_t label) {
   return operand;
 }
 
-static void TAC_emitIf(TAC_BLOCK* context, TAC_OPERAND operand, uint64_t label) {
+static void TAC_emitIfFalse(TAC_BLOCK* context, TAC_OPERAND operand, uint64_t label) {
   TAC_OPERAND branch = labelOperand(label);
   TAC_addInstruction(context, (TAC){
     .tag = TAC_TYPE_IF,
@@ -307,13 +306,56 @@ static int traverseStmt(TAC_BLOCK* context, AST* ptr) {
 
         return -1;
       }
+    case AST_DO_WHILE:
+      {
+        struct AST_DO_WHILE data = ast.data.AST_DO_WHILE;
+        uint32_t loopLabel = labelNo++;
+        TAC_emitLabel(context, loopLabel);
+        traverseStmt(context, data.body);
+        TAC_OPERAND condition = traverseExpr(context, data.condition);
+        TAC_emitIfFalse(context, condition, loopLabel);
+        return -1;
+      }
+    case AST_WHILE:
+      {
+        struct AST_WHILE data = ast.data.AST_WHILE;
+        uint32_t loopLabel = labelNo++;
+        uint32_t exitLabel = labelNo++;
+        TAC_emitLabel(context, loopLabel);
+        TAC_OPERAND condition = traverseExpr(context, data.condition);
+        TAC_emitIfFalse(context, condition, exitLabel);
+        traverseStmt(context, data.body);
+        TAC_emitJump(context, loopLabel);
+        TAC_emitLabel(context, exitLabel);
+        return -1;
+      }
+    case AST_FOR:
+      {
+        struct AST_FOR data = ast.data.AST_FOR;
+        uint32_t loopLabel = labelNo++;
+        uint32_t exitLabel = labelNo++;
+        if (data.initializer != NULL) {
+          traverseStmt(context, data.initializer);
+        }
+        TAC_emitLabel(context, loopLabel);
+        if (data.condition != NULL) {
+          TAC_OPERAND condition = traverseExpr(context, data.condition);
+          TAC_emitIfFalse(context, condition, exitLabel);
+        }
+        traverseStmt(context, data.body);
+        if (data.increment != NULL) {
+          traverseStmt(context, data.increment);
+        }
+        TAC_emitJump(context, loopLabel);
+        TAC_emitLabel(context, exitLabel);
+        return -1;
+      }
     case AST_IF:
       {
         struct AST_IF data = ast.data.AST_IF;
         TAC_OPERAND condition = traverseExpr(context, data.condition);
         uint32_t nextLabel = labelNo++;
-        // TODO - branch on condition
-        TAC_emitIf(context, condition, nextLabel);
+        TAC_emitIfFalse(context, condition, nextLabel);
         traverseStmt(context, data.body);
 
         if (data.elseClause != NULL) {
@@ -582,7 +624,7 @@ void TAC_dump(TAC_PROGRAM program) {
               {
                 printf("IF_FALSE ");
                 dumpOperand(instruction->op1);
-                printf(" -> ");
+                printf(" GOTO ");
                 dumpOperand(instruction->op2);
                 printf("\n");
                 break;
