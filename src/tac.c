@@ -106,29 +106,38 @@ static void TAC_addInstruction(TAC_BLOCK* context, TAC instruction) {
 uint64_t tempNo = 0;
 uint64_t labelNo = 0;
 
-static TAC_OPERAND TAC_emitJump(TAC_BLOCK* context, uint64_t label) {
+static TAC_OPERAND labelOperand(uint64_t label) {
   TAC_OPERAND operand = (TAC_OPERAND) {
     .tag = TAC_OPERAND_LABEL,
     .data = { .TAC_OPERAND_LABEL = { .n = label }}
   };
+  return operand;
+}
+
+static void TAC_emitIf(TAC_BLOCK* context, TAC_OPERAND operand, uint64_t label) {
+  TAC_OPERAND branch = labelOperand(label);
+  TAC_addInstruction(context, (TAC){
+    .tag = TAC_TYPE_IF,
+    .op1 = operand,
+    .op2 = branch,
+    .op = TAC_OP_NONE,
+  });
+}
+static void TAC_emitJump(TAC_BLOCK* context, uint64_t label) {
+  TAC_OPERAND operand = labelOperand(label);
   TAC_addInstruction(context, (TAC){
     .tag = TAC_TYPE_GOTO,
     .op1 = operand,
     .op = TAC_OP_NONE,
   });
-  return operand;
 }
-static TAC_OPERAND TAC_emitLabel(TAC_BLOCK* context, uint64_t label) {
-  TAC_OPERAND operand = (TAC_OPERAND) {
-    .tag = TAC_OPERAND_LABEL,
-    .data = { .TAC_OPERAND_LABEL = { .n = label }}
-  };
+static void TAC_emitLabel(TAC_BLOCK* context, uint64_t label) {
+  TAC_OPERAND operand = labelOperand(label);
   TAC_addInstruction(context, (TAC){
     .tag = TAC_TYPE_LABEL,
     .op1 = operand,
     .op = TAC_OP_NONE,
   });
-  return operand;
 }
 
 
@@ -304,7 +313,7 @@ static int traverseStmt(TAC_BLOCK* context, AST* ptr) {
         TAC_OPERAND condition = traverseExpr(context, data.condition);
         uint32_t nextLabel = labelNo++;
         // TODO - branch on condition
-        TAC_emitJump(context, nextLabel);
+        TAC_emitIf(context, condition, nextLabel);
         traverseStmt(context, data.body);
 
         if (data.elseClause != NULL) {
@@ -552,9 +561,9 @@ void TAC_dump(TAC_PROGRAM program) {
                   dumpOperand(instruction->op2);
                 } else {
                   printf("(");
-                  dumpOperator(instruction->op);
-                  printf(" ");
                   dumpOperand(instruction->op2);
+                  printf(" ");
+                  dumpOperator(instruction->op);
                   printf(" ");
                   dumpOperand(instruction->op3);
                   printf(")");
@@ -566,6 +575,15 @@ void TAC_dump(TAC_PROGRAM program) {
               {
                 printf("GOTO ");
                 dumpOperand(instruction->op1);
+                printf("\n");
+                break;
+              }
+            case TAC_TYPE_IF:
+              {
+                printf("IF_FALSE ");
+                dumpOperand(instruction->op1);
+                printf(" -> ");
+                dumpOperand(instruction->op2);
                 printf("\n");
                 break;
               }
