@@ -553,9 +553,6 @@ TAC_PROGRAM emitTAC(AST* ptr) {
   return program;
 }
 
-void emitProgram(TAC_PROGRAM program, PLATFORM p) {
-
-}
 
 void TAC_free(TAC_PROGRAM program) {
   for (int i = 0; i < arrlen(program.sections); i++) {

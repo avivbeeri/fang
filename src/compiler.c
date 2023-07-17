@@ -1,4 +1,5 @@
 /*
+ *
   MIT License
 
   Copyright (c) 2023 Aviv Beeri
@@ -36,6 +37,7 @@
 #include "dump.h"
 #include "emit.h"
 #include "tac.h"
+#include "emit_tac.h"
 #include "eval.h"
 #include "options.h"
 #include "platform.h"
@@ -86,8 +88,10 @@ bool compile(const SourceFile* sources) {
   if (result) {
     //emitTree(ast, p);
     TAC_PROGRAM program = emitTAC(ast);
-    emitProgram(program, p);
+    printf("TAC dump\n");
     TAC_dump(program);
+    printf("TAC to ASM\n");
+    tacToAsm(program, p);
     TAC_free(program);
     // evalTree(ast);
   }
