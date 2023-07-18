@@ -21,7 +21,7 @@ static char *regList[REG_SIZE] = { "X8", "X9", "X10", "X11" };
 #define FN_INDEX 9
 #define CHAR_INDEX 10
 
-int* sizeTable = NULL;
+static int* sizeTable = NULL;
 static int getSize(TYPE_ID id) {
   TYPE_ENTRY entry = TYPE_get(id);
   if (entry.entryType == ENTRY_TYPE_PRIMITIVE) {

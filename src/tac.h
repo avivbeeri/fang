@@ -83,7 +83,7 @@ typedef struct TAC_OPERAND {
   union {
     struct TAC_OPERAND_LITERAL { Value value; } TAC_OPERAND_LITERAL;
     struct TAC_OPERAND_TEMPORARY { uint32_t n; } TAC_OPERAND_TEMPORARY;
-    struct TAC_OPERAND_VARIABLE { /* scope */ uint32_t scopeIndex; STR module; STR name; uint32_t index; TYPE_ID type; } TAC_OPERAND_VARIABLE;
+    struct TAC_OPERAND_VARIABLE { /* scope */ uint32_t scopeIndex; STR module; STR name; uint32_t index; } TAC_OPERAND_VARIABLE;
     struct TAC_OPERAND_LABEL { uint32_t n; /* local? */} TAC_OPERAND_LABEL;
   } data;
 } TAC_OPERAND;

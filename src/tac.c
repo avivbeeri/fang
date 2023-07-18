@@ -187,7 +187,6 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
         struct TAC_OPERAND_VARIABLE var = {
           .module = data.module,
           .name = data.identifier,
-          .type = ast.type,
           .scopeIndex = ast.scopeIndex
         };
         TAC_OPERAND operand = (TAC_OPERAND){
@@ -353,7 +352,6 @@ static int traverseStmt(TAC_BLOCK* context, AST* ptr) {
           // TODO: put module on everything
          // .module = data.module,
           .name = data.identifier,
-          .type = ast.type,
           .scopeIndex = ast.scopeIndex
         };
         TAC_OPERAND l = (TAC_OPERAND){

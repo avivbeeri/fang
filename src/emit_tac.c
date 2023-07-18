@@ -26,8 +26,83 @@
 #include "tac.h"
 PLATFORM p;
 
+// ****** GB PLATFORM TEMP ******
+
+static int* sizeTable = NULL;
+static int TYPE_getSize(TYPE_ID id) {
+  TYPE_ENTRY entry = TYPE_get(id);
+  if (entry.entryType == ENTRY_TYPE_PRIMITIVE) {
+    return sizeTable[id];
+  }
+  if (entry.entryType == ENTRY_TYPE_ARRAY) {
+    // PTR
+    return sizeTable[11];
+  }
+
+  if (entry.entryType != ENTRY_TYPE_RECORD) {
+    return 8;
+  }
+  int size = 0;
+  for (int i = 0; i < arrlen(entry.fields); i++) {
+    if (entry.fields[i].elementCount == 0) {
+      size += TYPE_getSize(entry.fields[i].typeIndex);
+    } else {
+      size += TYPE_getSize(TYPE_getParentId(entry.fields[i].typeIndex)) * entry.fields[i].elementCount;
+    }
+  }
+  return size;
+}
+
+
+struct ACCESS_RECORD {
+  TAC_OPERAND operand;
+  bool local; // Global
+  uint64_t start;
+  uint64_t end;
+};
+
+static void GB_setup() {
+  arrput(sizeTable, 0); // NULL
+  arrput(sizeTable, 0); // VOID
+  arrput(sizeTable, 1); // BOOL
+  arrput(sizeTable, 1); // u8
+  arrput(sizeTable, 1); // i8
+  arrput(sizeTable, 2); // u16
+  arrput(sizeTable, 2); // i16
+  arrput(sizeTable, 2); // number
+  arrput(sizeTable, 2); // string ptr
+  arrput(sizeTable, 2); // fn ptr
+  arrput(sizeTable, 1); // char
+  arrput(sizeTable, 2); // ptr
+}
+
+static void GB_free() {
+  arrfree(sizeTable);
+}
+
 static char* symbol(TAC_OPERAND op) {
   return NULL;
+}
+
+
+static void scanBlock(TAC_BLOCK* block) {
+  TAC* instruction = block->start;
+  uint64_t step = 0;
+  struct ACTIVE_RECORD* records = NULL;
+  while (instruction != NULL) {
+    switch (instruction->tag) {
+      case TAC_TYPE_COPY:
+        {
+          // find operand in records
+          // if not exist, figure out of global, or create with start index,
+          // else, record end index
+          //
+        }
+        break;
+    }
+    instruction = instruction->next;
+    step++;
+  }
 }
 
 static void emitBlock(FILE* f, TAC_BLOCK* block) {
@@ -43,6 +118,10 @@ static void emitBlock(FILE* f, TAC_BLOCK* block) {
     instruction = instruction->next;
   }
 }
+
+// ****** GB PLATFORM  END ******
+
+
 
 static void emitProgram(FILE* f, TAC_PROGRAM program) {
   // get file
@@ -91,6 +170,7 @@ void tacToAsm(TAC_PROGRAM program, PLATFORM platform) {
     }
   }
 
+  GB_setup();
   p.init();
   // Do something to print program
   emitProgram(f, program);
@@ -103,5 +183,6 @@ void tacToAsm(TAC_PROGRAM program, PLATFORM platform) {
   }
 
   PLATFORM_shutdown();
+  GB_free();
 //   EVAL_free();
 }
