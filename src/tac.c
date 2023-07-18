@@ -184,10 +184,11 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
     case AST_IDENTIFIER:
       {
         struct AST_IDENTIFIER data = ast.data.AST_IDENTIFIER;
+        SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         struct TAC_OPERAND_VARIABLE var = {
           .module = data.module,
           .name = data.identifier,
-          .scopeIndex = ast.scopeIndex
+          .scopeIndex = entry.scopeIndex
         };
         TAC_OPERAND operand = (TAC_OPERAND){
           .tag = TAC_OPERAND_VARIABLE,
@@ -348,11 +349,12 @@ static int traverseStmt(TAC_BLOCK* context, AST* ptr) {
       {
         struct AST_VAR_INIT data = ast.data.AST_VAR_INIT;
         TAC_OPERAND r = traverseExpr(context, data.expr);
+        SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_get(ast.scopeIndex, data.identifier);
         struct TAC_OPERAND_VARIABLE var = {
           // TODO: put module on everything
-         // .module = data.module,
+          .module = SYMBOL_TABLE_getNameFromStart(ast.scopeIndex),
           .name = data.identifier,
-          .scopeIndex = ast.scopeIndex
+          .scopeIndex = entry.scopeIndex
         };
         TAC_OPERAND l = (TAC_OPERAND){
           .tag = TAC_OPERAND_VARIABLE,
@@ -580,7 +582,7 @@ void TAC_free(TAC_PROGRAM program) {
   arrfree(program.sections);
 }
 
-static void dumpOperand(TAC_OPERAND operand) {
+void dumpOperand(TAC_OPERAND operand) {
   switch (operand.tag) {
     case TAC_OPERAND_LITERAL:
       {

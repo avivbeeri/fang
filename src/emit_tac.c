@@ -28,6 +28,13 @@ PLATFORM p;
 
 // ****** GB PLATFORM TEMP ******
 
+struct ACCESS_RECORD {
+  TAC_OPERAND operand;
+  bool local; // Global
+  uint64_t start;
+  uint64_t end;
+};
+
 static int* sizeTable = NULL;
 static int TYPE_getSize(TYPE_ID id) {
   TYPE_ENTRY entry = TYPE_get(id);
@@ -53,14 +60,6 @@ static int TYPE_getSize(TYPE_ID id) {
   return size;
 }
 
-
-struct ACCESS_RECORD {
-  TAC_OPERAND operand;
-  bool local; // Global
-  uint64_t start;
-  uint64_t end;
-};
-
 static void GB_setup() {
   arrput(sizeTable, 0); // NULL
   arrput(sizeTable, 0); // VOID
@@ -84,11 +83,59 @@ static char* symbol(TAC_OPERAND op) {
   return NULL;
 }
 
+static bool TAC_OPERAND_equal(TAC_OPERAND op1, TAC_OPERAND op2) {
+  if (op1.tag == op2.tag) {
+    if (op1.tag == TAC_OPERAND_TEMPORARY) {
+      return op1.data.TAC_OPERAND_TEMPORARY.n == op2.data.TAC_OPERAND_TEMPORARY.n;
+    } else if (op1.tag == TAC_OPERAND_VARIABLE) {
+      struct TAC_OPERAND_VARIABLE v1 = op1.data.TAC_OPERAND_VARIABLE;
+      struct TAC_OPERAND_VARIABLE v2 = op2.data.TAC_OPERAND_VARIABLE;
+      return v1.module == v2.module && v1.name == v2.name && v1.scopeIndex == v2.scopeIndex;
+    }
+  }
+  return false;
+}
 
-static void scanBlock(TAC_BLOCK* block) {
+static struct ACCESS_RECORD* updateRecords(struct ACCESS_RECORD* records, uint64_t step, TAC_OPERAND operand) {
+
+  if (operand.tag != TAC_OPERAND_TEMPORARY && operand.tag != TAC_OPERAND_VARIABLE) {
+    return records;
+  }
+  int i = 0;
+  bool found = false;
+  for (; i < arrlen(records); i++) {
+    struct ACCESS_RECORD current = records[i];
+    if (current.operand.tag == TAC_OPERAND_LITERAL || current.operand.tag == TAC_OPERAND_LABEL) {
+      continue;
+    }
+    if (TAC_OPERAND_equal(current.operand, operand)) {
+      found = true;
+      break;
+    }
+  }
+  if (found) {
+    records[i].end = step;
+    printf("Found ");
+    dumpOperand(records[i].operand);
+    printf("\n");
+  } else {
+    printf("Adding ");
+    dumpOperand(operand);
+    printf("\n");
+    arrput(records, ((struct ACCESS_RECORD){
+      .operand = operand,
+      .local = true, // TODO false
+      .start = step,
+      .end = step
+    }));
+  }
+  return records;
+}
+
+static struct ACCESS_RECORD* scanBlock(TAC_BLOCK* block) {
   TAC* instruction = block->start;
   uint64_t step = 0;
-  struct ACTIVE_RECORD* records = NULL;
+  struct ACCESS_RECORD* records = NULL;
   while (instruction != NULL) {
     switch (instruction->tag) {
       case TAC_TYPE_COPY:
@@ -97,26 +144,53 @@ static void scanBlock(TAC_BLOCK* block) {
           // if not exist, figure out of global, or create with start index,
           // else, record end index
           //
+          records = updateRecords(records, step, instruction->op1);
+          records = updateRecords(records, step, instruction->op2);
+          if (instruction->op != TAC_OP_NONE
+            && instruction->op != TAC_OP_NEG
+            && instruction->op != TAC_OP_BITWISE_NOT
+            && instruction->op != TAC_OP_NOT) {
+            records = updateRecords(records, step, instruction->op3);
+          }
+        }
+        break;
+      case TAC_TYPE_IF_TRUE:
+      case TAC_TYPE_IF_FALSE:
+        {
+          // find operand in records
+          // if not exist, figure out of global, or create with start index,
+          // else, record end index
+          //
+          records = updateRecords(records, step, instruction->op1);
         }
         break;
     }
     instruction = instruction->next;
     step++;
   }
+
+  for (int i = 0; i < arrlen(records); i++) {
+    dumpOperand(records[i].operand);
+    printf(": From %i to %i\n", records[i].start, records[i].end);
+  }
+  return NULL;
 }
 
 static void emitBlock(FILE* f, TAC_BLOCK* block) {
+  struct ACCESS_RECORD* records = scanBlock(block);
   TAC* instruction = block->start;
   while (instruction != NULL) {
     switch (instruction->tag) {
       case TAC_TYPE_COPY:
         {
-          fprintf(f, "LD %s, %s", symbol(instruction->op1), symbol(instruction->op2));
+          fprintf(f, "LD %s, %s\n", symbol(instruction->op1), symbol(instruction->op2));
         }
         break;
     }
     instruction = instruction->next;
   }
+
+  arrfree(records);
 }
 
 // ****** GB PLATFORM  END ******

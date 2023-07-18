@@ -159,5 +159,6 @@ typedef struct {
 TAC_PROGRAM emitTAC(AST* ptr);
 void TAC_free(TAC_PROGRAM program);
 void TAC_dump(TAC_PROGRAM program);
+void dumpOperand(TAC_OPERAND operand);
 
 #endif
