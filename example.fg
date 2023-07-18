@@ -18,9 +18,12 @@ bank newtest {
 */
 
 fn main(): void {
-  var i: i8 = 1;
+  var i: i8 = 3;
   if (i < 5) {
     i = 4;
+  }
+  while (i < 5) {
+    i = i - 1;
   }
 }
 

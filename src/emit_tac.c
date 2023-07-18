@@ -33,6 +33,7 @@ struct ACCESS_RECORD {
   bool local; // Global
   uint64_t start;
   uint64_t end;
+  uint64_t length;
 };
 
 static int* sizeTable = NULL;
@@ -171,6 +172,7 @@ static struct ACCESS_RECORD* scanBlock(TAC_BLOCK* block) {
 
   for (int i = 0; i < arrlen(records); i++) {
     dumpOperand(records[i].operand);
+    records[i].length = records[i].end - records[i].start;
     printf(": From %i to %i\n", records[i].start, records[i].end);
   }
   return NULL;
