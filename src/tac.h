@@ -79,6 +79,7 @@ typedef enum {
 
 typedef struct TAC_OPERAND {
   TAC_OPERAND_TYPE tag;
+  TYPE_ID type;
   union {
     struct TAC_OPERAND_LITERAL { Value value; } TAC_OPERAND_LITERAL;
     struct TAC_OPERAND_TEMPORARY { uint32_t n; } TAC_OPERAND_TEMPORARY;

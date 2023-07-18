@@ -97,29 +97,6 @@ static int coerceType(int type1, int type2) {
   return NUMERICAL_INDEX;
 }
 
-static int valueToType(Value value) {
-  switch (value.type) {
-    case VAL_ERROR: return 0;
-    case VAL_UNDEF: return 1; // void
-    case VAL_BOOL: return BOOL_INDEX;
-
-    case VAL_CHAR: return CHAR_INDEX;
-    case VAL_U8: return U8_INDEX;
-
-    case VAL_I8: return I8_INDEX;
-
-    case VAL_U16: return U16_INDEX;
-    case VAL_PTR: return STRING_INDEX;
-
-    case VAL_I16: return I16_INDEX;
-    case VAL_LIT_NUM: return NUMERICAL_INDEX;
-    case VAL_STRING: return STRING_INDEX;
-    case VAL_RECORD: return 0;
-    case VAL_ARRAY: return 0;
-    // Open to implicit num casting
-  }
-  return 0;
-}
 static bool resolveVariableDecl(AST* ptr) {
   AST ast = *ptr;
   ptr->scopeIndex = SYMBOL_TABLE_getCurrentScopeIndex();
@@ -788,7 +765,7 @@ static bool traverse(AST* ptr) {
       {
         struct AST_LITERAL data = ast.data.AST_LITERAL;
         Value value = data.value; //CONST_TABLE_get(data.constantIndex);
-        int rightType = valueToType(value);
+        TYPE_ID rightType = VALUE_getType(value);
         ptr->type = rightType;
         ptr->rvalue = true;
         return true;

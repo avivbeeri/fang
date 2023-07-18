@@ -28,6 +28,7 @@
 
 #include "memory.h"
 #include "common.h"
+#include "type_table.h"
 
 typedef enum {
   VAL_UNDEF,
@@ -120,6 +121,7 @@ typedef struct Value {
 
 Value getNumericalValue(int32_t n);
 Value getTypedNumberValue(ValueType type, int32_t n);
+TYPE_ID VALUE_getType(Value value);
 void printValue(Value value);
 void printValueType(Value value);
 int32_t getNumber(Value value);

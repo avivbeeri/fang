@@ -166,6 +166,7 @@ static TAC_OPERAND TAC_emitConstant(TAC_BLOCK* context, TAC_OPERAND operand, uin
   };
   TAC_OPERAND literal = (TAC_OPERAND){
     .tag = TAC_OPERAND_LITERAL,
+    .type = VALUE_getType(LIT_NUM(constant)),
     .data = { .TAC_OPERAND_LITERAL = lit }
   };
   TAC_addInstruction(context, (TAC){
@@ -191,6 +192,7 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
         };
         TAC_OPERAND operand = (TAC_OPERAND){
           .tag = TAC_OPERAND_VARIABLE,
+          .type = ast.type,
           .data = { .TAC_OPERAND_VARIABLE = var }
         };
         return operand;
@@ -203,6 +205,7 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
         };
         TAC_OPERAND operand = (TAC_OPERAND){
           .tag = TAC_OPERAND_LITERAL,
+          .type = ast.type,
           .data = { .TAC_OPERAND_LITERAL = lit }
         };
         return operand;
@@ -216,6 +219,7 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
         };
         TAC_OPERAND operand = (TAC_OPERAND){
           .tag = TAC_OPERAND_TEMPORARY,
+          .type = ast.type,
           .data = { .TAC_OPERAND_TEMPORARY = temp }
         };
         TAC_OP_TYPE op = TAC_OP_ERROR;
@@ -242,10 +246,12 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
         };
         TAC_OPERAND operand = (TAC_OPERAND){
           .tag = TAC_OPERAND_TEMPORARY,
+          .type = ast.type,
           .data = { .TAC_OPERAND_TEMPORARY = temp }
         };
 
         if (data.op == OP_AND) {
+          operand.type = 2;
           uint32_t falseLabel = labelNo++;
           uint32_t doneLabel = labelNo++;
           TAC_OPERAND l = traverseExpr(context, data.left);
@@ -259,6 +265,7 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
           TAC_emitLabel(context, doneLabel);
           return operand;
         } else if (data.op == OP_OR) {
+          operand.type = 2;
           uint32_t trueLabel = labelNo++;
           uint32_t doneLabel = labelNo++;
           TAC_OPERAND l = traverseExpr(context, data.left);
@@ -351,6 +358,7 @@ static int traverseStmt(TAC_BLOCK* context, AST* ptr) {
         };
         TAC_OPERAND l = (TAC_OPERAND){
           .tag = TAC_OPERAND_VARIABLE,
+          .type = ast.type,
           .data = { .TAC_OPERAND_VARIABLE = var }
         };
 
@@ -578,16 +586,19 @@ static void dumpOperand(TAC_OPERAND operand) {
   switch (operand.tag) {
     case TAC_OPERAND_LITERAL:
       {
+        printf("(%s) ", CHARS(TYPE_get(operand.type).name));
         printValue(operand.data.TAC_OPERAND_LITERAL.value);
         break;
       }
     case TAC_OPERAND_VARIABLE:
       {
+        printf("(%s) ", CHARS(TYPE_get(operand.type).name));
         printf("%s", CHARS(operand.data.TAC_OPERAND_VARIABLE.name));
         break;
       }
     case TAC_OPERAND_TEMPORARY:
       {
+        printf("(%s) ", CHARS(TYPE_get(operand.type).name));
         printf("t%i", operand.data.TAC_OPERAND_TEMPORARY.n);
         break;
       }

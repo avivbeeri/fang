@@ -146,3 +146,37 @@ bool isTruthy(Value value) {
   }
   return false;
 }
+
+#define VOID_INDEX 1
+#define BOOL_INDEX 2
+#define U8_INDEX 3
+#define I8_INDEX 4
+#define U16_INDEX 5
+#define I16_INDEX 6
+#define NUMERICAL_INDEX 7
+#define STRING_INDEX 8
+#define FN_INDEX 9
+#define CHAR_INDEX 10
+TYPE_ID VALUE_getType(Value value) {
+  switch (value.type) {
+    case VAL_ERROR: return 0;
+    case VAL_UNDEF: return 1; // void
+    case VAL_BOOL: return BOOL_INDEX;
+
+    case VAL_CHAR: return CHAR_INDEX;
+    case VAL_U8: return U8_INDEX;
+
+    case VAL_I8: return I8_INDEX;
+
+    case VAL_U16: return U16_INDEX;
+    case VAL_PTR: return STRING_INDEX;
+
+    case VAL_I16: return I16_INDEX;
+    case VAL_LIT_NUM: return NUMERICAL_INDEX;
+    case VAL_STRING: return STRING_INDEX;
+    case VAL_RECORD: return 0;
+    case VAL_ARRAY: return 0;
+    // Open to implicit num casting
+  }
+  return 0;
+}

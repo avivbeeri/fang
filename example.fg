@@ -18,7 +18,10 @@ bank newtest {
 */
 
 fn main(): void {
-  var i: bool = 1 || 6;
+  var i: i8 = 1;
+  if (i < 5) {
+    i = 4;
+  }
 }
 
 
