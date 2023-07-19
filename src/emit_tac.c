@@ -24,7 +24,7 @@
 
 #include "options.h"
 #include "tac.h"
-PLATFORM p;
+static PLATFORM p;
 
 // ****** GB PLATFORM TEMP ******
 
@@ -175,7 +175,7 @@ static struct ACCESS_RECORD* scanBlock(TAC_BLOCK* block) {
     records[i].length = records[i].end - records[i].start;
     printf(": From %i to %i\n", records[i].start, records[i].end);
   }
-  return NULL;
+  return records;
 }
 
 static void emitBlock(FILE* f, TAC_BLOCK* block) {
