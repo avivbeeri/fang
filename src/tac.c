@@ -330,6 +330,7 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
           l = traverseExpr(context, data.left);
           r = traverseExpr(context, data.right);
         }
+        /*
         if (l.tag == TAC_OPERAND_VARIABLE) {
           TAC_OPERAND t = tempOperand(l.type);
           TAC_addInstruction(context, (TAC){
@@ -341,6 +342,7 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
 
           l = t;
         }
+        */
         TAC_OP_TYPE op = TAC_OP_ERROR;
         switch (data.op) {
           case OP_ADD:
