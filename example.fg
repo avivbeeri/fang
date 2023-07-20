@@ -18,13 +18,13 @@ bank newtest {
 */
 
 fn main(): void {
-  var i: i8 = 3;
-  if (i < 5) {
-    i = 4;
-  }
-  while (i < 5) {
-    i = i - 1;
-  }
+  var a: i8;
+  var b: i8;
+  var c: i8;
+  var d: i8;
+  var f: i8;
+  var g: i8;
+  a = (b + c + f * g) * (d + 3);
 }
 
 

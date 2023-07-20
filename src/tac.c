@@ -178,6 +178,40 @@ static TAC_OPERAND TAC_emitConstant(TAC_BLOCK* context, TAC_OPERAND operand, uin
   return operand;
 }
 
+static int computeRegisterCount(AST* ptr, bool left) {
+  AST ast = *ptr;
+  switch (ast.tag) {
+    case AST_IDENTIFIER:
+      {
+        return left ? 1 : 0;
+      }
+    case AST_LITERAL:
+      {
+        return 0;
+      }
+    case AST_UNARY:
+      {
+        struct AST_UNARY data = ast.data.AST_UNARY;
+        return computeRegisterCount(data.expr, left);
+      }
+    case AST_BINARY:
+      {
+        struct AST_BINARY data = ast.data.AST_BINARY;
+        int l = computeRegisterCount(data.left, true);
+        int r = computeRegisterCount(data.right, false);
+        /*
+         *  if (l != r) {
+         *    return max(l, r)
+         *  } else {
+         *    return r + 1;
+         *  }
+         */
+        return l != r ? ((l > r) ? l : r) : r + 1;
+      }
+    default: break;
+  }
+  return 0;
+}
 static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
   AST ast = *ptr;
   switch (ast.tag) {
@@ -283,8 +317,18 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
           return operand;
         }
 
-        TAC_OPERAND l = traverseExpr(context, data.left);
-        TAC_OPERAND r = traverseExpr(context, data.right);
+        // Sethi-Ullman scheduling
+        int lr = computeRegisterCount(data.left, false);
+        int rr = computeRegisterCount(data.right, false);
+        TAC_OPERAND l;
+        TAC_OPERAND r;
+        if (lr < rr) {
+          r = traverseExpr(context, data.right);
+          l = traverseExpr(context, data.left);
+        } else {
+          l = traverseExpr(context, data.left);
+          r = traverseExpr(context, data.right);
+        }
         TAC_OP_TYPE op = TAC_OP_ERROR;
         switch (data.op) {
           case OP_ADD:
