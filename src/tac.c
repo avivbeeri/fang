@@ -113,12 +113,13 @@ static TAC_OPERAND labelOperand(uint64_t label) {
   return operand;
 }
 
-static TAC_OPERAND tempOperand(void) {
+static TAC_OPERAND tempOperand(TYPE_ID type) {
   struct TAC_OPERAND_TEMPORARY temp = {
     .n = tempNo++
   };
   TAC_OPERAND operand = (TAC_OPERAND){
     .tag = TAC_OPERAND_TEMPORARY,
+    .type = type,
     .data = { .TAC_OPERAND_TEMPORARY = temp }
   };
   return operand;
@@ -328,6 +329,17 @@ static TAC_OPERAND traverseExpr(TAC_BLOCK* context, AST* ptr) {
         } else {
           l = traverseExpr(context, data.left);
           r = traverseExpr(context, data.right);
+        }
+        if (l.tag == TAC_OPERAND_VARIABLE) {
+          TAC_OPERAND t = tempOperand(l.type);
+          TAC_addInstruction(context, (TAC){
+            .tag = TAC_TYPE_COPY,
+            .op1 = t,
+            .op2 = l,
+            .op = TAC_OP_NONE,
+          });
+
+          l = t;
         }
         TAC_OP_TYPE op = TAC_OP_ERROR;
         switch (data.op) {
