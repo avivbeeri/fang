@@ -17,8 +17,8 @@ bank newtest {
 }
 */
 
+var a:i8  = 5;
 fn main(): void {
-  var a: i8;
   var b: i8;
   var c: i8;
   var d: i8;

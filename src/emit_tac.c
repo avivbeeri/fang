@@ -28,9 +28,20 @@ static PLATFORM p;
 
 // ****** GB PLATFORM TEMP ******
 
+enum ACCESS_RECORD_LOCATION {
+  LOCATION_NONE,
+  LOCATION_MEMORY,
+  LOCATION_REGISTER,
+  LOCATION_SPILLED,
+  LOCATION_ACCUMULATOR,
+};
+
 struct ACCESS_RECORD {
   TAC_OPERAND operand;
   bool local; // Global
+  // location
+  enum ACCESS_RECORD_LOCATION locationType;
+  uint64_t location;
   uint64_t start;
   uint64_t end;
   uint64_t length;
@@ -80,10 +91,6 @@ static void GB_free() {
   arrfree(sizeTable);
 }
 
-static char* symbol(TAC_OPERAND op) {
-  return NULL;
-}
-
 static bool TAC_OPERAND_equal(TAC_OPERAND op1, TAC_OPERAND op2) {
   if (op1.tag == op2.tag) {
     if (op1.tag == TAC_OPERAND_TEMPORARY) {
@@ -97,6 +104,40 @@ static bool TAC_OPERAND_equal(TAC_OPERAND op1, TAC_OPERAND op2) {
   return false;
 }
 
+static struct ACCESS_RECORD* getRecord(struct ACCESS_RECORD* records, TAC_OPERAND op) {
+  for (int i = 0; i < arrlen(records); i++) {
+    if (TAC_OPERAND_equal(records[i].operand, op)) {
+      return &(records[i]);
+    }
+  }
+  return NULL;
+}
+
+static char* symbol(struct ACCESS_RECORD* records, TAC_OPERAND op) {
+  if (op.tag == TAC_OPERAND_VARIABLE) {
+    struct TAC_OPERAND_VARIABLE var = op.data.TAC_OPERAND_VARIABLE;
+    struct ACCESS_RECORD* record = getRecord(records, op);
+    if (record->locationType == LOCATION_MEMORY) {
+      SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_get(var.scopeIndex, var.name);
+      if (entry.storageType == STORAGE_TYPE_GLOBAL || entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
+        return "[$xxxx]";
+      }
+      return "[SP+e8]";
+    }
+    if (record->locationType == LOCATION_SPILLED) {
+      return "[HL]";
+    }
+    if (record->locationType == LOCATION_ACCUMULATOR) {
+      return "A";
+    }
+    if (record->locationType == LOCATION_REGISTER) {
+      return "reg";
+    }
+  }
+  return "unknown";
+}
+
+
 static struct ACCESS_RECORD* updateRecords(struct ACCESS_RECORD* records, uint64_t step, TAC_OPERAND operand) {
 
   if (operand.tag != TAC_OPERAND_TEMPORARY && operand.tag != TAC_OPERAND_VARIABLE) {
@@ -106,9 +147,11 @@ static struct ACCESS_RECORD* updateRecords(struct ACCESS_RECORD* records, uint64
   bool found = false;
   for (; i < arrlen(records); i++) {
     struct ACCESS_RECORD current = records[i];
+    /*
     if (current.operand.tag == TAC_OPERAND_LITERAL || current.operand.tag == TAC_OPERAND_LABEL) {
       continue;
     }
+    */
     if (TAC_OPERAND_equal(current.operand, operand)) {
       found = true;
       break;
@@ -122,10 +165,21 @@ static struct ACCESS_RECORD* updateRecords(struct ACCESS_RECORD* records, uint64
   } else {
     printf("Adding ");
     dumpOperand(operand);
+    enum ACCESS_RECORD_LOCATION location = LOCATION_NONE;
+    if (operand.tag == TAC_OPERAND_VARIABLE) {
+      struct TAC_OPERAND_VARIABLE var = operand.data.TAC_OPERAND_VARIABLE;
+      SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_get(var.scopeIndex, var.name);
+      if (entry.storageType == STORAGE_TYPE_GLOBAL || entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
+        location = LOCATION_MEMORY;
+      } else if (entry.storageType == STORAGE_TYPE_LOCAL || entry.storageType == STORAGE_TYPE_LOCAL_OBJECT) {
+        location = LOCATION_MEMORY;
+      }
+    }
     printf("\n");
     arrput(records, ((struct ACCESS_RECORD){
       .operand = operand,
       .local = true, // TODO false
+      .locationType = location,
       .start = step,
       .end = step
     }));
@@ -173,7 +227,17 @@ static struct ACCESS_RECORD* scanBlock(TAC_BLOCK* block) {
   for (int i = 0; i < arrlen(records); i++) {
     dumpOperand(records[i].operand);
     records[i].length = records[i].end - records[i].start;
-    printf(": From %i to %i\n", records[i].start, records[i].end);
+    char* location = "unknown";
+    if (records[i].locationType == LOCATION_MEMORY) {
+      struct TAC_OPERAND_VARIABLE var = records[i].operand.data.TAC_OPERAND_VARIABLE;
+      SYMBOL_TABLE_ENTRY entry = SYMBOL_TABLE_get(var.scopeIndex, var.name);
+      if (entry.storageType == STORAGE_TYPE_GLOBAL || entry.storageType == STORAGE_TYPE_GLOBAL_OBJECT) {
+        location = "memory";
+      } else {
+        location = "memory - local";
+      }
+    }
+    printf(" (%s): From %i to %i\n", location, records[i].start, records[i].end);
   }
   return records;
 }
@@ -185,7 +249,24 @@ static void emitBlock(FILE* f, TAC_BLOCK* block) {
     switch (instruction->tag) {
       case TAC_TYPE_COPY:
         {
-          fprintf(f, "LD %s, %s\n", symbol(instruction->op1), symbol(instruction->op2));
+          if (instruction->op2.tag == TAC_OPERAND_LITERAL) {
+            fprintf(f, "LD A, %i\n", 0);
+          } else if (instruction->op1.tag == TAC_OPERAND_TEMPORARY) {
+            fprintf(f, "LD A, %i\n", 42);
+            // shift anything in accumulator elsewhere
+            // do copy to temp
+          } else {
+            struct ACCESS_RECORD* record = getRecord(records, instruction->op2);
+            if (record->locationType == LOCATION_MEMORY) {
+              // emit code to load to register
+              record->locationType = LOCATION_ACCUMULATOR;
+              fprintf(f, "LD %s, %s\n", symbol(records, instruction->op1), symbol(records, instruction->op2));
+            }
+            record = getRecord(records, instruction->op1);
+            record->locationType = LOCATION_ACCUMULATOR;
+            fprintf(f, "LD A, %s\n", symbol(records, instruction->op2));
+            fprintf(f, "LD %s, A\n", symbol(records, instruction->op1));
+          }
         }
         break;
     }
